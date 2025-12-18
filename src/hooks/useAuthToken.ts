@@ -3,26 +3,45 @@
 import { useCallback, useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 
-export function useAuthToken() {
-  const { authenticated, getAccessToken } = usePrivy();
-  const [tokenPreview, setTokenPreview] = useState("");
+type UseAuthTokenResult = {
+  token: string;
+  authenticated: boolean;
+  ready: boolean;
+  ensureTokenOrLogin: () => Promise<string>;
+};
 
-  const getToken = useCallback(async () => {
-    if (!authenticated) return "";
-    const t = await getAccessToken();
-    return t || "";
-  }, [authenticated, getAccessToken]);
+export function useAuthToken(): UseAuthTokenResult {
+  const { ready, authenticated, login, getAccessToken } = usePrivy();
+
+  const [token, setToken] = useState<string>("");
 
   useEffect(() => {
     (async () => {
-      if (!authenticated) {
-        setTokenPreview("");
+      if (!ready || !authenticated) {
+        setToken("");
         return;
       }
       const t = await getAccessToken();
-      setTokenPreview(t ? `${t.slice(0, 22)}...` : "");
+      setToken(t || "");
     })();
-  }, [authenticated, getAccessToken]);
+  }, [ready, authenticated, getAccessToken]);
 
-  return { getToken, tokenPreview };
+  const ensureTokenOrLogin = useCallback(async () => {
+    if (!ready) return "";
+
+    if (!authenticated) {
+      try {
+        await login();
+      } catch {
+        return "";
+      }
+    }
+
+    const t = await getAccessToken();
+    const finalToken = t || "";
+    setToken(finalToken);
+    return finalToken;
+  }, [ready, authenticated, login, getAccessToken]);
+
+  return { token, authenticated, ready, ensureTokenOrLogin };
 }

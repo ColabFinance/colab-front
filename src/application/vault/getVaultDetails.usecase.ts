@@ -1,8 +1,8 @@
-import { clientVaultRead } from "@/infra/evm/contracts/clientVault";
+import { getClientVaultContract } from "@/infra/evm/contracts/clientVault";
 import { VaultDetails } from "@/domain/vault/types";
 
 export async function getVaultDetails(vaultAddress: string): Promise<VaultDetails> {
-  const v = clientVaultRead(vaultAddress);
+  const v = getClientVaultContract({ vaultAddress });
 
   // parallel reads
   const [
@@ -25,7 +25,7 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
     v.strategyId(),
     v.tokens(),
     v.getAutomationConfig(),
-    v.positionTokenIdView(),
+    v.positionTokenId(),
     v.lastRebalanceTs(),
   ]);
 
