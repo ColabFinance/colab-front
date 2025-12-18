@@ -1,31 +1,26 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { usePrivy, useWallets } from "@privy-io/react-auth";
+import { useEffect, useState } from "react";
+import { usePrivy } from "@privy-io/react-auth";
+import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { listVaultsByOwner } from "@/application/vault/listVaultsByOwner.usecase";
+import { Button } from "@/shared/ui/Button";
+import { Card } from "@/shared/ui/Card";
 
 export default function VaultsPage() {
   const { ready, authenticated, login } = usePrivy();
-  const { wallets } = useWallets();
+  const { ownerAddr } = useOwnerAddress();
 
   const [vaults, setVaults] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-
-  const activeWallet = useMemo(() => {
-    const embedded = wallets.find((w) => w.walletClientType === "privy");
-    return embedded ?? wallets[0];
-  }, [wallets]);
-
-  const ownerAddr = activeWallet?.address;
 
   async function refresh() {
     setErr("");
     if (!ownerAddr) return;
     setLoading(true);
     try {
-      const v = await listVaultsByOwner(ownerAddr);
-      setVaults(v);
+      setVaults(await listVaultsByOwner(ownerAddr));
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
@@ -44,12 +39,10 @@ export default function VaultsPage() {
 
   return (
     <main style={{ padding: 24, maxWidth: 900 }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700 }}>My Vaults</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 800 }}>My Vaults</h1>
 
       {!authenticated ? (
-        <button style={btn} onClick={login}>
-          Login to view
-        </button>
+        <Button onClick={login}>Login to view</Button>
       ) : (
         <>
           <div style={{ marginTop: 8 }}>
@@ -57,9 +50,9 @@ export default function VaultsPage() {
           </div>
 
           <div style={{ marginTop: 12 }}>
-            <button style={btn} onClick={refresh} disabled={loading || !ownerAddr}>
+            <Button onClick={refresh} disabled={loading || !ownerAddr}>
               {loading ? "Refreshing..." : "Refresh"}
-            </button>
+            </Button>
           </div>
 
           {err ? <div style={{ marginTop: 12, color: "crimson" }}>{err}</div> : null}
@@ -69,9 +62,11 @@ export default function VaultsPage() {
               <div style={{ opacity: 0.8 }}>No vaults yet.</div>
             ) : (
               vaults.map((v) => (
-                <div key={v} style={card}>
-                  {v}
-                </div>
+                <a key={v} href={`/vaults/${v}`} style={{ textDecoration: "none", color: "inherit" }}>
+                  <Card style={{ fontFamily: "monospace", cursor: "pointer" }}>
+                    {v}
+                  </Card>
+                </a>
               ))
             )}
           </div>
@@ -80,16 +75,3 @@ export default function VaultsPage() {
     </main>
   );
 }
-
-const btn: React.CSSProperties = {
-  padding: "10px 14px",
-  borderRadius: 10,
-  border: "1px solid #ddd",
-};
-
-const card: React.CSSProperties = {
-  padding: 12,
-  borderRadius: 12,
-  border: "1px solid #eee",
-  fontFamily: "monospace",
-};
