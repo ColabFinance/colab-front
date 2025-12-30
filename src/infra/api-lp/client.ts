@@ -1,10 +1,20 @@
 import { CONFIG } from "@/shared/config/env";
-import { postJson } from "@/infra/http/client";
+import { getJson, postJson } from "@/infra/http/client";
+
+export async function apiLpGet<T>(
+  path: string,
+  accessToken?: string,
+): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;
+
+  return getJson<T>(`${CONFIG.apiLpBaseUrl}${path}`, headers);
+}
 
 export async function apiLpPost<T>(
   path: string,
   body: unknown,
-  accessToken?: string
+  accessToken?: string,
 ): Promise<T> {
   const headers: Record<string, string> = {};
   if (accessToken) headers["Authorization"] = `Bearer ${accessToken}`;

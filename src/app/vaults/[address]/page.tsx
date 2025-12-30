@@ -12,6 +12,7 @@ import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
 
 import { getVaultDetails } from "@/application/vault/getVaultDetails.usecase";
+import { getVaultStatus } from "@/application/vault/getVaultStatus.usecase";
 import { setAutomationEnabled } from "@/application/vault/setAutomationEnabled.usecase";
 import { setAutomationConfig } from "@/application/vault/setAutomationConfig.usecase";
 import { collectToVault } from "@/application/vault/collectToVault.usecase";
@@ -19,6 +20,7 @@ import { exitToVault } from "@/application/vault/exitToVault.usecase";
 import { exitWithdrawAll } from "@/application/vault/exitWithdrawAll.usecase";
 
 import type { VaultDetails } from "@/domain/vault/types";
+import type { VaultStatus } from "@/domain/vault/status";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -31,29 +33,13 @@ function formatTs(ts?: number) {
   return d.toLocaleString();
 }
 
-function normalizeAddressParam(p: unknown): string {
-  const raw = Array.isArray(p) ? p[0] : p;
-  const s = typeof raw === "string" ? raw.trim() : "";
-  if (!s) return "";
-  if (!s.startsWith("0x")) return "";
-  if (s.length !== 42) return "";
-  return s;
-}
-
-type WalletTxResult = {
-  tx_hash: string;
-  receipt: any;
-};
-
 export default function VaultDetailsPage() {
   const params = useParams();
 
   const vaultAddress = useMemo(() => {
     const raw = (params as any)?.address;
-
     if (!raw) return "";
     if (Array.isArray(raw)) return raw[0] || "";
-
     return String(raw);
   }, [params]);
 
@@ -66,7 +52,13 @@ export default function VaultDetailsPage() {
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [data, setData] = useState<VaultDetails | null>(null);
-  const [lastTx, setLastTx] = useState<WalletTxResult | null>(null);
+  const [lastTx, setLastTx] = useState<{ tx_hash: string; receipt: any } | null>(null);
+
+  // status panel (api-lp)
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusErr, setStatusErr] = useState("");
+  const [status, setStatus] = useState<VaultStatus | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
 
   // form state
   const [cooldownSec, setCooldownSec] = useState<string>("0");
@@ -77,8 +69,9 @@ export default function VaultDetailsPage() {
   const isOwner = !!data?.owner && !!ownerAddr && data.owner.toLowerCase() === ownerAddr.toLowerCase();
 
   async function refresh() {
-    if (!vaultAddress) return <div style={{ padding: 24 }}>Missing address</div>;
-    if (!isAddress) return <div style={{ padding: 24 }}>Invalid address: {vaultAddress}</div>;
+    if (!vaultAddress) return;
+    if (!isAddress) return;
+
     setErr("");
     setLoading(true);
     try {
@@ -96,6 +89,25 @@ export default function VaultDetailsPage() {
     }
   }
 
+  async function refreshStatus() {
+    if (!vaultAddress) return;
+    if (!isAddress) return;
+
+    setStatusErr("");
+    setStatusLoading(true);
+    try {
+      const s = await getVaultStatus(vaultAddress);
+      setStatus(s);
+      setStatusOpen(true);
+      push({ title: "Status loaded", description: `${shortAddr(s.pool)} pool` });
+    } catch (e: any) {
+      setStatusErr(e?.message || String(e));
+      setStatus(null);
+    } finally {
+      setStatusLoading(false);
+    }
+  }
+
   async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -105,16 +117,11 @@ export default function VaultDetailsPage() {
     }
   }
 
-  async function runTx(fn: () => Promise<WalletTxResult>) {
+  async function runTx(fn: () => Promise<{ tx_hash: string; receipt: any }>) {
     setErr("");
     setLastTx(null);
 
-    if (!isAddress) {
-      setErr(`Invalid vault address: ${vaultAddress}`);
-      return;
-    }
-    
-    if (!vaultAddress) {
+    if (!isAddress || !vaultAddress) {
       setErr("Invalid vault address in URL.");
       return;
     }
@@ -142,7 +149,7 @@ export default function VaultDetailsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vaultAddress]);
 
-  if (!vaultAddress) {
+  if (!vaultAddress || !isAddress) {
     return <div style={{ padding: 24 }}>Invalid or missing vault address in URL.</div>;
   }
 
@@ -157,17 +164,66 @@ export default function VaultDetailsPage() {
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: 10 }}>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
           <Button onClick={() => copy(vaultAddress)} variant="ghost">
             Copy address
           </Button>
           <Button onClick={refresh} disabled={loading}>
             {loading ? "Refreshing..." : "Refresh"}
           </Button>
+          <Button onClick={refreshStatus} disabled={statusLoading}>
+            {statusLoading ? "Loading status..." : "Vault status"}
+          </Button>
         </div>
       </div>
 
       {err ? <div style={{ marginTop: 12, color: "crimson" }}>{err}</div> : null}
+
+      {statusErr ? <div style={{ marginTop: 12, color: "crimson" }}>{statusErr}</div> : null}
+
+      {statusOpen && status ? (
+        <Card style={{ marginTop: 12 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+            <div style={{ fontWeight: 800 }}>Vault status (api-lp)</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <Button variant="ghost" onClick={() => setStatusOpen(false)}>
+                Close
+              </Button>
+              <Button variant="ghost" onClick={() => copy(JSON.stringify(status, null, 2))}>
+                Copy JSON
+              </Button>
+            </div>
+          </div>
+
+          <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <Mini label="Pool" value={status.pool} />
+            <Mini label="Adapter" value={status.adapter} />
+            <Mini label="NFPM" value={status.nfpm} />
+            <Mini label="Gauge" value={status.gauge} />
+            <Mini label="Pair" value={`${status.token0.symbol}/${status.token1.symbol}`} />
+            <Mini label="Tick" value={`${status.tick}`} />
+            <Mini label="Range" value={`${status.lower_tick} → ${status.upper_tick} (${status.range_side})`} />
+            <Mini label="Out of range" value={String(status.out_of_range)} />
+            <Mini
+              label="Price"
+              value={`${status.prices.current.p_t1_t0.toFixed(6)} ${status.token1.symbol} per ${status.token0.symbol}`}
+            />
+            <Mini
+              label="Fees (uncollected)"
+              value={`${status.fees_uncollected.token0.toFixed(6)} ${status.token0.symbol} / ${status.fees_uncollected.token1.toFixed(6)} ${status.token1.symbol}`}
+            />
+            <Mini
+              label="Holdings (totals)"
+              value={`${status.holdings.totals.token0.toFixed(6)} ${status.token0.symbol} / ${status.holdings.totals.token1.toFixed(6)} ${status.token1.symbol}`}
+            />
+            <Mini label="Last rebalance" value={formatTs(status.last_rebalance_ts)} />
+          </div>
+
+          <pre style={{ marginTop: 12, background: "#fafafa", padding: 10, borderRadius: 10, overflow: "auto" }}>
+            {JSON.stringify(status, null, 2)}
+          </pre>
+        </Card>
+      ) : null}
 
       {lastTx ? (
         <Card style={{ marginTop: 12 }}>
@@ -327,9 +383,7 @@ export default function VaultDetailsPage() {
                 </Button>
               </div>
 
-              <div style={{ marginTop: 10, opacity: 0.75 }}>
-                Obs: essas txs são onchain via wallet do usuário.
-              </div>
+              <div style={{ marginTop: 10, opacity: 0.75 }}>Obs: essas txs são onchain via wallet do usuário.</div>
             </Card>
           </div>
         </>
@@ -346,6 +400,17 @@ function Row(props: { label: string; value: string; right?: string }) {
       <div style={{ fontFamily: "monospace" }}>
         <div>{value || "-"}</div>
         {right ? <div style={{ opacity: 0.7, marginTop: 2 }}>{right}</div> : null}
+      </div>
+    </div>
+  );
+}
+
+function Mini(props: { label: string; value: string }) {
+  return (
+    <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 10 }}>
+      <div style={{ fontSize: 12, opacity: 0.7 }}>{props.label}</div>
+      <div style={{ marginTop: 6, fontFamily: "monospace", fontSize: 12, wordBreak: "break-all" }}>
+        {props.value || "-"}
       </div>
     </div>
   );

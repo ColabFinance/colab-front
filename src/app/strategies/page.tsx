@@ -14,7 +14,7 @@ import { Card } from "@/shared/ui/Card";
 export default function StrategiesPage() {
   const { ready, authenticated, login } = usePrivy();
   const { ownerAddr, ensureWallet, linkExternal } = useOwnerAddress();
-  const { getToken } = useAuthToken();
+  const { ensureTokenOrLogin } = useAuthToken();
   const { push } = useToast();
 
   const [loading, setLoading] = useState(false);
@@ -54,7 +54,12 @@ export default function StrategiesPage() {
       }
 
       setLoading(true);
-      const token = await getToken();
+      const token = await ensureTokenOrLogin();
+      
+      if (!token) {
+        setErr("Missing access token. Please login again.");
+        return;
+      }
 
       const res = await createVault({
         strategyId,
