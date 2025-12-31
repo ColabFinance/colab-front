@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { listStrategiesOnchain } from "@/application/strategy/listStrategies.usecase";
-import { createVault } from "@/application/vault/createVault.usecase";
+import { createVault } from "@/application/vault/api/createVault.usecase";
 import { Strategy } from "@/domain/strategy/types";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useAuthToken } from "@/hooks/useAuthToken";

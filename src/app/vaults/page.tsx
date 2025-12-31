@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
-import { listVaultsByOwner } from "@/application/vault/listVaultsByOwner.usecase";
+import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 

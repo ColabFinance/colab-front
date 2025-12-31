@@ -1,16 +1,16 @@
 import type { ConnectedWallet } from "@privy-io/react-auth";
 import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 import { getClientVaultContract } from "@/infra/evm/contracts/clientVault";
-import type { WalletTxResult } from "@/application/vault/setAutomationEnabled.usecase";
+import type { WalletTxResult } from "@/application/vault/onchain/setAutomationEnabled.usecase";
 
-export async function collectToVault(params: {
+export async function claimRewards(params: {
   wallet: ConnectedWallet;
   vaultAddress: string;
 }): Promise<WalletTxResult> {
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
   const vault = getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
-  const tx = await vault.collectToVault();
+  const tx = await vault.claimRewards();
   const receipt = await tx.wait();
 
   return { tx_hash: tx.hash as string, receipt };

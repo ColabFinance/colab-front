@@ -11,13 +11,13 @@ import { useToast } from "@/shared/ui/toast/useToast";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
 
-import { getVaultDetails } from "@/application/vault/getVaultDetails.usecase";
-import { getVaultStatus } from "@/application/vault/getVaultStatus.usecase";
-import { setAutomationEnabled } from "@/application/vault/setAutomationEnabled.usecase";
-import { setAutomationConfig } from "@/application/vault/setAutomationConfig.usecase";
-import { collectToVault } from "@/application/vault/collectToVault.usecase";
-import { exitToVault } from "@/application/vault/exitToVault.usecase";
-import { exitWithdrawAll } from "@/application/vault/exitWithdrawAll.usecase";
+import { getVaultDetails } from "@/application/vault/onchain/getVaultDetails.usecase";
+import { getVaultStatus } from "@/application/vault/api/getVaultStatus.usecase";
+import { setAutomationEnabled } from "@/application/vault/onchain/setAutomationEnabled.usecase";
+import { setAutomationConfig } from "@/application/vault/onchain/setAutomationConfig.usecase";
+import { collectToVault } from "@/application/vault/onchain/collectToVault.usecase";
+import { exitToVault } from "@/application/vault/onchain/exitToVault.usecase";
+import { exitWithdrawAll } from "@/application/vault/onchain/exitWithdrawAll.usecase";
 
 import type { VaultDetails } from "@/domain/vault/types";
 import type { VaultStatus } from "@/domain/vault/status";

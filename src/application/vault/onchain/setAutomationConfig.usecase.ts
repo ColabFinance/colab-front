@@ -1,7 +1,7 @@
 import type { ConnectedWallet } from "@privy-io/react-auth";
 import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 import { getClientVaultContract } from "@/infra/evm/contracts/clientVault";
-import type { WalletTxResult } from "@/application/vault/setAutomationEnabled.usecase";
+import type { WalletTxResult } from "@/application/vault/onchain/setAutomationEnabled.usecase";
 
 export async function setAutomationConfig(params: {
   wallet: ConnectedWallet;
