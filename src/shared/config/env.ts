@@ -42,6 +42,9 @@ const ENV = {
 
   // API
   NEXT_PUBLIC_API_LP_BASE_URL: process.env.NEXT_PUBLIC_API_LP_BASE_URL,
+
+  // Admin
+  NEXT_PUBLIC_ADMIN_WALLETS: process.env.NEXT_PUBLIC_ADMIN_WALLETS,
 };
 
 const chainKey = normalizeChainKey(ENV.NEXT_PUBLIC_CHAIN);
@@ -83,4 +86,13 @@ export const CONFIG = {
   rpcUrl: pickRpc(chainKey),
   contracts: pickContracts(chainKey),
   apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL, "http://127.0.0.1:8000/api"),
+
+  /**
+   * Admin allowlist (client guard only).
+   * MUST be enforced again in api-lp (server-side) as the source of truth.
+   */
+  adminWallets: optional(ENV.NEXT_PUBLIC_ADMIN_WALLETS, "")
+    .split(",")
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean),
 };
