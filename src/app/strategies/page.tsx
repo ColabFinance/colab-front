@@ -13,7 +13,7 @@ import { Card } from "@/shared/ui/Card";
 
 export default function StrategiesPage() {
   const { ready, authenticated, login } = usePrivy();
-  const { ownerAddr, ensureWallet, linkExternal } = useOwnerAddress();
+  const { ownerAddr, activeWallet } = useOwnerAddress();
   const { ensureTokenOrLogin } = useAuthToken();
   const { push } = useToast();
 
@@ -45,17 +45,13 @@ export default function StrategiesPage() {
       }
 
       if (!ownerAddr) {
-        await ensureWallet();
-      }
-
-      if (!ownerAddr) {
-        setErr("Ainda sem wallet. Use 'Create embedded wallet' ou 'Link MetaMask'.");
+        setErr("Ainda sem wallet. Faça login novamente ou link MetaMask.");
         return;
       }
 
       setLoading(true);
       const token = await ensureTokenOrLogin();
-      
+
       if (!token) {
         setErr("Missing access token. Please login again.");
         return;
@@ -90,27 +86,24 @@ export default function StrategiesPage() {
     <main style={{ padding: 24, maxWidth: 1100 }}>
       <h1 style={{ fontSize: 22, fontWeight: 800 }}>Strategies</h1>
 
-      <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center" }}>
+      <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <Button onClick={refresh} disabled={loading}>
           {loading ? "Refreshing..." : "Refresh"}
         </Button>
-        <div style={{ opacity: 0.85 }}>
-          Owner: <b>{ownerAddr || "-"}</b>
-        </div>
 
-        {authenticated && !ownerAddr ? (
-          <>
-            <Button onClick={ensureWallet} disabled={loading}>Create embedded wallet</Button>
-            <Button onClick={linkExternal} disabled={loading}>Link MetaMask</Button>
-          </>
-        ) : null}
+        <div style={{ opacity: 0.85 }}>
+          Owner: <b>{ownerAddr || "-"}</b>{" "}
+          <span style={{ opacity: 0.75 }}>({activeWallet?.walletClientType || "unknown"})</span>
+        </div>
       </div>
 
       {err ? <div style={{ marginTop: 12, color: "crimson" }}>{err}</div> : null}
 
       {lastTx ? (
         <Card style={{ marginTop: 12 }}>
-          <div><b>Last createClientVault tx:</b></div>
+          <div>
+            <b>Last createClientVault tx:</b>
+          </div>
           <pre style={{ marginTop: 8, background: "#fafafa", padding: 10, borderRadius: 10, overflow: "auto" }}>
             {JSON.stringify(lastTx, null, 2)}
           </pre>
@@ -129,12 +122,10 @@ export default function StrategiesPage() {
               </div>
 
               <div style={{ textAlign: "right" }}>
-                <div>Active: <b>{String(s.active)}</b></div>
-                <Button
-                  onClick={() => onCreateVault(s.strategyId)}
-                  disabled={loading || !s.active}
-                  style={{ marginTop: 8 }}
-                >
+                <div>
+                  Active: <b>{String(s.active)}</b>
+                </div>
+                <Button onClick={() => onCreateVault(s.strategyId)} disabled={loading || !s.active} style={{ marginTop: 8 }}>
                   {loading ? "Creating..." : "Create vault"}
                 </Button>
               </div>

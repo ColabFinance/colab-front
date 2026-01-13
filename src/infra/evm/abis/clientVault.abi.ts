@@ -49,6 +49,16 @@ export const ClientVaultAbi = [
     inputs: [],
     outputs: [{ type: "uint256", name: "amount0" }, { type: "uint256", name: "amount1" }],
   },
+  {
+    type: "function",
+    name: "openInitialPosition",
+    stateMutability: "nonpayable",
+    inputs: [
+      { type: "int24", name: "lowerTick" },
+      { type: "int24", name: "upperTick" },
+    ],
+    outputs: [],
+  },
   { type: "function", name: "exitPositionToVault", stateMutability: "nonpayable", inputs: [], outputs: [] },
   { type: "function", name: "exitPositionAndWithdrawAll", stateMutability: "nonpayable", inputs: [{ type: "address", name: "to" }], outputs: [] },
   { type: "function", name: "stake", stateMutability: "nonpayable", inputs: [], outputs: [] },
