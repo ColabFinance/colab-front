@@ -6,6 +6,7 @@ import { usePrivy } from "@privy-io/react-auth";
 
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
+import { Input } from "@/shared/ui/Input";
 import { useToast } from "@/shared/ui/toast/useToast";
 
 import { useAuthToken } from "@/hooks/useAuthToken";
@@ -16,6 +17,9 @@ import { createStrategyRegistryUseCase } from "@/application/admin/createStrateg
 import { createVaultFactoryUseCase } from "@/application/admin/createVaultFactory.usecase";
 import { listOwnersUseCase } from "@/application/admin/listOwners.usecase";
 import { listUsersUseCase } from "@/application/admin/listUsers.usecase";
+
+import { createAdapterUseCase } from "@/application/admin/createAdapter.usecase";
+import { listAdaptersUseCase } from "@/application/admin/listAdapters.usecase";
 
 import { listStrategiesOnchain } from "@/application/strategy/listStrategies.usecase";
 import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
@@ -45,7 +49,19 @@ export default function AdminPage() {
   const [cooldownSec, setCooldownSec] = useState<number>(300);
   const [maxSlippageBps, setMaxSlippageBps] = useState<number>(50);
   const [allowSwap, setAllowSwap] = useState<boolean>(true);
+  const [adaptersJson, setAdaptersJson] = useState<any>(null);
 
+  const [adapterForm, setAdapterForm] = useState({
+    dex: "pancake_v3",
+    pool: "",
+    nfpm: "",
+    gauge: "0x0000000000000000000000000000000000000000",
+    token0: "",
+    token1: "",
+    pool_name: "WETH/USDC",
+    fee_bps: "300",
+    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+  });
 
   const sessionLabel = useMemo(() => {
     return {
@@ -266,6 +282,137 @@ export default function AdminPage() {
             (3) allow creation only when the existing factory is in a status that enables replacement.
           </div>
         </Card>
+        
+        <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>Adapters</div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="DEX"
+                placeholder="pancake_v3"
+                value={adapterForm.dex}
+                onChange={(e) => setAdapterForm((s) => ({ ...s, dex: e.target.value }))}
+              />
+              <Input
+                label="Status"
+                placeholder="ACTIVE"
+                value={adapterForm.status}
+                onChange={(e) =>
+                  setAdapterForm((s) => ({
+                    ...s,
+                    status: (e.target.value || "ACTIVE").toUpperCase() as any,
+                  }))
+                }
+              />
+            </div>
+
+            <Input
+              label="Pool (constructor param)"
+              placeholder="Pool address 0x..."
+              value={adapterForm.pool}
+              onChange={(e) => setAdapterForm((s) => ({ ...s, pool: e.target.value }))}
+            />
+
+            <Input
+              label="NFPM (constructor param)"
+              placeholder="NonfungiblePositionManager 0x..."
+              value={adapterForm.nfpm}
+              onChange={(e) => setAdapterForm((s) => ({ ...s, nfpm: e.target.value }))}
+            />
+
+            <Input
+              label="Gauge (constructor param, can be zero)"
+              placeholder="MasterChef/Gauge 0x0000... allowed"
+              value={adapterForm.gauge}
+              onChange={(e) => setAdapterForm((s) => ({ ...s, gauge: e.target.value }))}
+            />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="Token0"
+                placeholder="Token0 0x..."
+                value={adapterForm.token0}
+                onChange={(e) => setAdapterForm((s) => ({ ...s, token0: e.target.value }))}
+              />
+              <Input
+                label="Token1"
+                placeholder="Token1 0x..."
+                value={adapterForm.token1}
+                onChange={(e) => setAdapterForm((s) => ({ ...s, token1: e.target.value }))}
+              />
+            </div>
+
+            <Input
+              label="Pool name"
+              placeholder="WETH/USDC"
+              value={adapterForm.pool_name}
+              onChange={(e) => setAdapterForm((s) => ({ ...s, pool_name: e.target.value }))}
+            />
+
+            <Input
+              label="Fee (bps as string)"
+              placeholder="Fee bps 300"
+              value={adapterForm.fee_bps}
+              onChange={(e) => setAdapterForm((s) => ({ ...s, fee_bps: e.target.value }))}
+            />
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button
+                disabled={!!busy}
+                onClick={async () => {
+                  const payload = {
+                    gas_strategy: "buffered",
+                    dex: adapterForm.dex.trim(),
+                    pool: adapterForm.pool.trim(),
+                    nfpm: adapterForm.nfpm.trim(),
+                    gauge: adapterForm.gauge.trim(),
+                    token0: adapterForm.token0.trim(),
+                    token1: adapterForm.token1.trim(),
+                    pool_name: adapterForm.pool_name.trim(),
+                    fee_bps: adapterForm.fee_bps.trim(), // string
+                    status: adapterForm.status,
+                  };
+
+                  const res = await runAction("Create Adapter", (t) =>
+                    createAdapterUseCase({ accessToken: t, payload })
+                  );
+
+                  push({ title: "Result", description: res?.message || "OK" });
+                }}
+              >
+                {busy === "Create Adapter" ? "Working..." : "Create Adapter"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={async () => {
+                  const res = await runAction("List Adapters", (t) =>
+                    listAdaptersUseCase({ accessToken: t })
+                  );
+                  setAdaptersJson(res);
+                }}
+              >
+                {busy === "List Adapters" ? "Loading..." : "List Adapters"}
+              </Button>
+            </div>
+
+            <div style={{ marginTop: 10, opacity: 0.75 }}>
+              Rule: cannot create if a record already exists for the same (dex, pool).{" "}
+              pool/nfpm must be non-zero addresses. gauge may be zero.
+              fee_bps must be a numeric string (e.g. "100", "300").
+            </div>
+
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>Adapters</div>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+                {adaptersJson ? JSON.stringify(adaptersJson, null, 2) : "—"}
+              </pre>
+            </Card>
+          </div>
+        </Card>
+
 
         <Card>
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Lists</div>
