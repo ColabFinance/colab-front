@@ -12,7 +12,7 @@ import { useAuthToken } from "@/hooks/useAuthToken";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
-import { createStrategyFactoryUseCase } from "@/application/admin/createStrategyFactory.usecase";
+import { createStrategyRegistryUseCase } from "@/application/admin/createStrategyRegistry.usecase";
 import { createVaultFactoryUseCase } from "@/application/admin/createVaultFactory.usecase";
 import { listOwnersUseCase } from "@/application/admin/listOwners.usecase";
 import { listUsersUseCase } from "@/application/admin/listUsers.usecase";
@@ -38,6 +38,15 @@ export default function AdminPage() {
   const [ownersJson, setOwnersJson] = useState<any>(null);
   const [usersJson, setUsersJson] = useState<any>(null);
 
+  const [strategyRegistryAddr, setStrategyRegistryAddr] = useState<string>("");
+  const [executorAddr, setExecutorAddr] = useState<string>("");
+
+  const [feeCollector, setFeeCollector] = useState<string>("0x0000000000000000000000000000000000000000");
+  const [cooldownSec, setCooldownSec] = useState<number>(300);
+  const [maxSlippageBps, setMaxSlippageBps] = useState<number>(50);
+  const [allowSwap, setAllowSwap] = useState<boolean>(true);
+
+
   const sessionLabel = useMemo(() => {
     return {
       ready,
@@ -57,7 +66,7 @@ export default function AdminPage() {
         <Card>
           <div style={{ fontWeight: 800, marginBottom: 8 }}>Login required</div>
           <div style={{ opacity: 0.85 }}>
-            This area is restricted. Please authenticate with Privy to continue.
+            This area is restricted. Please authenticate to continue.
           </div>
 
           <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -142,12 +151,83 @@ export default function AdminPage() {
         <Card>
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Factories</div>
 
+          <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>StrategyRegistry (for VaultFactory)</div>
+                <input
+                  value={strategyRegistryAddr}
+                  onChange={(e) => setStrategyRegistryAddr(e.target.value)}
+                  placeholder="0x..."
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Executor (bot)</div>
+                <input
+                  value={executorAddr}
+                  onChange={(e) => setExecutorAddr(e.target.value)}
+                  placeholder="0x..."
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Cooldown (sec)</div>
+                <input
+                  type="number"
+                  value={cooldownSec}
+                  onChange={(e) => setCooldownSec(Number(e.target.value))}
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Max slippage (bps)</div>
+                <input
+                  type="number"
+                  value={maxSlippageBps}
+                  onChange={(e) => setMaxSlippageBps(Number(e.target.value))}
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Allow swap</div>
+                <label style={{ display: "flex", gap: 8, alignItems: "center", padding: 10 }}>
+                  <input
+                    type="checkbox"
+                    checked={allowSwap}
+                    onChange={(e) => setAllowSwap(e.target.checked)}
+                  />
+                  <span style={{ opacity: 0.9 }}>{String(allowSwap)}</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Fee collector (optional)</div>
+              <input
+                value={feeCollector}
+                onChange={(e) => setFeeCollector(e.target.value)}
+                placeholder="0x0000..."
+                style={{ width: "100%", padding: 10, borderRadius: 10 }}
+              />
+            </div>
+          </div>
+
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
             <Button
               disabled={!!busy}
               onClick={async () => {
                 const res = await runAction("Create Strategy Factory", (t) =>
-                  createStrategyFactoryUseCase({ accessToken: t })
+                  createStrategyRegistryUseCase({
+                    accessToken: t,
+                    body: { initial_owner: ownerAddr, gas_strategy: "buffered" },
+                  })
                 );
                 push({ title: "Result", description: res?.message || "OK" });
               }}
@@ -159,7 +239,19 @@ export default function AdminPage() {
               disabled={!!busy}
               onClick={async () => {
                 const res = await runAction("Create Vault Factory", (t) =>
-                  createVaultFactoryUseCase({ accessToken: t })
+                  createVaultFactoryUseCase({
+                    accessToken: t,
+                    body: {
+                      initial_owner: ownerAddr,
+                      strategy_registry: strategyRegistryAddr,
+                      executor: executorAddr,
+                      fee_collector: feeCollector,
+                      default_cooldown_sec: cooldownSec,
+                      default_max_slippage_bps: maxSlippageBps,
+                      default_allow_swap: allowSwap,
+                      gas_strategy: "buffered",
+                    },
+                  })
                 );
                 push({ title: "Result", description: res?.message || "OK" });
               }}
@@ -196,10 +288,8 @@ export default function AdminPage() {
               disabled={!!busy}
               onClick={async () => {
                 const addr = ownerAddr || "";
-                const res = await runAction("List Vaults", async () => {
-                  // Reusing your existing usecase (by owner). You can later add an admin endpoint for global listing.
-                  return listVaultsByOwner({ owner: addr });
-                });
+                if (!addr) throw new Error("Missing owner address.");
+                const res = await runAction("List Vaults", async () => listVaultsByOwner(addr));
                 setVaultsJson(res);
               }}
             >

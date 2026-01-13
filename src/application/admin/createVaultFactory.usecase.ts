@@ -1,5 +1,5 @@
-import { apiLpAdminCreateVaultFactory } from "@/infra/api-lp/admin";
+import { apiLpAdminCreateVaultFactory, type CreateVaultFactoryBody } from "@/infra/api-lp/admin";
 
-export async function createVaultFactoryUseCase(params: { accessToken: string }) {
-  return apiLpAdminCreateVaultFactory(params.accessToken);
+export async function createVaultFactoryUseCase(params: { accessToken: string; body: CreateVaultFactoryBody }) {
+  return apiLpAdminCreateVaultFactory(params.accessToken, params.body);
 }
