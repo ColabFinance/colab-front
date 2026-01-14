@@ -1,10 +1,16 @@
 import { JsonRpcProvider } from "ethers";
-import { CONFIG } from "@/shared/config/env";
+import { getRpcUrl } from "@/shared/config/env";
+import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
 
-let _provider: JsonRpcProvider | null = null;
+const providerCache: Record<string, JsonRpcProvider> = {};
 
-export function getReadProvider() {
-  if (_provider) return _provider;
-  _provider = new JsonRpcProvider(CONFIG.rpcUrl);
-  return _provider;
+export async function getReadProvider() {
+  const rt = await getActiveChainRuntime();
+  const rpcUrl = getRpcUrl(rt.chainKey);
+
+  const key = `${rt.chainKey}:${rpcUrl}`;
+  if (!providerCache[key]) {
+    providerCache[key] = new JsonRpcProvider(rpcUrl);
+  }
+  return providerCache[key];
 }

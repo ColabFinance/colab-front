@@ -13,7 +13,7 @@ export async function setAutomationEnabled(params: {
   enabled: boolean;
 }): Promise<WalletTxResult> {
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
-  const vault = getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
+  const vault = await getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
   const tx = await vault.setAutomationEnabled(Boolean(params.enabled));
   const receipt = await tx.wait();

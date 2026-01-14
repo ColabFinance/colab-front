@@ -6,12 +6,16 @@ export type AdminResult = {
   data?: unknown;
 };
 
+export type ChainKey = "base" | "bnb";
+
 export type CreateStrategyRegistryBody = {
+  chain: ChainKey;
   gas_strategy?: "default" | "buffered" | "aggressive";
   initial_owner: string;
 };
 
 export type CreateVaultFactoryBody = {
+  chain: ChainKey;
   gas_strategy?: "default" | "buffered" | "aggressive";
   initial_owner: string;
   strategy_registry: string;
@@ -23,6 +27,7 @@ export type CreateVaultFactoryBody = {
 };
 
 export type CreateAdapterBody = {
+  chain: ChainKey;
   gas_strategy?: "default" | "buffered" | "aggressive";
 
   dex: string;
@@ -65,6 +70,9 @@ export async function apiLpAdminCreateAdapter(accessToken: string, payload: Crea
   return apiLpPost<AdminResult>("/admin/adapters/create", payload, accessToken);
 }
 
-export async function apiLpAdminListAdapters(accessToken: string): Promise<AdminResult> {
-  return apiLpGet<AdminResult>("/admin/adapters", accessToken);
+export async function apiLpAdminListAdapters(
+  accessToken: string,
+  chain: ChainKey
+): Promise<AdminResult> {
+  return apiLpGet<AdminResult>(`/admin/adapters?chain=${chain}`, accessToken);
 }

@@ -1,17 +1,18 @@
 import { Strategy } from "@/domain/strategy/types";
 import { getStrategyRegistryRead } from "@/infra/evm/contracts/strategyRegistry";
 
-export async function listStrategiesOnchain(): Promise<Strategy[]> {
-  const reg = getStrategyRegistryRead();
-  const nextIdBn = await reg.nextStrategyId();
-  const nextId = Number(nextIdBn);
+export async function listStrategiesOnchain(owner: string): Promise<Strategy[]> {
+  const reg = await getStrategyRegistryRead();
+
+  // get ids of the owner
+  const idsBn: bigint[] = await reg.getStrategyIdsByOwner(owner);
+  const ids = idsBn.map((x) => Number(x));
 
   const out: Strategy[] = [];
 
-  // ids começam em 1
-  for (let id = 1; id < nextId; id++) {
+  for (const id of ids) {
     try {
-      const s = await reg.getStrategy(id);
+      const s = await reg.getStrategy(owner, id);
       out.push({
         strategyId: id,
         adapter: s.adapter,
@@ -23,7 +24,7 @@ export async function listStrategiesOnchain(): Promise<Strategy[]> {
         active: s.active,
       });
     } catch {
-      // ignore gaps
+      // ignore (shouldn't happen if ids came from contract)
     }
   }
 

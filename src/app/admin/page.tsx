@@ -24,6 +24,8 @@ import { listAdaptersUseCase } from "@/application/admin/listAdapters.usecase";
 import { listStrategiesOnchain } from "@/application/strategy/listStrategies.usecase";
 import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
 
+import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
+
 function shortAddr(a?: string) {
   if (!a) return "-";
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -239,10 +241,10 @@ export default function AdminPage() {
             <Button
               disabled={!!busy}
               onClick={async () => {
-                const res = await runAction("Create Strategy Factory", (t) =>
+                const res = await runAction("Create Strategy Factory", async (t) =>
                   createStrategyRegistryUseCase({
                     accessToken: t,
-                    body: { initial_owner: ownerAddr, gas_strategy: "buffered" },
+                    body: { chain: (await getActiveChainRuntime()).chainKey, initial_owner: ownerAddr, gas_strategy: "buffered" },
                   })
                 );
                 push({ title: "Result", description: res?.message || "OK" });
@@ -254,10 +256,11 @@ export default function AdminPage() {
             <Button
               disabled={!!busy}
               onClick={async () => {
-                const res = await runAction("Create Vault Factory", (t) =>
+                const res = await runAction("Create Vault Factory", async (t) =>
                   createVaultFactoryUseCase({
                     accessToken: t,
                     body: {
+                      chain: (await getActiveChainRuntime()).chainKey,
                       initial_owner: ownerAddr,
                       strategy_registry: strategyRegistryAddr,
                       executor: executorAddr,
@@ -362,6 +365,7 @@ export default function AdminPage() {
                 disabled={!!busy}
                 onClick={async () => {
                   const payload = {
+                    chain: (await getActiveChainRuntime()).chainKey,
                     gas_strategy: "buffered",
                     dex: adapterForm.dex.trim(),
                     pool: adapterForm.pool.trim(),
@@ -388,8 +392,8 @@ export default function AdminPage() {
                 variant="ghost"
                 disabled={!!busy}
                 onClick={async () => {
-                  const res = await runAction("List Adapters", (t) =>
-                    listAdaptersUseCase({ accessToken: t })
+                  const res = await runAction("List Adapters", async (t) =>
+                    listAdaptersUseCase({ accessToken: t, chain: (await getActiveChainRuntime()).chainKey })
                   );
                   setAdaptersJson(res);
                 }}

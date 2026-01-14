@@ -26,7 +26,12 @@ export default function StrategiesPage() {
     setErr("");
     setLoading(true);
     try {
-      setStrategies(await listStrategiesOnchain());
+      if (!ownerAddr) {
+      setStrategies([]);
+      setErr("Connect with an wallet to continue.");
+      return;
+    }
+      setStrategies(await listStrategiesOnchain(ownerAddr));
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
@@ -78,7 +83,7 @@ export default function StrategiesPage() {
     if (!ready) return;
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready]);
+  }, [ready, ownerAddr]);
 
   if (!ready) return <div style={{ padding: 24 }}>Loading...</div>;
 
