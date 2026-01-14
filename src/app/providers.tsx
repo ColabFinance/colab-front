@@ -33,7 +33,7 @@ function assertRegistryHasFactories(reg: any) {
     throw new Error("Assert providers: contract strategy registry not loaded: strategy_factory.address");
   }
   if (!reg?.data?.vault_factory?.address) {
-    throw new Error("Contract registry not loaded: vault_factory.address");
+    throw new Error("Assert providers: Contract vault factory not loaded: vault_factory.address");
   }
 }
 
