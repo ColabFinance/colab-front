@@ -20,6 +20,7 @@ const ENV = {
 
   // API
   NEXT_PUBLIC_API_LP_BASE_URL: process.env.NEXT_PUBLIC_API_LP_BASE_URL,
+  NEXT_PUBLIC_API_SIGNALS_BASE_URL: process.env.NEXT_PUBLIC_API_SIGNALS_BASE_URL,
 
   // Admin
   NEXT_PUBLIC_ADMIN_WALLETS: process.env.NEXT_PUBLIC_ADMIN_WALLETS,
@@ -35,6 +36,7 @@ export function getRpcUrl(chain: ChainKey): string {
 
 export const CONFIG = {
   apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL, "http://127.0.0.1:8000/api"),
+  apiSignalsBaseUrl: optional(ENV.NEXT_PUBLIC_API_SIGNALS_BASE_URL, "http://127.0.0.1:8080/api"),
 
   /**
    * Admin allowlist (client guard only).
