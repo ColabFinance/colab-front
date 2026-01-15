@@ -1,4 +1,4 @@
-import { apiLpGetStrategyParams } from "@/infra/api-lp/strategy";
+import { apiSignalsGetStrategyParams } from "@/infra/api-signals/strategy";
 
 export async function getStrategyParamsUseCase(params: {
   accessToken: string;
@@ -6,5 +6,5 @@ export async function getStrategyParamsUseCase(params: {
   owner: string;
   strategyId: number;
 }) {
-  return apiLpGetStrategyParams(params.accessToken, params.chain, params.owner, params.strategyId);
+  return apiSignalsGetStrategyParams(params.accessToken, params.chain, params.owner, params.strategyId);
 }

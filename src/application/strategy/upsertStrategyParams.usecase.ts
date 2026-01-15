@@ -1,8 +1,8 @@
-import { apiLpUpsertStrategyParams, type UpsertStrategyParamsBody } from "@/infra/api-lp/strategy";
+import { apiSignalsUpsertStrategyParams, UpsertStrategyParamsBody } from "@/infra/api-signals/strategy";
 
 export async function upsertStrategyParamsUseCase(params: {
   accessToken: string;
   payload: UpsertStrategyParamsBody;
 }) {
-  return apiLpUpsertStrategyParams(params.accessToken, params.payload);
+  return apiSignalsUpsertStrategyParams(params.accessToken, params.payload);
 }
