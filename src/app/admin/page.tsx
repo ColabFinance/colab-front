@@ -25,6 +25,9 @@ import { listStrategiesOnchain } from "@/application/strategy/listStrategies.use
 import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
 
 import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
+import { useActiveWallet } from "@/hooks/useActiveWallet";
+import { allowStrategyAdapterUseCase } from "@/application/admin/allowStrategyAdapter.usecase";
+import { allowStrategyRouterUseCase } from "@/application/admin/allowStrategyRouter.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -34,6 +37,7 @@ function shortAddr(a?: string) {
 export default function AdminPage() {
   const { ready, authenticated, login, logout } = usePrivy();
   const { ownerAddr } = useOwnerAddress();
+  const { activeWallet } = useActiveWallet();
   const { token, ensureTokenOrLogin } = useAuthToken();
   const { isAdmin } = useIsAdmin();
   const { push } = useToast();
@@ -64,6 +68,9 @@ export default function AdminPage() {
     fee_bps: "300",
     status: "ACTIVE" as "ACTIVE" | "INACTIVE",
   });
+
+  const [allowAdapterAddr, setAllowAdapterAddr] = useState<string>("");
+  const [allowRouterAddr, setAllowRouterAddr] = useState<string>("");
 
   const sessionLabel = useMemo(() => {
     return {
@@ -503,6 +510,107 @@ export default function AdminPage() {
             The current "vaults by owner" is reused as a temporary admin read.
           </div>
         </Card>
+
+        <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>StrategyRegistry Allowlist (on-chain)</div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <Input
+              label="Adapter address"
+              placeholder="0x..."
+              value={allowAdapterAddr}
+              onChange={(e) => setAllowAdapterAddr(e.target.value)}
+            />
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button
+                disabled={!!busy}
+                onClick={async () => {
+                  if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                  const res = await runAction("Allow Adapter", async () =>
+                    allowStrategyAdapterUseCase({
+                      activeWallet,
+                      adapter: allowAdapterAddr,
+                      allowed: true,
+                    })
+                  );
+                  push({ title: "Adapter allowlisted", description: res?.txHash || "tx sent" });
+                }}
+              >
+                {busy === "Allow Adapter" ? "Working..." : "Allow adapter"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={async () => {
+                  if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                  const res = await runAction("Disallow Adapter", async () =>
+                    allowStrategyAdapterUseCase({
+                      activeWallet,
+                      adapter: allowAdapterAddr,
+                      allowed: false,
+                    })
+                  );
+                  push({ title: "Adapter disallowed", description: res?.txHash || "tx sent" });
+                }}
+              >
+                {busy === "Disallow Adapter" ? "Working..." : "Disallow adapter"}
+              </Button>
+            </div>
+
+            <Input
+              label="Router address"
+              placeholder="0x..."
+              value={allowRouterAddr}
+              onChange={(e) => setAllowRouterAddr(e.target.value)}
+            />
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button
+                disabled={!!busy}
+                onClick={async () => {
+                  if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                  const res = await runAction("Allow Router", async () =>
+                    allowStrategyRouterUseCase({
+                      activeWallet,
+                      router: allowRouterAddr,
+                      allowed: true,
+                    })
+                  );
+                  push({ title: "Router allowlisted", description: res?.txHash || "tx sent" });
+                }}
+              >
+                {busy === "Allow Router" ? "Working..." : "Allow router"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={async () => {
+                  if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                  const res = await runAction("Disallow Router", async () =>
+                    allowStrategyRouterUseCase({
+                      activeWallet,
+                      router: allowRouterAddr,
+                      allowed: false,
+                    })
+                  );
+                  push({ title: "Router disallowed", description: res?.txHash || "tx sent" });
+                }}
+              >
+                {busy === "Disallow Router" ? "Working..." : "Disallow router"}
+              </Button>
+            </div>
+
+            <div style={{ marginTop: 6, opacity: 0.75, fontSize: 13 }}>
+              Note: these functions are <b>onlyOwner</b>. The connected admin wallet must be the StrategyRegistry owner (or
+              the multisig owner) to succeed.
+            </div>
+          </div>
+        </Card>
+
+
       </div>
     </main>
   );
