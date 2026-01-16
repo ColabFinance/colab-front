@@ -17,6 +17,7 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { Input } from "@/shared/ui/Input";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
+import { CreateClientVaultRequest } from "@/domain/vault/types";
 
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
@@ -145,6 +146,16 @@ function safeJsonParseArray(raw: string): { ok: true; value: any[] } | { ok: fal
   }
 }
 
+function safeJsonParseObj(raw: string): { ok: true; value: any } | { ok: false; error: string } {
+  try {
+    const v = JSON.parse(raw || "{}");
+    if (!v || typeof v !== "object" || Array.isArray(v)) return { ok: false, error: "swap_pools must be a JSON object" };
+    return { ok: true, value: v };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "invalid json" };
+  }
+}
+
 export default function StrategiesPage() {
   const { ready, authenticated, login } = usePrivy();
   const { ownerAddr } = useOwnerAddress();
@@ -165,6 +176,24 @@ export default function StrategiesPage() {
   const [cToken1, setCToken1] = useState("");
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
+
+  // --- create vault modal (NEW) ---
+  const [createVaultOpen, setCreateVaultOpen] = useState(false);
+  const [createVaultStrategyId, setCreateVaultStrategyId] = useState<number | null>(null);
+
+  const [vDex, setVDex] = useState("pancake");
+  const [vChain] = useState<"base">("base");
+  const [vParToken, setVParToken] = useState("WETH"); // key do alias
+  const [vName, setVName] = useState("");
+  const [vDescription, setVDescription] = useState("");
+
+  const [vPool, setVPool] = useState("");
+  const [vNfpm, setVNfpm] = useState("");
+  const [vGauge, setVGauge] = useState("");
+  const [vRpcUrl, setVRpcUrl] = useState("");
+  const [vVersion, setVVersion] = useState("v2");
+
+  const [vSwapPoolsJson, setVSwapPoolsJson] = useState<string>("{}");
 
   // --- params modal state ---
   const [paramsOpen, setParamsOpen] = useState(false);
@@ -207,6 +236,11 @@ export default function StrategiesPage() {
     return strategies.find((s) => s.strategyId === paramsStrategyId) || null;
   }, [paramsStrategyId, strategies]);
 
+  const selectedCreateVaultStrategy = useMemo(() => {
+    if (createVaultStrategyId == null) return null;
+    return strategies.find((s) => s.strategyId === createVaultStrategyId) || null;
+  }, [createVaultStrategyId, strategies]);
+
   async function refresh() {
     setErr("");
     setLoading(true);
@@ -224,7 +258,39 @@ export default function StrategiesPage() {
     }
   }
 
-  async function onCreateVault(strategyId: number) {
+  function resetCreateVaultModal() {
+    setCreateVaultStrategyId(null);
+    setVDex("pancake");
+    setVParToken("WETH");
+    setVName("");
+    setVDescription("");
+    setVPool("");
+    setVNfpm("");
+    setVGauge("");
+    setVRpcUrl("");
+    setVVersion("v2");
+    setVSwapPoolsJson("{}");
+  }
+
+  async function onOpenCreateVault(strategyId: number) {
+    setErr("");
+    setLastTx(null);
+
+    if (!authenticated) {
+      login();
+      return;
+    }
+    if (!ownerAddr) {
+      setErr("Connect a wallet first.");
+      return;
+    }
+
+    setCreateVaultStrategyId(strategyId);
+
+    setCreateVaultOpen(true);
+  }
+
+  async function onSubmitCreateVault() {
     setErr("");
     setLastTx(null);
 
@@ -237,6 +303,66 @@ export default function StrategiesPage() {
         setErr("Ainda sem wallet. Faça login novamente ou link MetaMask.");
         return;
       }
+      if (createVaultStrategyId == null) {
+        setErr("Missing strategy id.");
+        return;
+      }
+
+      const s = selectedCreateVaultStrategy;
+      if (!s) {
+        setErr("Strategy not found. Refresh and try again.");
+        return;
+      }
+      if (!s.active) {
+        setErr("Strategy is not active on-chain.");
+        return;
+      }
+
+      // required fields
+      if (!vName.trim()) {
+        setErr("name is required.");
+        return;
+      }
+      if (!vDex.trim()) {
+        setErr("dex is required.");
+        return;
+      }
+      if (!vParToken.trim()) {
+        setErr("par_token is required (used to generate alias).");
+        return;
+      }
+      if (!isAddressLike(s.adapter)) {
+        setErr("Strategy adapter invalid. Refresh on-chain strategies.");
+        return;
+      }
+
+      // config required
+      if (!isAddressLike(vPool)) {
+        setErr("pool must be a valid 0x address.");
+        return;
+      }
+      if (!isAddressLike(vNfpm)) {
+        setErr("nfpm must be a valid 0x address.");
+        return;
+      }
+      if (vGauge && !isAddressLike(vGauge)) {
+        setErr("gauge must be a valid 0x address (or empty).");
+        return;
+      }
+      if (!vRpcUrl.trim()) {
+        setErr("rpc_url is required.");
+        return;
+      }
+      if (!vVersion.trim()) {
+        setErr("version is required (ex: v2).");
+        return;
+      }
+
+      const swapPoolsParsed = safeJsonParseObj(vSwapPoolsJson);
+      if (!swapPoolsParsed.ok) {
+        setErr(swapPoolsParsed.error);
+        return;
+      }
 
       setLoading(true);
       const token = await ensureTokenOrLogin();
@@ -245,18 +371,42 @@ export default function StrategiesPage() {
         return;
       }
 
-      const res = await createVault({
-        strategyId,
-        ownerOverride: ownerAddr,
-        gasStrategy: "auto",
-        accessToken: token,
-      });
+      const payload: CreateClientVaultRequest = {
+        chain: vChain,
+        dex: vDex.trim(),
+        owner: ownerAddr,
+        par_token: vParToken.trim(),
+        name: vName.trim(),
+        description: vDescription.trim() || undefined,
+        strategy_id: createVaultStrategyId,
+        config: {
+          adapter: s.adapter, // sempre do on-chain strategy
+          pool: vPool.trim(),
+          nfpm: vNfpm.trim(),
+          gauge: vGauge.trim() || undefined,
+          rpc_url: vRpcUrl.trim(),
+          version: vVersion.trim(),
+          swap_pools: swapPoolsParsed.value,
+        },
+        gas_strategy: "buffered",
+      };
+
+      const res = await createVault({ payload, accessToken: token });
 
       setLastTx(res);
-      push({ title: "Vault created", description: res?.tx_hash || "tx sent" });
+
+      const alias = (res as any)?.vault?.alias;
+      push({
+        title: "Vault created",
+        description: alias ? `alias: ${alias}` : (res as any)?.tx_hash || "tx sent",
+      });
+
+      setCreateVaultOpen(false);
+      resetCreateVaultModal();
     } catch (e: any) {
-      setErr(e?.message || String(e));
-      push({ title: "Create vault failed", description: e?.message || String(e) });
+      const msg = e?.message || String(e);
+      setErr(msg);
+      push({ title: "Create vault failed", description: msg });
     } finally {
       setLoading(false);
     }
@@ -532,6 +682,103 @@ export default function StrategiesPage() {
         </Card>
       ) : null}
 
+      {/* Create vault modal (NEW) */}
+      {createVaultOpen ? (
+        <Card style={{ marginTop: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
+            <div style={{ fontWeight: 800 }}>
+              Create Client Vault — Strategy #{createVaultStrategyId ?? "-"}{" "}
+              <span style={{ opacity: 0.7 }}>
+                {selectedCreateVaultStrategy?.name ? `(${selectedCreateVaultStrategy.name})` : ""}
+              </span>
+            </div>
+            <Button
+              onClick={() => {
+                setCreateVaultOpen(false);
+                resetCreateVaultModal();
+              }}
+              disabled={loading}
+            >
+              Close
+            </Button>
+          </div>
+
+          <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input label="chain (fixed)" value={vChain} onChange={() => {}} disabled />
+              <Input label="dex" placeholder="pancake | aerodrome | uniswap" value={vDex} onChange={(e) => setVDex(e.target.value)} />
+            </div>
+
+            <Input
+              label="par_token (used for alias generation)"
+              placeholder="WETH/USDC | ..."
+              value={vParToken}
+              onChange={(e) => setVParToken(e.target.value)}
+            />
+
+            <Input label="name" placeholder="Any display name" value={vName} onChange={(e) => setVName(e.target.value)} />
+
+            <Input
+              label="description (optional)"
+              placeholder="Description for this client vault"
+              value={vDescription}
+              onChange={(e) => setVDescription(e.target.value)}
+            />
+
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
+              adapter (from strategy): <span style={{ fontFamily: "monospace" }}>{selectedCreateVaultStrategy?.adapter || "-"}</span>
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input label="pool" placeholder="Pool address" value={vPool} onChange={(e) => setVPool(e.target.value)} />
+              <Input label="nfpm" placeholder="NFPM address" value={vNfpm} onChange={(e) => setVNfpm(e.target.value)} />
+            </div>
+
+            <Input label="gauge (optional)" placeholder="Gauge address" value={vGauge} onChange={(e) => setVGauge(e.target.value)} />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input label="rpc_url" placeholder="RPC Url address" value={vRpcUrl} onChange={(e) => setVRpcUrl(e.target.value)} />
+              <Input label="version" placeholder="Version" value={vVersion} onChange={(e) => setVVersion(e.target.value)} />
+            </div>
+
+            <div style={{ marginTop: 6 }}>
+              <div style={{ fontWeight: 800, marginBottom: 6 }}>swap_pools (JSON object)</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
+                Example: {"{ \"WETH_USDC\": { \"dex\": \"aerodrome\", \"pool\": \"0x...\" } }"}
+              </div>
+              <textarea
+                value={vSwapPoolsJson}
+                onChange={(e) => setVSwapPoolsJson(e.target.value)}
+                style={{
+                  width: "100%",
+                  minHeight: 140,
+                  fontFamily: "monospace",
+                  fontSize: 13,
+                  padding: 12,
+                  borderRadius: 10,
+                  border: "1px solid #eee",
+                }}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+              <Button
+                onClick={() => {
+                  setCreateVaultOpen(false);
+                  resetCreateVaultModal();
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </Button>
+              <Button onClick={onSubmitCreateVault} disabled={loading}>
+                {loading ? "Creating..." : "Create vault (api-lp)"}
+              </Button>
+            </div>
+          </div>
+        </Card>
+      ) : null}
+
       {/* Create strategy modal */}
       {createOpen ? (
         <Card style={{ marginTop: 14 }}>
@@ -547,18 +794,8 @@ export default function StrategiesPage() {
             <Input label="DEX Router" placeholder="0x..." value={cRouter} onChange={(e) => setCRouter(e.target.value)} />
             <Input label="Token0" placeholder="0x..." value={cToken0} onChange={(e) => setCToken0(e.target.value)} />
             <Input label="Token1" placeholder="0x..." value={cToken1} onChange={(e) => setCToken1(e.target.value)} />
-            <Input
-              label="On-chain name"
-              placeholder="pancake-weth4"
-              value={cName}
-              onChange={(e) => setCName(e.target.value)}
-            />
-            <Input
-              label="On-chain description"
-              placeholder="Description..."
-              value={cDesc}
-              onChange={(e) => setCDesc(e.target.value)}
-            />
+            <Input label="On-chain name" placeholder="pancake-weth4" value={cName} onChange={(e) => setCName(e.target.value)} />
+            <Input label="On-chain description" placeholder="Description..." value={cDesc} onChange={(e) => setCDesc(e.target.value)} />
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <Button onClick={() => setCreateOpen(false)} disabled={loading}>
@@ -572,7 +809,7 @@ export default function StrategiesPage() {
         </Card>
       ) : null}
 
-      {/* Params modal */}
+      {/* Params modal (unchanged) */}
       {paramsOpen ? (
         <Card style={{ marginTop: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -588,15 +825,8 @@ export default function StrategiesPage() {
             </Button>
           </div>
 
-          {/* Meta */}
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
-            <Input
-              label="On-chain name (read-only)"
-              placeholder="—"
-              value={selectedStrategy?.name || ""}
-              onChange={() => {}}
-              disabled
-            />
+            <Input label="On-chain name (read-only)" placeholder="—" value={selectedStrategy?.name || ""} onChange={() => {}} disabled />
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <Input
@@ -633,7 +863,6 @@ export default function StrategiesPage() {
             </div>
           </div>
 
-          {/* Params */}
           <div style={{ marginTop: 14 }}>
             <div style={{ fontWeight: 800, marginBottom: 8 }}>Params</div>
 
@@ -697,27 +926,9 @@ export default function StrategiesPage() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <Input
-                  label="Epsilon (eps)"
-                  placeholder="0.000001"
-                  value={form.eps}
-                  onChange={(e) => setForm((s) => ({ ...s, eps: e.target.value }))}
-                  disabled={paramsLoading}
-                />
-                <Input
-                  label="Cooloff bars"
-                  placeholder="10"
-                  value={form.cooloff_bars}
-                  onChange={(e) => setForm((s) => ({ ...s, cooloff_bars: e.target.value }))}
-                  disabled={paramsLoading}
-                />
-                <Input
-                  label="Breakout confirm bars"
-                  placeholder="20"
-                  value={form.breakout_confirm_bars}
-                  onChange={(e) => setForm((s) => ({ ...s, breakout_confirm_bars: e.target.value }))}
-                  disabled={paramsLoading}
-                />
+                <Input label="Epsilon (eps)" placeholder="0.000001" value={form.eps} onChange={(e) => setForm((s) => ({ ...s, eps: e.target.value }))} disabled={paramsLoading} />
+                <Input label="Cooloff bars" placeholder="10" value={form.cooloff_bars} onChange={(e) => setForm((s) => ({ ...s, cooloff_bars: e.target.value }))} disabled={paramsLoading} />
+                <Input label="Breakout confirm bars" placeholder="20" value={form.breakout_confirm_bars} onChange={(e) => setForm((s) => ({ ...s, breakout_confirm_bars: e.target.value }))} disabled={paramsLoading} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
@@ -733,31 +944,11 @@ export default function StrategiesPage() {
                   }
                   disabled={paramsLoading}
                 />
-                <Input
-                  label="Low vol threshold (opt)"
-                  placeholder="0.0004"
-                  value={form.low_vol_threshold}
-                  onChange={(e) => setForm((s) => ({ ...s, low_vol_threshold: e.target.value }))}
-                  disabled={paramsLoading}
-                />
+                <Input label="Low vol threshold (opt)" placeholder="0.0004" value={form.low_vol_threshold} onChange={(e) => setForm((s) => ({ ...s, low_vol_threshold: e.target.value }))} disabled={paramsLoading} />
               </div>
 
-              <label
-                style={{
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
-                  padding: 10,
-                  border: "1px solid #eee",
-                  borderRadius: 10,
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={form.gauge_flow_enabled}
-                  onChange={(e) => setForm((s) => ({ ...s, gauge_flow_enabled: e.target.checked }))}
-                  disabled={paramsLoading}
-                />
+              <label style={{ display: "flex", gap: 10, alignItems: "center", padding: 10, border: "1px solid #eee", borderRadius: 10 }}>
+                <input type="checkbox" checked={form.gauge_flow_enabled} onChange={(e) => setForm((s) => ({ ...s, gauge_flow_enabled: e.target.checked }))} disabled={paramsLoading} />
                 <div>
                   <div style={{ fontWeight: 700 }}>Gauge flow enabled</div>
                   <div style={{ fontSize: 12, opacity: 0.75 }}>Use UNSTAKE → WITHDRAW → SWAP → OPEN → STAKE flow</div>
@@ -766,12 +957,10 @@ export default function StrategiesPage() {
             </div>
           </div>
 
-          {/* Tiers */}
           <div style={{ marginTop: 14 }}>
             <div style={{ fontWeight: 800, marginBottom: 8 }}>Tiers (JSON array)</div>
             <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 8 }}>
-              Array of objects: name, atr_pct_threshold, atr_pct_threshold_down, bars_required, max_major_side_pct,
-              allowed_from.
+              Array of objects: name, atr_pct_threshold, atr_pct_threshold_down, bars_required, max_major_side_pct, allowed_from.
             </div>
 
             <textarea
@@ -790,7 +979,6 @@ export default function StrategiesPage() {
             />
           </div>
 
-          {/* Onchain display (read-only) */}
           <div style={{ marginTop: 14, fontSize: 13, opacity: 0.85 }}>
             <div style={{ fontWeight: 800, marginBottom: 6 }}>On-chain (auto)</div>
             <div>adapter: {selectedStrategy?.adapter || "-"}</div>
@@ -828,8 +1016,8 @@ export default function StrategiesPage() {
                     Edit params (Mongo)
                   </Button>
 
-                  <Button onClick={() => onCreateVault(s.strategyId)} disabled={loading || !s.active}>
-                    {loading ? "Creating..." : "Create vault"}
+                  <Button onClick={() => onOpenCreateVault(s.strategyId)} disabled={loading || !s.active}>
+                    {loading ? "Opening..." : "Create vault"}
                   </Button>
                 </div>
               </div>
