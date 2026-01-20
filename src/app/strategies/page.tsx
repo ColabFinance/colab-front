@@ -18,6 +18,8 @@ import { Card } from "@/shared/ui/Card";
 import { Input } from "@/shared/ui/Input";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
 import { CreateClientVaultRequest } from "@/domain/vault/types";
+import { createClientVaultOnchain } from "@/application/vault/onchain/createClientVault.usecase";
+import { registerClientVault } from "@/application/vault/api/registerClientVault.usecase";
 
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
@@ -371,34 +373,45 @@ export default function StrategiesPage() {
         return;
       }
 
-      const payload: CreateClientVaultRequest = {
-        chain: vChain,
-        dex: vDex.trim(),
+      const onchain = await createClientVaultOnchain({
+        wallet: activeWallet,
+        strategyId: createVaultStrategyId,
         owner: ownerAddr,
-        par_token: vParToken.trim(),
-        name: vName.trim(),
-        description: vDescription.trim() || undefined,
-        strategy_id: createVaultStrategyId,
-        config: {
-          adapter: s.adapter, // sempre do on-chain strategy
-          pool: vPool.trim(),
-          nfpm: vNfpm.trim(),
-          gauge: vGauge.trim() || undefined,
-          rpc_url: vRpcUrl.trim(),
-          version: vVersion.trim(),
-          swap_pools: swapPoolsParsed.value,
+      });
+      
+      const res = await registerClientVault({
+        accessToken: token,
+        payload: {
+          vault_address: onchain.vault_address,
+          chain: vChain,
+          dex: vDex.trim(),
+          owner: ownerAddr,
+          par_token: vParToken.trim(),
+          name: vName.trim(),
+          description: vDescription.trim() || undefined,
+          strategy_id: createVaultStrategyId,
+          config: {
+            adapter: selectedCreateVaultStrategy.adapter,
+            pool: vPool.trim(),
+            nfpm: vNfpm.trim(),
+            gauge: vGauge.trim() || undefined,
+            rpc_url: vRpcUrl.trim(),
+            version: vVersion.trim(),
+            swap_pools: swapPoolsParsed.value,
+          },
         },
-        gas_strategy: "buffered",
-      };
+      });
 
-      const res = await createVault({ payload, accessToken: token });
+      setLastTx({
+        tx_hash: onchain.tx_hash,
+        vault: onchain.vault_address,
+        mongo_id: res?.mongo_id,
+        alias: res?.alias,
+      });
 
-      setLastTx(res);
-
-      const alias = (res as any)?.vault?.alias;
       push({
         title: "Vault created",
-        description: alias ? `alias: ${alias}` : (res as any)?.tx_hash || "tx sent",
+        description: res?.alias ? `alias: ${res.alias}` : onchain.vault_address,
       });
 
       setCreateVaultOpen(false);

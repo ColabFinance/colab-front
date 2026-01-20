@@ -128,3 +128,22 @@ export type CreateClientVaultRequest = {
 export type CreateClientVaultResponse = TxRunResponse & {
   vault?: VaultRegistryDocument;
 };
+
+
+
+export type RegisterClientVaultRequest = {
+  vault_address: string;
+  chain: string;
+  dex: string;
+  owner: string;
+  par_token: string;
+  name: string;
+  description?: string;
+  strategy_id: number;
+  config: any;
+};
+
+export type RegisterClientVaultResponse = {
+  alias: string;
+  mongo_id: string;
+};
