@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 
-import { listStrategiesOnchain } from "@/application/strategy/onchain/listStrategies.usecase";
 import { registerStrategyOnchain } from "@/application/strategy/onchain/registerStrategy.usecase";
 import { getStrategyParamsUseCase } from "@/application/strategy/api/getStrategyParams.usecase";
 import { upsertStrategyParamsUseCase } from "@/application/strategy/api/upsertStrategyParams.usecase";
