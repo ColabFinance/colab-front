@@ -74,6 +74,12 @@ export type StrategyExistsResult = {
   exists: boolean;
 };
 
+export type StrategyListQuery = {
+  chain: "base" | "bnb";
+  owner: string;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
 export async function apiSignalsGetStrategyParams(
   accessToken: string,
   chain: "base" | "bnb",
@@ -108,4 +114,13 @@ export async function apiSignalsStrategyExists(
     `&symbol=${encodeURIComponent(query.symbol)}`;
 
   return apiSignalsGet(`/strategies/exists?${qs}`, accessToken);
+}
+
+export async function apiSignalsListStrategies(
+  accessToken: string,
+  query: StrategyListQuery
+): Promise<{ ok: boolean; data?: StrategyParamsRecord[]; message?: string }> {
+  let qs = `chain=${encodeURIComponent(query.chain)}&owner=${encodeURIComponent(query.owner)}`;
+  if (query.status) qs += `&status=${encodeURIComponent(query.status)}`;
+  return apiSignalsGet(`/strategies/list?${qs}`, accessToken);
 }

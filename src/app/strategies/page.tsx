@@ -20,6 +20,7 @@ import { createClientVaultOnchain } from "@/application/vault/onchain/createClie
 import { registerClientVault } from "@/application/vault/api/registerClientVault.usecase";
 import { registerStrategyDbUseCase } from "@/application/strategy/api/registerStrategy.usecase";
 import { strategyExistsUseCase } from "@/application/strategy/api/strategyExists.usecase";
+import { listStrategiesUseCase } from "@/application/strategy/api/listStrategies.usecase";
 
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
@@ -254,7 +255,25 @@ export default function StrategiesPage() {
         setErr("Connect with an wallet to continue.");
         return;
       }
-      setStrategies(await listStrategiesOnchain(ownerAddr));
+
+      if (!authenticated) {
+        login();
+        return;
+      }
+      
+      const token = await ensureTokenOrLogin();
+      if (!token) {
+        setStrategies([]);
+        setErr("Missing access token. Please login again.");
+        return;
+      }
+
+      const items = await listStrategiesUseCase({
+        accessToken: token,
+        query: { chain: chainKey, owner: ownerAddr },
+      });
+      
+      setStrategies(items);
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
