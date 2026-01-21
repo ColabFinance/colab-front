@@ -3,12 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { usePrivy } from "@privy-io/react-auth";
 
-import { listStrategiesOnchain } from "@/application/strategy/listStrategies.usecase";
-import { registerStrategyOnchain } from "@/application/strategy/registerStrategy.usecase";
-import { getStrategyParamsUseCase } from "@/application/strategy/getStrategyParams.usecase";
-import { upsertStrategyParamsUseCase } from "@/application/strategy/upsertStrategyParams.usecase";
+import { listStrategiesOnchain } from "@/application/strategy/onchain/listStrategies.usecase";
+import { registerStrategyOnchain } from "@/application/strategy/onchain/registerStrategy.usecase";
+import { getStrategyParamsUseCase } from "@/application/strategy/api/getStrategyParams.usecase";
+import { upsertStrategyParamsUseCase } from "@/application/strategy/api/upsertStrategyParams.usecase";
 
-import { createVault } from "@/application/vault/api/createVault.usecase";
 import { Strategy } from "@/domain/strategy/types";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useAuthToken } from "@/hooks/useAuthToken";
@@ -17,9 +16,10 @@ import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 import { Input } from "@/shared/ui/Input";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
-import { CreateClientVaultRequest } from "@/domain/vault/types";
 import { createClientVaultOnchain } from "@/application/vault/onchain/createClientVault.usecase";
 import { registerClientVault } from "@/application/vault/api/registerClientVault.usecase";
+import { registerStrategyDbUseCase } from "@/application/strategy/api/registerStrategy.usecase";
+import { strategyExistsUseCase } from "@/application/strategy/api/strategyExists.usecase";
 
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
@@ -178,6 +178,8 @@ export default function StrategiesPage() {
   const [cToken1, setCToken1] = useState("");
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
+  const [cSymbol, setCSymbol] = useState("ETHUSDT");
+  const [cIndicatorSetId, setCIndicatorSetId] = useState("");
 
   // --- create vault modal (NEW) ---
   const [createVaultOpen, setCreateVaultOpen] = useState(false);
@@ -455,9 +457,48 @@ export default function StrategiesPage() {
       }
 
       setLoading(true);
+      
+      const name = cName.trim();
+      const symbol = normalizeSymbol(cSymbol);
+      const indicator_set_id = (cIndicatorSetId || "").trim();
 
-      const res = await registerStrategyOnchain({
-        activeWallet,
+      if (!name) {
+        setErr("Name is required.");
+        return;
+      }
+      if (!symbol) {
+        setErr("Symbol is required (e.g. ETHUSDT).");
+        return;
+      }
+      if (!indicator_set_id) {
+        setErr("Indicator set id is required.");
+        return;
+      }
+      
+      const token = await ensureTokenOrLogin();
+      if (!token) {
+        throw new Error("Missing access token. Please login again.");
+      }
+
+      const existsRes = await strategyExistsUseCase({
+        accessToken: token,
+        query: {
+          chain: chainKey,
+          owner: ownerAddr,
+          name,
+          symbol,
+        },
+      });
+
+      if (existsRes?.data?.exists) {
+        setErr("A strategy with same (name, symbol) already exists. Choose another name for this symbol.");
+        push({ title: "Cannot create strategy", description: "Duplicate (name, symbol)." });
+        return;
+      }
+
+      const onchain = await registerStrategyOnchain({
+        wallet: activeWallet,
+        owner: ownerAddr,
         payload: {
           adapter: cAdapter.trim(),
           dexRouter: cRouter.trim(),
@@ -467,9 +508,38 @@ export default function StrategiesPage() {
           description: cDesc.trim(),
         },
       });
+      
+      const dbRes = await registerStrategyDbUseCase({
+        accessToken: token,
+        payload: {
+          chain: chainKey, // "base"
+          owner: ownerAddr,
+          strategy_id: onchain.strategy_id,
+          name: cName.trim(),
+          
+          symbol,
+          indicator_set_id,
 
-      setLastTx(res);
-      push({ title: "Strategy created on-chain", description: res?.txHash || "tx sent" });
+          adapter: cAdapter.trim(),
+          dex_router: cRouter.trim(),
+          token0: cToken0.trim(),
+          token1: cToken1.trim(),
+
+          tx_hash: onchain.tx_hash,
+          status: "INACTIVE",
+        },
+      });
+      
+      setLastTx({
+        tx_hash: onchain.tx_hash,
+        strategy_id: onchain.strategy_id,
+        db: dbRes?.data || dbRes,
+      });
+      
+      push({
+        title: "Strategy created",
+        description: `strategy_id: ${onchain.strategy_id}`,
+      });
 
       setCreateOpen(false);
       setCAdapter("");
@@ -478,11 +548,14 @@ export default function StrategiesPage() {
       setCToken1("");
       setCName("");
       setCDesc("");
+      setCSymbol("ETHUSDT");
+      setCIndicatorSetId("");
 
       await refresh();
     } catch (e: any) {
-      setErr(e?.message || String(e));
-      push({ title: "Create strategy failed", description: e?.message || String(e) });
+      const msg = e?.message || String(e);
+      setErr(msg);
+      push({ title: "Create strategy failed", description: msg });
     } finally {
       setLoading(false);
     }
@@ -803,12 +876,14 @@ export default function StrategiesPage() {
           </div>
 
           <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            <Input label="Adapter" placeholder="0x..." value={cAdapter} onChange={(e) => setCAdapter(e.target.value)} />
-            <Input label="DEX Router" placeholder="0x..." value={cRouter} onChange={(e) => setCRouter(e.target.value)} />
-            <Input label="Token0" placeholder="0x..." value={cToken0} onChange={(e) => setCToken0(e.target.value)} />
-            <Input label="Token1" placeholder="0x..." value={cToken1} onChange={(e) => setCToken1(e.target.value)} />
-            <Input label="On-chain name" placeholder="pancake-weth4" value={cName} onChange={(e) => setCName(e.target.value)} />
+            <Input label="Adapter" placeholder="Adapter 0x..." value={cAdapter} onChange={(e) => setCAdapter(e.target.value)} />
+            <Input label="DEX Router" placeholder="Dex router 0x..." value={cRouter} onChange={(e) => setCRouter(e.target.value)} />
+            <Input label="Token0" placeholder="Token0 0x..." value={cToken0} onChange={(e) => setCToken0(e.target.value)} />
+            <Input label="Token1" placeholder="Token1 0x..." value={cToken1} onChange={(e) => setCToken1(e.target.value)} />
+            <Input label="On-chain name" placeholder="Name..." value={cName} onChange={(e) => setCName(e.target.value)} />
             <Input label="On-chain description" placeholder="Description..." value={cDesc} onChange={(e) => setCDesc(e.target.value)} />
+            <Input label="Symbol" placeholder="ETHUSDT..." value={cSymbol} onChange={(e) => setCSymbol(e.target.value)} />
+            <Input label="Indicator set id" placeholder="cfg_hash..." value={cIndicatorSetId} onChange={(e) => setCIndicatorSetId(e.target.value)} />
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <Button onClick={() => setCreateOpen(false)} disabled={loading}>
