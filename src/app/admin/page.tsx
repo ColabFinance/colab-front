@@ -28,6 +28,10 @@ import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
 import { allowStrategyAdapterUseCase } from "@/application/admin/allowStrategyAdapter.usecase";
 import { allowStrategyRouterUseCase } from "@/application/admin/allowStrategyRouter.usecase";
+import { listDexesUseCase } from "@/application/admin/listDexes.usecase";
+import { createDexPoolUseCase } from "@/application/admin/createDexPool.usecase";
+import { listDexPoolsUseCase } from "@/application/admin/listDexPools.usecase";
+import { createDexUseCase } from "@/application/admin/createDex.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -71,6 +75,32 @@ export default function AdminPage() {
 
   const [allowAdapterAddr, setAllowAdapterAddr] = useState<string>("");
   const [allowRouterAddr, setAllowRouterAddr] = useState<string>("");
+
+  const [dexForm, setDexForm] = useState({
+    dex: "pancake_v3",
+    dex_router: "",
+    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+  });
+  const [dexesJson, setDexesJson] = useState<any>(null);
+
+  const [poolForm, setPoolForm] = useState({
+    dex: "pancake_v3",
+    pool: "",
+    nfpm: "",
+    gauge: "",
+    token0: "",
+    token1: "",
+    pair: "WETH-USDC",
+    symbol: "ETHUSDT",
+    fee_bps: 300,
+    adapter: "",
+    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+  });
+  const [poolsJson, setPoolsJson] = useState<any>(null);
+
+  const [prefillDex, setPrefillDex] = useState<string>("pancake_v3");
+  const [prefillPools, setPrefillPools] = useState<any[]>([]);
+  const [prefillPoolAddr, setPrefillPoolAddr] = useState<string>("");
 
   const sessionLabel = useMemo(() => {
     return {
@@ -294,7 +324,292 @@ export default function AdminPage() {
         </Card>
         
         <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>DEX Registry</div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="DEX key"
+                placeholder="pancake_v3"
+                value={dexForm.dex}
+                onChange={(e) => setDexForm((s) => ({ ...s, dex: e.target.value }))}
+              />
+              <Input
+                label="Status"
+                placeholder="ACTIVE"
+                value={dexForm.status}
+                onChange={(e) =>
+                  setDexForm((s) => ({
+                    ...s,
+                    status: (e.target.value || "ACTIVE").toUpperCase() as any,
+                  }))
+                }
+              />
+            </div>
+
+            <Input
+              label="DEX Router"
+              placeholder="Dex Router 0x..."
+              value={dexForm.dex_router}
+              onChange={(e) => setDexForm((s) => ({ ...s, dex_router: e.target.value }))}
+            />
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button
+                disabled={!!busy}
+                onClick={async () => {
+                  const chain = (await getActiveChainRuntime()).chainKey as any;
+                  const res = await runAction("Create DEX Registry", (t) =>
+                    createDexUseCase({
+                      accessToken: t,
+                      body: {
+                        chain,
+                        dex: dexForm.dex.trim(),
+                        dex_router: dexForm.dex_router.trim(),
+                        status: dexForm.status,
+                      },
+                    })
+                  );
+                  push({ title: "Result", description: res?.message || "OK" });
+                }}
+              >
+                {busy === "Create DEX Registry" ? "Working..." : "Create DEX Registry"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={async () => {
+                  const chain = (await getActiveChainRuntime()).chainKey as any;
+                  const res = await runAction("List DEX Registries", (t) =>
+                    listDexesUseCase({ accessToken: t, chain })
+                  );
+                  setDexesJson(res);
+                }}
+              >
+                {busy === "List DEX Registries" ? "Loading..." : "List DEX Registries"}
+              </Button>
+            </div>
+
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>DEX Registries</div>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+                {dexesJson ? JSON.stringify(dexesJson, null, 2) : "—"}
+              </pre>
+            </Card>
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>DEX Pools</div>
+
+          <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="DEX key (parent)"
+                placeholder="pancake_v3"
+                value={poolForm.dex}
+                onChange={(e) => setPoolForm((s) => ({ ...s, dex: e.target.value }))}
+              />
+              <Input
+                label="Status"
+                placeholder="ACTIVE"
+                value={poolForm.status}
+                onChange={(e) =>
+                  setPoolForm((s) => ({
+                    ...s,
+                    status: (e.target.value || "ACTIVE").toUpperCase() as any,
+                  }))
+                }
+              />
+            </div>
+
+            <Input
+              label="Pool"
+              placeholder="Pool 0x..."
+              value={poolForm.pool}
+              onChange={(e) => setPoolForm((s) => ({ ...s, pool: e.target.value }))}
+            />
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="NFPM"
+                placeholder="NFPM 0x..."
+                value={poolForm.nfpm}
+                onChange={(e) => setPoolForm((s) => ({ ...s, nfpm: e.target.value }))}
+              />
+              <Input
+                label="Gauge (can be zero)"
+                placeholder="Gauge 0x0000..."
+                value={poolForm.gauge}
+                onChange={(e) => setPoolForm((s) => ({ ...s, gauge: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="Token0"
+                placeholder="Token0 0x..."
+                value={poolForm.token0}
+                onChange={(e) => setPoolForm((s) => ({ ...s, token0: e.target.value }))}
+              />
+              <Input
+                label="Token1"
+                placeholder="Token1 0x..."
+                value={poolForm.token1}
+                onChange={(e) => setPoolForm((s) => ({ ...s, token1: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="Pair label"
+                placeholder="Pair WETH-USDC"
+                value={poolForm.pair}
+                onChange={(e) => setPoolForm((s) => ({ ...s, pair: e.target.value }))}
+              />
+              <Input
+                label="Symbol"
+                placeholder="Symbol ETHUSDT"
+                value={poolForm.symbol}
+                onChange={(e) => setPoolForm((s) => ({ ...s, symbol: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Fee (bps)</div>
+                <input
+                  type="number"
+                  value={poolForm.fee_bps}
+                  onChange={(e) => setPoolForm((s) => ({ ...s, fee_bps: Number(e.target.value) }))}
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <Input
+                label="Adapter (optional)"
+                placeholder="Adapter 0x... (deployed adapter)"
+                value={poolForm.adapter}
+                onChange={(e) => setPoolForm((s) => ({ ...s, adapter: e.target.value }))}
+              />
+            </div>
+
+            <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <Button
+                disabled={!!busy}
+                onClick={async () => {
+                  const chain = (await getActiveChainRuntime()).chainKey as any;
+                  const res = await runAction("Create DEX Pool", (t) =>
+                    createDexPoolUseCase({
+                      accessToken: t,
+                      body: {
+                        chain,
+                        dex: poolForm.dex.trim(),
+                        pool: poolForm.pool.trim(),
+                        nfpm: poolForm.nfpm.trim(),
+                        gauge: poolForm.gauge.trim(),
+                        token0: poolForm.token0.trim(),
+                        token1: poolForm.token1.trim(),
+                        pair: poolForm.pair.trim(),
+                        symbol: poolForm.symbol.trim(),
+                        fee_bps: Number(poolForm.fee_bps),
+                        adapter: (poolForm.adapter || "").trim() || null,
+                        status: poolForm.status,
+                      },
+                    })
+                  );
+                  push({ title: "Result", description: res?.message || "OK" });
+                }}
+              >
+                {busy === "Create DEX Pool" ? "Working..." : "Create DEX Pool"}
+              </Button>
+
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={async () => {
+                  const chain = (await getActiveChainRuntime()).chainKey as any;
+                  const res = await runAction("List DEX Pools", (t) =>
+                    listDexPoolsUseCase({ accessToken: t, chain, dex: poolForm.dex.trim(), limit: 500 })
+                  );
+                  setPoolsJson(res);
+                }}
+              >
+                {busy === "List DEX Pools" ? "Loading..." : "List DEX Pools"}
+              </Button>
+            </div>
+
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>DEX Pools</div>
+              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+                {poolsJson ? JSON.stringify(poolsJson, null, 2) : "—"}
+              </pre>
+            </Card>
+          </div>
+        </Card>
+
+        <Card>
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Adapters</div>
+          
+          <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="Prefill pools from DEX"
+                placeholder="pancake_v3"
+                value={prefillDex}
+                onChange={(e) => setPrefillDex(e.target.value)}
+              />
+              <Button
+                variant="ghost"
+                disabled={!!busy}
+                onClick={async () => {
+                  const chain = (await getActiveChainRuntime()).chainKey as any;
+                  const res = await runAction("Load Pool Configs", (t) =>
+                    listDexPoolsUseCase({ accessToken: t, chain, dex: prefillDex.trim(), limit: 500 })
+                  );
+                  const items = (res as any)?.data || [];
+                  setPrefillPools(items);
+                }}
+              >
+                {busy === "Load Pool Configs" ? "Loading..." : "Load Pool Configs"}
+              </Button>
+            </div>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              <div style={{ fontSize: 12, opacity: 0.8 }}>Select a pool to prefill Adapter form</div>
+              <select
+                value={prefillPoolAddr}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  setPrefillPoolAddr(v);
+                  const found = prefillPools.find((p) => (p?.pool || "").toLowerCase() === v.toLowerCase());
+                  if (found) {
+                    setAdapterForm((s) => ({
+                      ...s,
+                      dex: found.dex || s.dex,
+                      pool: found.pool || "",
+                      nfpm: found.nfpm || "",
+                      gauge: found.gauge || "0x0000000000000000000000000000000000000000",
+                      token0: found.token0 || "",
+                      token1: found.token1 || "",
+                      pool_name: found.pair || found.symbol || s.pool_name,
+                      fee_bps: String(found.fee_bps ?? s.fee_bps),
+                    }));
+                  }
+                }}
+                style={{ width: "100%", padding: 10, borderRadius: 10 }}
+              >
+                <option value="">— select —</option>
+                {prefillPools.map((p, idx) => (
+                  <option key={`${p?.pool || idx}`} value={p?.pool || ""}>
+                    {(p?.pair || p?.symbol || p?.pool || "pool") + " | " + (p?.pool ? `${p.pool.slice(0, 6)}…${p.pool.slice(-4)}` : "")}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+          </div>
 
           <div style={{ display: "grid", gap: 10 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
