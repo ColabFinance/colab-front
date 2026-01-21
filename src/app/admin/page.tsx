@@ -21,7 +21,7 @@ import { listUsersUseCase } from "@/application/admin/listUsers.usecase";
 import { createAdapterUseCase } from "@/application/admin/createAdapter.usecase";
 import { listAdaptersUseCase } from "@/application/admin/listAdapters.usecase";
 
-import { listStrategiesOnchain } from "@/application/strategy/listStrategies.usecase";
+import { listStrategiesOnchain } from "@/application/strategy/onchain/listStrategies.usecase";
 import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
 
 import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
