@@ -20,6 +20,9 @@ import { registerClientVault } from "@/application/vault/api/registerClientVault
 import { registerStrategyDbUseCase } from "@/application/strategy/api/registerStrategy.usecase";
 import { strategyExistsUseCase } from "@/application/strategy/api/strategyExists.usecase";
 import { listStrategiesUseCase } from "@/application/strategy/api/listStrategies.usecase";
+import { DexPoolRecord, DexRegistryRecord } from "@/infra/api-lp/dexRegistry";
+import { listDexPoolsForStrategyUseCase } from "@/application/strategy/api/listDexPoolsForStrategy.usecase";
+import { listDexesForStrategyUseCase } from "@/application/strategy/api/listDexesForStrategy.usecase";
 
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
@@ -170,16 +173,22 @@ export default function StrategiesPage() {
   const [err, setErr] = useState("");
   const [lastTx, setLastTx] = useState<any>(null);
 
-  // --- create onchain modal state ---
-  const [createOpen, setCreateOpen] = useState(false);
-  const [cAdapter, setCAdapter] = useState("");
-  const [cRouter, setCRouter] = useState("");
-  const [cToken0, setCToken0] = useState("");
-  const [cToken1, setCToken1] = useState("");
-  const [cName, setCName] = useState("");
-  const [cDesc, setCDesc] = useState("");
-  const [cSymbol, setCSymbol] = useState("ETHUSDT");
-  const [cIndicatorSetId, setCIndicatorSetId] = useState("");
+// --- create onchain modal state (refactor: select dex/pool, auto-fill) ---
+const [createOpen, setCreateOpen] = useState(false);
+
+const [cDex, setCDex] = useState<string>(""); // now comes from backend
+const [cDexesLoading, setCDexesLoading] = useState(false);
+const [cDexes, setCDexes] = useState<DexRegistryRecord[]>([]);
+
+const [cPool, setCPool] = useState<string>("");
+
+const [cPoolsLoading, setCPoolsLoading] = useState(false);
+const [cPools, setCPools] = useState<DexPoolRecord[]>([]);
+
+const [cName, setCName] = useState("");
+const [cDesc, setCDesc] = useState("");
+const [cSymbol, setCSymbol] = useState("ETHUSDT");
+const [cIndicatorSetId, setCIndicatorSetId] = useState("");
 
   // --- create vault modal (NEW) ---
   const [createVaultOpen, setCreateVaultOpen] = useState(false);
@@ -232,6 +241,41 @@ export default function StrategiesPage() {
     gauge_flow_enabled: true,
     low_vol_threshold: "0.0004",
   });
+
+  function pickAddr(obj: any, keys: string[]): string {
+    for (const k of keys) {
+      const v = (obj?.[k] ?? "").toString().trim();
+      if (v) return v;
+    }
+    return "";
+  }
+
+  const selectedCreateDex = useMemo(() => {
+    const k = (cDex || "").trim().toLowerCase();
+    if (!k) return null;
+    return cDexes.find((d) => String(d.dex || "").toLowerCase() === k) || null;
+  }, [cDex, cDexes]);
+
+  const selectedCreatePool = useMemo(() => {
+    const pid = (cPool || "").trim().toLowerCase();
+    if (!pid) return null;
+    return cPools.find((p) => String(p.pool || "").toLowerCase() === pid) || null;
+  }, [cPool, cPools]);
+
+  const createDerived = useMemo(() => {
+    const p: any = selectedCreatePool;
+    const d: any = selectedCreateDex;
+
+    const adapter = p ? pickAddr(p, ["adapter", "adapter_address", "adapterAddr"]) : "";
+
+    const dexRouter = d ? pickAddr(d, ["dex_router", "dexRouter", "router"]) : "";
+
+    const token0 = p ? pickAddr(p, ["token0", "token0_address", "token0Addr"]) : "";
+    const token1 = p ? pickAddr(p, ["token1", "token1_address", "token1Addr"]) : "";
+
+    return { adapter, dexRouter, token0, token1, gauge: d ? pickAddr(d, ["gauge"]) : "" };
+  }, [selectedCreatePool, selectedCreateDex]);
+
 
   const chainKey = useMemo<"base">(() => "base", []);
 
@@ -457,6 +501,18 @@ export default function StrategiesPage() {
       setErr("Connect a wallet first.");
       return;
     }
+
+    // reset modal state (backend will provide dex list)
+    setCDex("");
+    setCDexes([]);
+    setCPool("");
+    setCPools([]);
+
+    setCName("");
+    setCDesc("");
+    setCSymbol("ETHUSDT");
+    setCIndicatorSetId("");
+
     setCreateOpen(true);
   }
 
@@ -473,9 +529,13 @@ export default function StrategiesPage() {
         setErr("Connect a wallet first.");
         return;
       }
+      if (!activeWallet) {
+        setErr("No active wallet connected.");
+        return;
+      }
 
       setLoading(true);
-      
+
       const name = cName.trim();
       const symbol = normalizeSymbol(cSymbol);
       const indicator_set_id = (cIndicatorSetId || "").trim();
@@ -492,7 +552,31 @@ export default function StrategiesPage() {
         setErr("Indicator set id is required.");
         return;
       }
-      
+
+      if (!cDex.trim()) {
+        setErr("DEX is required.");
+        return;
+      }
+      if (!selectedCreatePool) {
+        setErr("Pool is required.");
+        return;
+      }
+
+      const { adapter, dexRouter, token0, token1 } = createDerived;
+
+      if (!isAddressLike(adapter)) {
+        setErr("Selected pool did not provide a valid adapter address.");
+        return;
+      }
+      if (!isAddressLike(dexRouter)) {
+        setErr("Selected pool did not provide a valid dex router address.");
+        return;
+      }
+      if (!isAddressLike(token0) || !isAddressLike(token1)) {
+        setErr("Selected pool did not provide valid token0/token1 addresses.");
+        return;
+      }
+
       const token = await ensureTokenOrLogin();
       if (!token) {
         throw new Error("Missing access token. Please login again.");
@@ -518,52 +602,53 @@ export default function StrategiesPage() {
         wallet: activeWallet,
         owner: ownerAddr,
         payload: {
-          adapter: cAdapter.trim(),
-          dexRouter: cRouter.trim(),
-          token0: cToken0.trim(),
-          token1: cToken1.trim(),
-          name: cName.trim(),
+          adapter,
+          dexRouter,
+          token0,
+          token1,
+          name,
           description: cDesc.trim(),
         },
       });
-      
+
       const dbRes = await registerStrategyDbUseCase({
         accessToken: token,
         payload: {
-          chain: chainKey, // "base"
+          chain: chainKey,
           owner: ownerAddr,
           strategy_id: onchain.strategy_id,
-          name: cName.trim(),
-          
+          name,
+
           symbol,
           indicator_set_id,
 
-          adapter: cAdapter.trim(),
-          dex_router: cRouter.trim(),
-          token0: cToken0.trim(),
-          token1: cToken1.trim(),
+          adapter,
+          dex_router: dexRouter,
+          token0,
+          token1,
 
           tx_hash: onchain.tx_hash,
           status: "INACTIVE",
         },
       });
-      
+
       setLastTx({
         tx_hash: onchain.tx_hash,
         strategy_id: onchain.strategy_id,
         db: dbRes?.data || dbRes,
       });
-      
+
       push({
         title: "Strategy created",
         description: `strategy_id: ${onchain.strategy_id}`,
       });
 
       setCreateOpen(false);
-      setCAdapter("");
-      setCRouter("");
-      setCToken0("");
-      setCToken1("");
+
+      // reset modal fields
+      setCDex("pancake_v3");
+      setCPool("");
+      setCPools([]);
       setCName("");
       setCDesc("");
       setCSymbol("ETHUSDT");
@@ -578,6 +663,7 @@ export default function StrategiesPage() {
       setLoading(false);
     }
   }
+
 
   async function onOpenParams(strategyId: number) {
     setErr("");
@@ -747,6 +833,110 @@ export default function StrategiesPage() {
   }
 
   useEffect(() => {
+    if (!createOpen) return;
+    if (!ready) return;
+
+    let cancelled = false;
+
+    async function loadDexes() {
+      setErr("");
+      try {
+        if (!authenticated) {
+          login();
+          return;
+        }
+
+        const token = await ensureTokenOrLogin();
+        if (!token) {
+          setErr("Missing access token. Please login again.");
+          return;
+        }
+
+        setCDexesLoading(true);
+
+        const items = await listDexesForStrategyUseCase({
+          accessToken: token,
+          query: { chain: chainKey, limit: 200 },
+        });
+
+        if (cancelled) return;
+
+        setCDexes(items);
+
+        // auto-select first dex if none selected
+        if (!cDex && items.length > 0) {
+          setCDex(String(items[0].dex || ""));
+        }
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message || String(e));
+      } finally {
+        if (!cancelled) setCDexesLoading(false);
+      }
+    }
+
+    loadDexes();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createOpen, ready, authenticated, ownerAddr]);
+
+  useEffect(() => {
+    if (!createOpen) return;
+    if (!ready) return;
+    if (!cDex) return;
+
+    let cancelled = false;
+
+    async function loadPools() {
+      setErr("");
+      try {
+        if (!authenticated) {
+          login();
+          return;
+        }
+
+        const token = await ensureTokenOrLogin();
+        if (!token) {
+          setErr("Missing access token. Please login again.");
+          return;
+        }
+
+        setCPoolsLoading(true);
+
+        const items = await listDexPoolsForStrategyUseCase({
+          accessToken: token,
+          query: { chain: chainKey, dex: cDex, limit: 500 },
+        });
+
+        if (cancelled) return;
+
+        setCPools(items);
+
+        // auto-select first pool if none selected
+        if (!cPool && items.length > 0) {
+          setCPool(String(items[0].pool || ""));
+        }
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message || String(e));
+      } finally {
+        if (!cancelled) setCPoolsLoading(false);
+      }
+    }
+
+    // reset pools whenever dex changes
+    setCPool("");
+    setCPools([]);
+    loadPools();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createOpen, cDex, ready, authenticated, ownerAddr]);
+
+  useEffect(() => {
     if (!ready) return;
     refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -894,10 +1084,95 @@ export default function StrategiesPage() {
           </div>
 
           <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            <Input label="Adapter" placeholder="Adapter 0x..." value={cAdapter} onChange={(e) => setCAdapter(e.target.value)} />
-            <Input label="DEX Router" placeholder="Dex router 0x..." value={cRouter} onChange={(e) => setCRouter(e.target.value)} />
-            <Input label="Token0" placeholder="Token0 0x..." value={cToken0} onChange={(e) => setCToken0(e.target.value)} />
-            <Input label="Token1" placeholder="Token1 0x..." value={cToken1} onChange={(e) => setCToken1(e.target.value)} />
+            {/* DEX select (from API) */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>
+                DEX{" "}
+                {cDexesLoading ? <span style={{ opacity: 0.7 }}>(loading...)</span> : null}
+              </div>
+
+              <select
+                value={cDex}
+                onChange={(e) => {
+                  setCDex(e.target.value);
+                  setCPool("");
+                }}
+                disabled={loading || cDexesLoading}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  borderRadius: 10,
+                  border: "1px solid #eee",
+                }}
+              >
+                <option value="">Select a dex...</option>
+                {cDexes.map((d) => (
+                  <option key={String(d.dex)} value={String(d.dex)}>
+                    {String(d.dex)}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Pool select */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>
+                Pool {cPoolsLoading ? <span style={{ opacity: 0.7 }}>(loading...)</span> : null}
+              </div>
+
+              <select
+                value={cPool}
+                onChange={(e) => setCPool(e.target.value)}
+                disabled={loading || cPoolsLoading || !cDex}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  borderRadius: 10,
+                  border: "1px solid #eee",
+                }}
+              >
+                <option value="">Select a pool...</option>
+                {cPools.map((p) => {
+                  const label =
+                    p?.name ||
+                    p?.symbol ||
+                    p?.pair ||
+                    `${String(p.pool).slice(0, 8)}...${String(p.pool).slice(-6)}`;
+
+                  const t0 = p?.token0 ? `${String(p.token0).slice(0, 8)}...${String(p.token0).slice(-6)}` : "";
+                  const t1 = p?.token1 ? `${String(p.token1).slice(0, 8)}...${String(p.token1).slice(-6)}` : "";
+
+                  return (
+                    <option key={String(p.pool)} value={String(p.pool)}>
+                      {label} {t0 && t1 ? `— ${t0} / ${t1}` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+
+            {/* Derived (read-only) */}
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
+              <div>
+                adapter (pool): <span style={{ fontFamily: "monospace" }}>{createDerived.adapter || "-"}</span>
+              </div>
+              <div>
+                dexRouter (dex): <span style={{ fontFamily: "monospace" }}>{createDerived.dexRouter || "-"}</span>
+              </div>
+              <div>
+                token0 (pool): <span style={{ fontFamily: "monospace" }}>{createDerived.token0 || "-"}</span>
+              </div>
+              <div>
+                token1 (pool): <span style={{ fontFamily: "monospace" }}>{createDerived.token1 || "-"}</span>
+              </div>
+              {/* optional visibility only */}
+              {createDerived.gauge ? (
+                <div>
+                  gauge (dex): <span style={{ fontFamily: "monospace" }}>{createDerived.gauge}</span>
+                </div>
+              ) : null}
+            </div>
+
             <Input label="On-chain name" placeholder="Name..." value={cName} onChange={(e) => setCName(e.target.value)} />
             <Input label="On-chain description" placeholder="Description..." value={cDesc} onChange={(e) => setCDesc(e.target.value)} />
             <Input label="Symbol" placeholder="ETHUSDT..." value={cSymbol} onChange={(e) => setCSymbol(e.target.value)} />
@@ -907,13 +1182,15 @@ export default function StrategiesPage() {
               <Button onClick={() => setCreateOpen(false)} disabled={loading}>
                 Cancel
               </Button>
-              <Button onClick={onSubmitCreateStrategy} disabled={loading}>
+              <Button onClick={onSubmitCreateStrategy} disabled={loading || cDexesLoading || cPoolsLoading}>
                 {loading ? "Creating..." : "Create"}
               </Button>
             </div>
           </div>
         </Card>
       ) : null}
+
+
 
       {/* Params modal (unchanged) */}
       {paramsOpen ? (

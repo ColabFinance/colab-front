@@ -108,21 +108,6 @@ export async function apiLpAdminCreateDex(accessToken: string, body: CreateDexBo
   return apiLpPost<AdminResult>("/admin/dexes/create", body, accessToken);
 }
 
-export async function apiLpAdminListDexes(accessToken: string, chain: ChainKey): Promise<AdminResult> {
-  return apiLpGet<AdminResult>(`/admin/dexes?chain=${chain}`, accessToken);
-}
-
 export async function apiLpAdminCreateDexPool(accessToken: string, body: CreateDexPoolBody): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
-}
-
-export async function apiLpAdminListDexPools(
-  accessToken: string,
-  params: { chain: ChainKey; dex: string; limit?: number }
-): Promise<AdminResult> {
-  const q = new URLSearchParams();
-  q.set("chain", params.chain);
-  q.set("dex", params.dex);
-  if (params.limit) q.set("limit", String(params.limit));
-  return apiLpGet<AdminResult>(`/admin/dexes/pools?${q.toString()}`, accessToken);
 }
