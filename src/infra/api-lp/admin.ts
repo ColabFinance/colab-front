@@ -44,6 +44,33 @@ export type CreateAdapterBody = {
   status?: "ACTIVE" | "INACTIVE";
 };
 
+export type CreateDexBody = {
+  chain: ChainKey;
+  dex: string;
+  dex_router: string;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
+export type CreateDexPoolBody = {
+  chain: ChainKey;
+  dex: string;
+
+  pool: string;
+  nfpm: string;
+  gauge: string;
+
+  token0: string;
+  token1: string;
+
+  pair?: string;
+  symbol?: string;
+
+  fee_bps: number;
+
+  adapter?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
 export async function apiLpAdminCreateStrategyRegistry(
   accessToken: string,
   body: CreateStrategyRegistryBody
@@ -75,4 +102,27 @@ export async function apiLpAdminListAdapters(
   chain: ChainKey
 ): Promise<AdminResult> {
   return apiLpGet<AdminResult>(`/admin/adapters?chain=${chain}`, accessToken);
+}
+
+export async function apiLpAdminCreateDex(accessToken: string, body: CreateDexBody): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/dexes/create", body, accessToken);
+}
+
+export async function apiLpAdminListDexes(accessToken: string, chain: ChainKey): Promise<AdminResult> {
+  return apiLpGet<AdminResult>(`/admin/dexes?chain=${chain}`, accessToken);
+}
+
+export async function apiLpAdminCreateDexPool(accessToken: string, body: CreateDexPoolBody): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
+}
+
+export async function apiLpAdminListDexPools(
+  accessToken: string,
+  params: { chain: ChainKey; dex: string; limit?: number }
+): Promise<AdminResult> {
+  const q = new URLSearchParams();
+  q.set("chain", params.chain);
+  q.set("dex", params.dex);
+  if (params.limit) q.set("limit", String(params.limit));
+  return apiLpGet<AdminResult>(`/admin/dexes/pools?${q.toString()}`, accessToken);
 }
