@@ -22,7 +22,7 @@ import { createAdapterUseCase } from "@/application/admin/createAdapter.usecase"
 import { listAdaptersUseCase } from "@/application/admin/listAdapters.usecase";
 
 import { listStrategiesOnchain } from "@/application/strategy/onchain/listStrategies.usecase";
-import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
+import { listVaultsByOwner } from "@/application/vault/onchain/listVaultsByOwner.usecase";
 
 import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
