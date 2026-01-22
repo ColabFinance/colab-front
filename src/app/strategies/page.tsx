@@ -173,39 +173,45 @@ export default function StrategiesPage() {
   const [err, setErr] = useState("");
   const [lastTx, setLastTx] = useState<any>(null);
 
-// --- create onchain modal state (refactor: select dex/pool, auto-fill) ---
-const [createOpen, setCreateOpen] = useState(false);
+  // --- create onchain modal state (refactor: select dex/pool, auto-fill) ---
+  const [createOpen, setCreateOpen] = useState(false);
 
-const [cDex, setCDex] = useState<string>(""); // now comes from backend
-const [cDexesLoading, setCDexesLoading] = useState(false);
-const [cDexes, setCDexes] = useState<DexRegistryRecord[]>([]);
+  const [cDex, setCDex] = useState<string>(""); // now comes from backend
+  const [cDexesLoading, setCDexesLoading] = useState(false);
+  const [cDexes, setCDexes] = useState<DexRegistryRecord[]>([]);
+  const [vRpcUrl, setVRpcUrl] = useState<string>("");
 
-const [cPool, setCPool] = useState<string>("");
+  const [cPool, setCPool] = useState<string>("");
 
-const [cPoolsLoading, setCPoolsLoading] = useState(false);
-const [cPools, setCPools] = useState<DexPoolRecord[]>([]);
+  const [cPoolsLoading, setCPoolsLoading] = useState(false);
+  const [cPools, setCPools] = useState<DexPoolRecord[]>([]);
 
-const [cName, setCName] = useState("");
-const [cDesc, setCDesc] = useState("");
-const [cSymbol, setCSymbol] = useState("ETHUSDT");
-const [cIndicatorSetId, setCIndicatorSetId] = useState("");
+  const [cName, setCName] = useState("");
+  const [cDesc, setCDesc] = useState("");
+  const [cSymbol, setCSymbol] = useState("ETHUSDT");
+  const [cIndicatorSetId, setCIndicatorSetId] = useState("");
 
-  // --- create vault modal (NEW) ---
+  // --- create vault modal (refactor: select dex/pool, auto-fill config) ---
   const [createVaultOpen, setCreateVaultOpen] = useState(false);
   const [createVaultStrategyId, setCreateVaultStrategyId] = useState<number | null>(null);
 
-  const [vDex, setVDex] = useState("pancake");
-  const [vChain] = useState<"base">("base");
-  const [vParToken, setVParToken] = useState("WETH"); // key do alias
+  const [pendingOpenVaultStrategyId, setPendingOpenVaultStrategyId] = useState<number | null>(null);
+
+  // dex/pool selects (same registry used by strategy creation)
+  const [vDexKey, setVDexKey] = useState<string>("");
+  const [vDexesLoading, setVDexesLoading] = useState(false);
+  const [vDexes, setVDexes] = useState<DexRegistryRecord[]>([]);
+
+  const [vPoolKey, setVPoolKey] = useState<string>("");
+  const [vPoolsLoading, setVPoolsLoading] = useState(false);
+  const [vPools, setVPools] = useState<DexPoolRecord[]>([]);
+
+  // user inputs kept
+  const [vParToken, setVParToken] = useState("WETH"); // alias generation key
   const [vName, setVName] = useState("");
   const [vDescription, setVDescription] = useState("");
 
-  const [vPool, setVPool] = useState("");
-  const [vNfpm, setVNfpm] = useState("");
-  const [vGauge, setVGauge] = useState("");
-  const [vRpcUrl, setVRpcUrl] = useState("");
-  const [vVersion, setVVersion] = useState("v2");
-
+  // still manual (optional)
   const [vSwapPoolsJson, setVSwapPoolsJson] = useState<string>("{}");
 
   // --- params modal state ---
@@ -250,6 +256,30 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
     return "";
   }
 
+  function pickStr(obj: any, keys: string[]): string {
+    for (const k of keys) {
+      const v = (obj?.[k] ?? "").toString();
+      const t = v.trim();
+      if (t) return t;
+    }
+    return "";
+  }
+
+  function deriveParTokenFromPool(p: any): string {
+    const direct = pickStr(p, ["par_token", "parToken"]);
+    if (direct) return direct;
+
+    const raw = pickStr(p, ["pair", "symbol", "name"]);
+    if (!raw) return "";
+
+    // try "WETH/USDC", "WETH_USDC", "WETH-USDC"
+    const s = raw.toUpperCase();
+    const parts = s.split(/[/_\-\s]+/g).filter(Boolean);
+    if (parts.length >= 2) return parts[0];
+
+    return "";
+  }
+
   const selectedCreateDex = useMemo(() => {
     const k = (cDex || "").trim().toLowerCase();
     if (!k) return null;
@@ -283,6 +313,39 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
     if (paramsStrategyId == null) return null;
     return strategies.find((s) => s.strategyId === paramsStrategyId) || null;
   }, [paramsStrategyId, strategies]);
+
+  const selectedVaultDex = useMemo(() => {
+    const k = (vDexKey || "").trim().toLowerCase();
+    if (!k) return null;
+    return vDexes.find((d) => String(d.dex || "").toLowerCase() === k) || null;
+  }, [vDexKey, vDexes]);
+
+  const selectedVaultPool = useMemo(() => {
+    const pid = (vPoolKey || "").trim().toLowerCase();
+    if (!pid) return null;
+
+    // vPoolKey stores pool address/id
+    return vPools.find((p) => String(p.pool || "").toLowerCase() === pid) || null;
+  }, [vPoolKey, vPools]);
+
+  const vaultDerived = useMemo(() => {
+    const d: any = selectedVaultDex;
+    const p: any = selectedVaultPool;
+
+    const dex = pickStr(d, ["dex"]);
+    const pool = p ? pickAddr(p, ["pool", "address", "pool_address"]) : "";
+    const nfpm = p ? pickAddr(p, ["nfpm", "nfpm_address", "position_manager", "nonfungible_position_manager"]) : "";
+    const gauge =
+      (p ? pickAddr(p, ["gauge", "gauge_address"]) : "") ||
+      (d ? pickAddr(d, ["gauge", "gauge_address"]) : "");
+
+    const version = (d ? pickStr(d, ["version"]) : "") || (p ? pickStr(p, ["version"]) : "") || "v2";
+
+    const token0 = p ? pickAddr(p, ["token0", "token0_address", "token0Addr"]) : "";
+    const token1 = p ? pickAddr(p, ["token1", "token1_address", "token1Addr"]) : "";
+
+    return { dex, pool, nfpm, gauge, rpc_url: vRpcUrl, version, token0, token1 };
+  }, [selectedVaultDex, selectedVaultPool, vRpcUrl]);
 
   const selectedCreateVaultStrategy = useMemo(() => {
     if (createVaultStrategyId == null) return null;
@@ -326,15 +389,17 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
 
   function resetCreateVaultModal() {
     setCreateVaultStrategyId(null);
-    setVDex("pancake");
+    setPendingOpenVaultStrategyId(null);
+    
+    setVDexKey("");
+    setVDexes([]);
+    setVPoolKey("");
+    setVPools([]);
+
+    setVRpcUrl("");
     setVParToken("WETH");
     setVName("");
     setVDescription("");
-    setVPool("");
-    setVNfpm("");
-    setVGauge("");
-    setVRpcUrl("");
-    setVVersion("v2");
     setVSwapPoolsJson("{}");
   }
 
@@ -342,16 +407,25 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
     setErr("");
     setLastTx(null);
 
-    if (!authenticated) {
-      login();
-      return;
-    }
     if (!ownerAddr) {
       setErr("Connect a wallet first.");
       return;
     }
 
+    // fix: open modal automatically after login
+    if (!authenticated) {
+      setPendingOpenVaultStrategyId(strategyId);
+      login();
+      return;
+    }
+
     setCreateVaultStrategyId(strategyId);
+
+    // reset selection state so it reloads clean
+    setVDexKey("");
+    setVDexes([]);
+    setVPoolKey("");
+    setVPools([]);
 
     setCreateVaultOpen(true);
   }
@@ -369,6 +443,10 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
         setErr("Ainda sem wallet. Faça login novamente ou link MetaMask.");
         return;
       }
+      if (!activeWallet) {
+        setErr("No active wallet connected.");
+        return;
+      }
       if (createVaultStrategyId == null) {
         setErr("Missing strategy id.");
         return;
@@ -384,17 +462,13 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
         return;
       }
 
-      // required fields
+      // required inputs kept
       if (!vName.trim()) {
         setErr("name is required.");
         return;
       }
-      if (!vDex.trim()) {
-        setErr("dex is required.");
-        return;
-      }
       if (!vParToken.trim()) {
-        setErr("par_token is required (used to generate alias).");
+        setErr("par_token is required (used for alias generation).");
         return;
       }
       if (!isAddressLike(s.adapter)) {
@@ -402,25 +476,34 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
         return;
       }
 
-      // config required
-      if (!isAddressLike(vPool)) {
-        setErr("pool must be a valid 0x address.");
+      // derived required
+      if (!vDexKey.trim() || !selectedVaultDex) {
+        setErr("DEX is required.");
         return;
       }
-      if (!isAddressLike(vNfpm)) {
-        setErr("nfpm must be a valid 0x address.");
+      if (!vPoolKey.trim() || !selectedVaultPool) {
+        setErr("Pool is required.");
         return;
       }
-      if (vGauge && !isAddressLike(vGauge)) {
-        setErr("gauge must be a valid 0x address (or empty).");
+
+      if (!isAddressLike(vaultDerived.pool)) {
+        setErr("Selected pool did not provide a valid pool address.");
         return;
       }
-      if (!vRpcUrl.trim()) {
-        setErr("rpc_url is required.");
+      if (!isAddressLike(vaultDerived.nfpm)) {
+        setErr("Selected pool did not provide a valid NFPM address.");
         return;
       }
-      if (!vVersion.trim()) {
-        setErr("version is required (ex: v2).");
+      if (vaultDerived.gauge && !isAddressLike(vaultDerived.gauge)) {
+        setErr("Selected dex/pool provided an invalid gauge address.");
+        return;
+      }
+      if (!vaultDerived.rpc_url.trim()) {
+        setErr("Selected dex did not provide rpc_url.");
+        return;
+      }
+      if (!vaultDerived.version.trim()) {
+        setErr("Selected dex/pool did not provide version.");
         return;
       }
 
@@ -442,25 +525,27 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
         strategyId: createVaultStrategyId,
         owner: ownerAddr,
       });
-      
+
       const res = await registerClientVault({
         accessToken: token,
         payload: {
           vault_address: onchain.vault_address,
-          chain: vChain,
-          dex: vDex.trim(),
+          chain: chainKey,
+          dex: String(selectedVaultDex.dex || vDexKey).trim(),
           owner: ownerAddr,
+
           par_token: vParToken.trim(),
           name: vName.trim(),
           description: vDescription.trim() || undefined,
           strategy_id: createVaultStrategyId,
+
           config: {
-            adapter: selectedCreateVaultStrategy.adapter,
-            pool: vPool.trim(),
-            nfpm: vNfpm.trim(),
-            gauge: vGauge.trim() || undefined,
-            rpc_url: vRpcUrl.trim(),
-            version: vVersion.trim(),
+            adapter: s.adapter,
+            pool: vaultDerived.pool,
+            nfpm: vaultDerived.nfpm,
+            gauge: vaultDerived.gauge || undefined,
+            rpc_url: vaultDerived.rpc_url,
+            version: vaultDerived.version,
             swap_pools: swapPoolsParsed.value,
           },
         },
@@ -488,6 +573,7 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
       setLoading(false);
     }
   }
+
 
   async function onOpenCreateStrategy() {
     setErr("");
@@ -942,6 +1028,142 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, ownerAddr]);
 
+  // if user clicked create vault while not logged in, open after auth
+  useEffect(() => {
+    if (!ready) return;
+    if (!pendingOpenVaultStrategyId) return;
+    if (!authenticated) return;
+    if (!ownerAddr) return;
+
+    setCreateVaultStrategyId(pendingOpenVaultStrategyId);
+    setPendingOpenVaultStrategyId(null);
+
+    // reset selection state so it reloads clean
+    setVDexKey("");
+    setVDexes([]);
+    setVPoolKey("");
+    setVPools([]);
+
+    setCreateVaultOpen(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated, ownerAddr, pendingOpenVaultStrategyId]);
+
+  // load dexes for vault modal
+  useEffect(() => {
+    if (!createVaultOpen) return;
+    if (!ready) return;
+
+    let cancelled = false;
+
+    async function loadDexes() {
+      setErr("");
+      try {
+        if (!authenticated) {
+          login();
+          return;
+        }
+
+        const token = await ensureTokenOrLogin();
+        if (!token) {
+          setErr("Missing access token. Please login again.");
+          return;
+        }
+
+        setVDexesLoading(true);
+
+        const items = await listDexesForStrategyUseCase({
+          accessToken: token,
+          query: { chain: chainKey, limit: 200 },
+        });
+
+        if (cancelled) return;
+
+        setVDexes(items);
+
+        if (!vDexKey && items.length > 0) {
+          setVDexKey(String(items[0].dex || ""));
+        }
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message || String(e));
+      } finally {
+        if (!cancelled) setVDexesLoading(false);
+      }
+    }
+
+    loadDexes();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createVaultOpen, ready, authenticated, ownerAddr]);
+
+  // load pools for selected dex (vault modal)
+  useEffect(() => {
+    if (!createVaultOpen) return;
+    if (!ready) return;
+    if (!vDexKey) return;
+
+    let cancelled = false;
+
+    async function loadPools() {
+      setErr("");
+      try {
+        if (!authenticated) {
+          login();
+          return;
+        }
+
+        const token = await ensureTokenOrLogin();
+        if (!token) {
+          setErr("Missing access token. Please login again.");
+          return;
+        }
+
+        setVPoolsLoading(true);
+
+        const items = await listDexPoolsForStrategyUseCase({
+          accessToken: token,
+          query: { chain: chainKey, dex: vDexKey, limit: 500 },
+        });
+
+        if (cancelled) return;
+
+        setVPools(items);
+
+        if (!vPoolKey && items.length > 0) {
+          setVPoolKey(String(items[0].pool || ""));
+        }
+      } catch (e: any) {
+        if (!cancelled) setErr(e?.message || String(e));
+      } finally {
+        if (!cancelled) setVPoolsLoading(false);
+      }
+    }
+
+    // reset pools whenever dex changes
+    setVPoolKey("");
+    setVPools([]);
+    loadPools();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createVaultOpen, vDexKey, ready, authenticated, ownerAddr]);
+
+  // optional: auto-fill par_token when pool changes
+  useEffect(() => {
+    if (!createVaultOpen) return;
+    if (!selectedVaultPool) return;
+
+    const guess = deriveParTokenFromPool(selectedVaultPool);
+    if (guess && (!vParToken || vParToken === "WETH")) {
+      setVParToken(guess);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [createVaultOpen, selectedVaultPool]);
+
   if (!ready) return <div style={{ padding: 24 }}>Loading...</div>;
 
   return (
@@ -976,7 +1198,7 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
         </Card>
       ) : null}
 
-      {/* Create vault modal (NEW) */}
+      {/* Create vault modal (refactor: select dex/pool, auto-fill) */}
       {createVaultOpen ? (
         <Card style={{ marginTop: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
@@ -998,10 +1220,80 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
           </div>
 
           <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Input label="chain (fixed)" value={vChain} onChange={() => {}} disabled />
-              <Input label="dex" placeholder="pancake | aerodrome | uniswap" value={vDex} onChange={(e) => setVDex(e.target.value)} />
+            <Input label="chain (fixed)" value={chainKey} onChange={() => {}} disabled />
+
+            {/* DEX select */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>
+                DEX {vDexesLoading ? <span style={{ opacity: 0.7 }}>(loading...)</span> : null}
+              </div>
+
+              <select
+                value={vDexKey}
+                onChange={(e) => {
+                  setVDexKey(e.target.value);
+                  setVPoolKey("");
+                }}
+                disabled={loading || vDexesLoading}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  borderRadius: 10,
+                  border: "1px solid #eee",
+                }}
+              >
+                <option value="">Select a dex...</option>
+                {vDexes.map((d) => (
+                  <option key={String(d.dex)} value={String(d.dex)}>
+                    {String(d.dex)}
+                  </option>
+                ))}
+              </select>
             </div>
+
+            {/* Pool select */}
+            <div style={{ display: "grid", gap: 6 }}>
+              <div style={{ fontSize: 13, fontWeight: 700 }}>
+                Pool {vPoolsLoading ? <span style={{ opacity: 0.7 }}>(loading...)</span> : null}
+              </div>
+
+              <select
+                value={vPoolKey}
+                onChange={(e) => setVPoolKey(e.target.value)}
+                disabled={loading || vPoolsLoading || !vDexKey}
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  borderRadius: 10,
+                  border: "1px solid #eee",
+                }}
+              >
+                <option value="">Select a pool...</option>
+                {vPools.map((p) => {
+                  const label =
+                    (p as any)?.name ||
+                    (p as any)?.symbol ||
+                    (p as any)?.pair ||
+                    `${String((p as any).pool).slice(0, 8)}...${String((p as any).pool).slice(-6)}`;
+
+                  const t0 = (p as any)?.token0 ? `${String((p as any).token0).slice(0, 8)}...${String((p as any).token0).slice(-6)}` : "";
+                  const t1 = (p as any)?.token1 ? `${String((p as any).token1).slice(0, 8)}...${String((p as any).token1).slice(-6)}` : "";
+
+                  return (
+                    <option key={String((p as any).pool)} value={String((p as any).pool)}>
+                      {label} {t0 && t1 ? `— ${t0} / ${t1}` : ""}
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            
+            <Input
+              label="rpc_url"
+              placeholder="https://... (Base RPC)"
+              value={vRpcUrl}
+              onChange={(e) => setVRpcUrl(e.target.value)}
+            />
 
             <Input
               label="par_token (used for alias generation)"
@@ -1019,20 +1311,26 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
               onChange={(e) => setVDescription(e.target.value)}
             />
 
-            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.75 }}>
-              adapter (from strategy): <span style={{ fontFamily: "monospace" }}>{selectedCreateVaultStrategy?.adapter || "-"}</span>
-            </div>
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Input label="pool" placeholder="Pool address" value={vPool} onChange={(e) => setVPool(e.target.value)} />
-              <Input label="nfpm" placeholder="NFPM address" value={vNfpm} onChange={(e) => setVNfpm(e.target.value)} />
-            </div>
-
-            <Input label="gauge (optional)" placeholder="Gauge address" value={vGauge} onChange={(e) => setVGauge(e.target.value)} />
-
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-              <Input label="rpc_url" placeholder="RPC Url address" value={vRpcUrl} onChange={(e) => setVRpcUrl(e.target.value)} />
-              <Input label="version" placeholder="Version" value={vVersion} onChange={(e) => setVVersion(e.target.value)} />
+            {/* Derived (read-only) */}
+            <div style={{ marginTop: 6, fontSize: 12, opacity: 0.8 }}>
+              <div>
+                adapter (from strategy):{" "}
+                <span style={{ fontFamily: "monospace" }}>{selectedCreateVaultStrategy?.adapter || "-"}</span>
+              </div>
+              <div>
+                pool (from pool): <span style={{ fontFamily: "monospace" }}>{vaultDerived.pool || "-"}</span>
+              </div>
+              <div>
+                nfpm (from pool): <span style={{ fontFamily: "monospace" }}>{vaultDerived.nfpm || "-"}</span>
+              </div>
+              {vaultDerived.gauge ? (
+                <div>
+                  gauge (dex/pool): <span style={{ fontFamily: "monospace" }}>{vaultDerived.gauge}</span>
+                </div>
+              ) : null}
+              <div>
+                version: <span style={{ fontFamily: "monospace" }}>{vaultDerived.version || "-"}</span>
+              </div>
             </div>
 
             <div style={{ marginTop: 6 }}>
@@ -1065,13 +1363,14 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
               >
                 Cancel
               </Button>
-              <Button onClick={onSubmitCreateVault} disabled={loading}>
+              <Button onClick={onSubmitCreateVault} disabled={loading || vDexesLoading || vPoolsLoading}>
                 {loading ? "Creating..." : "Create vault (api-lp)"}
               </Button>
             </div>
           </div>
         </Card>
       ) : null}
+
 
       {/* Create strategy modal */}
       {createOpen ? (
@@ -1399,7 +1698,7 @@ const [cIndicatorSetId, setCIndicatorSetId] = useState("");
                     Edit params (Mongo)
                   </Button>
 
-                  <Button onClick={() => onOpenCreateVault(s.strategyId)} disabled={loading || !s.active}>
+                  <Button onClick={() => onOpenCreateVault(s.strategyId)} disabled={loading}>
                     {loading ? "Opening..." : "Create vault"}
                   </Button>
                 </div>
