@@ -71,6 +71,15 @@ export type CreateDexPoolBody = {
   status?: "ACTIVE" | "INACTIVE";
 };
 
+export type CreateProtocolFeeCollectorBody = {
+  chain: ChainKey;
+  gas_strategy?: "default" | "buffered" | "aggressive";
+  initial_owner: string;
+  treasury: string;
+  protocol_fee_bps: number; // uint16
+};
+
+
 export async function apiLpAdminCreateStrategyRegistry(
   accessToken: string,
   body: CreateStrategyRegistryBody
@@ -110,4 +119,11 @@ export async function apiLpAdminCreateDex(accessToken: string, body: CreateDexBo
 
 export async function apiLpAdminCreateDexPool(accessToken: string, body: CreateDexPoolBody): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
+}
+
+export async function apiLpAdminCreateProtocolFeeCollector(
+  accessToken: string,
+  body: CreateProtocolFeeCollectorBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/protocol-fee-collector/create", body, accessToken);
 }

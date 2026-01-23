@@ -13,25 +13,26 @@ import { useAuthToken } from "@/hooks/useAuthToken";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
-import { createStrategyRegistryUseCase } from "@/application/admin/createStrategyRegistry.usecase";
-import { createVaultFactoryUseCase } from "@/application/admin/createVaultFactory.usecase";
-import { listOwnersUseCase } from "@/application/admin/listOwners.usecase";
-import { listUsersUseCase } from "@/application/admin/listUsers.usecase";
+import { createStrategyRegistryUseCase } from "@/application/admin/api/createStrategyRegistry.usecase";
+import { createVaultFactoryUseCase } from "@/application/admin/api/createVaultFactory.usecase";
+import { listOwnersUseCase } from "@/application/admin/api/listOwners.usecase";
+import { listUsersUseCase } from "@/application/admin/api/listUsers.usecase";
 
-import { createAdapterUseCase } from "@/application/admin/createAdapter.usecase";
-import { listAdaptersUseCase } from "@/application/admin/listAdapters.usecase";
+import { createAdapterUseCase } from "@/application/admin/api/createAdapter.usecase";
+import { listAdaptersUseCase } from "@/application/admin/api/listAdapters.usecase";
 
 import { listStrategiesOnchain } from "@/application/strategy/onchain/listStrategies.usecase";
 import { listVaultsByOwner } from "@/application/vault/onchain/listVaultsByOwner.usecase";
 
 import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
-import { allowStrategyAdapterUseCase } from "@/application/admin/allowStrategyAdapter.usecase";
-import { allowStrategyRouterUseCase } from "@/application/admin/allowStrategyRouter.usecase";
-import { listDexesUseCase } from "@/application/admin/listDexes.usecase";
-import { createDexPoolUseCase } from "@/application/admin/createDexPool.usecase";
-import { listDexPoolsUseCase } from "@/application/admin/listDexPools.usecase";
-import { createDexUseCase } from "@/application/admin/createDex.usecase";
+import { allowStrategyAdapterUseCase } from "@/application/admin/onchain/allowStrategyAdapter.usecase";
+import { allowStrategyRouterUseCase } from "@/application/admin/onchain/allowStrategyRouter.usecase";
+import { listDexesUseCase } from "@/application/admin/api/listDexes.usecase";
+import { createDexPoolUseCase } from "@/application/admin/api/createDexPool.usecase";
+import { listDexPoolsUseCase } from "@/application/admin/api/listDexPools.usecase";
+import { createDexUseCase } from "@/application/admin/api/createDex.usecase";
+import { createProtocolFeeCollectorUseCase } from "@/application/admin/api/createProtocolFeeCollector.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -101,6 +102,10 @@ export default function AdminPage() {
   const [prefillDex, setPrefillDex] = useState<string>("pancake_v3");
   const [prefillPools, setPrefillPools] = useState<any[]>([]);
   const [prefillPoolAddr, setPrefillPoolAddr] = useState<string>("");
+
+  const [pfcOwner, setPfcOwner] = useState<string>("");
+  const [pfcTreasury, setPfcTreasury] = useState<string>("");
+  const [pfcFeeBps, setPfcFeeBps] = useState<number>(1000);
 
   const sessionLabel = useMemo(() => {
     return {
@@ -323,6 +328,80 @@ export default function AdminPage() {
           </div>
         </Card>
         
+        <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>Protocol Fee Collector</div>
+
+          <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Initial owner (optional)</div>
+                <input
+                  value={pfcOwner}
+                  onChange={(e) => setPfcOwner(e.target.value)}
+                  placeholder="0x... (leave empty to use your admin wallet)"
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Treasury</div>
+                <input
+                  value={pfcTreasury}
+                  onChange={(e) => setPfcTreasury(e.target.value)}
+                  placeholder="0x... (multisig/treasury)"
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Protocol fee (bps)</div>
+                <input
+                  type="number"
+                  value={pfcFeeBps}
+                  onChange={(e) => setPfcFeeBps(Number(e.target.value))}
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div style={{ opacity: 0.75, fontSize: 13, paddingTop: 22 }}>
+                Stored as reference on-chain (max 5000 bps).
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button
+              disabled={!!busy}
+              onClick={async () => {
+                const chain = (await getActiveChainRuntime()).chainKey as any;
+                const res = await runAction("Create Protocol Fee Collector", async (t) =>
+                  createProtocolFeeCollectorUseCase({
+                    accessToken: t,
+                    body: {
+                      chain,
+                      gas_strategy: "buffered",
+                      initial_owner: (pfcOwner || ownerAddr || "").trim(),
+                      treasury: (pfcTreasury || "").trim(),
+                      protocol_fee_bps: Number(pfcFeeBps),
+                    },
+                  })
+                );
+                push({ title: "Result", description: res?.message || "OK" });
+              }}
+            >
+              {busy === "Create Protocol Fee Collector" ? "Working..." : "Create Protocol Fee Collector"}
+            </Button>
+          </div>
+
+          <div style={{ marginTop: 10, opacity: 0.8 }}>
+            Backend rule should match factories: keep a single ACTIVE record per chain, and block creation unless the latest
+            record is ARCHIVED_CAN_CREATE_NEW (or none exists).
+          </div>
+        </Card>
+
+
         <Card>
           <div style={{ fontWeight: 900, marginBottom: 8 }}>DEX Registry</div>
 
@@ -924,8 +1003,6 @@ export default function AdminPage() {
             </div>
           </div>
         </Card>
-
-
       </div>
     </main>
   );
