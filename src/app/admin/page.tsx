@@ -33,6 +33,7 @@ import { createDexPoolUseCase } from "@/application/admin/api/createDexPool.usec
 import { listDexPoolsUseCase } from "@/application/admin/api/listDexPools.usecase";
 import { createDexUseCase } from "@/application/admin/api/createDex.usecase";
 import { createProtocolFeeCollectorUseCase } from "@/application/admin/api/createProtocolFeeCollector.usecase";
+import { createVaultFeeBufferUseCase } from "@/application/admin/api/createVaultFeeBuffer.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -106,6 +107,8 @@ export default function AdminPage() {
   const [pfcOwner, setPfcOwner] = useState<string>("");
   const [pfcTreasury, setPfcTreasury] = useState<string>("");
   const [pfcFeeBps, setPfcFeeBps] = useState<number>(1000);
+
+  const [vfbOwner, setVfbOwner] = useState<string>("");
 
   const sessionLabel = useMemo(() => {
     return {
@@ -398,6 +401,54 @@ export default function AdminPage() {
           <div style={{ marginTop: 10, opacity: 0.8 }}>
             Backend rule should match factories: keep a single ACTIVE record per chain, and block creation unless the latest
             record is ARCHIVED_CAN_CREATE_NEW (or none exists).
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>Vault Fee Buffer</div>
+
+          <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+            <div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Initial owner (optional)</div>
+              <input
+                value={vfbOwner}
+                onChange={(e) => setVfbOwner(e.target.value)}
+                placeholder="0x... (leave empty to use your admin wallet)"
+                style={{ width: "100%", padding: 10, borderRadius: 10 }}
+              />
+            </div>
+
+            <div style={{ opacity: 0.75, fontSize: 13 }}>
+              VaultFeeBuffer isolates harvested fees/rewards from the vault idle balances.
+              Deploy once per chain, then allowlist adapter contracts via <b>setDepositor</b> (on-chain).
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button
+              disabled={!!busy}
+              onClick={async () => {
+                const chain = (await getActiveChainRuntime()).chainKey as any;
+                const res = await runAction("Create Vault Fee Buffer", async (t) =>
+                  createVaultFeeBufferUseCase({
+                    accessToken: t,
+                    body: {
+                      chain,
+                      gas_strategy: "buffered",
+                      initial_owner: (vfbOwner || ownerAddr || "").trim(),
+                    },
+                  })
+                );
+                push({ title: "Result", description: res?.message || "OK" });
+              }}
+            >
+              {busy === "Create Vault Fee Buffer" ? "Working..." : "Create Vault Fee Buffer"}
+            </Button>
+          </div>
+
+          <div style={{ marginTop: 10, opacity: 0.8 }}>
+            Backend rule matches PFC/factories: keep a single ACTIVE record per chain and block creation unless
+            latest is ARCHIVED_CAN_CREATE_NEW (or none exists).
           </div>
         </Card>
 
