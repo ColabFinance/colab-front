@@ -1,4 +1,3 @@
-
 export type VaultDetails = {
   address: string;
 
@@ -17,10 +16,25 @@ export type VaultDetails = {
   maxSlippageBps: number;
   allowSwap: boolean;
 
+  dailyHarvestEnabled?: boolean;
+  dailyHarvestCooldownSec?: number;
+  lastDailyHarvestTs?: number;
+
+  compoundEnabled?: boolean;
+  compoundCooldownSec?: number;
+  lastCompoundTs?: number;
+
+  rewardSwap?: {
+    enabled: boolean;
+    tokenIn?: string;
+    tokenOut?: string;
+    fee?: number;
+    sqrtPriceLimitX96?: string;
+  };
+
   positionTokenId: string; // big number -> string
   lastRebalanceTs: number; // unix seconds
 };
-
 
 export type TxRunResponse = {
   tx_hash: string;
@@ -53,6 +67,11 @@ export type SwapPoolItem = {
   pool: string;
 };
 
+export type VaultJobsConfig = {
+  harvest_job?: Record<string, any>;
+  compound_job?: Record<string, any>;
+};
+
 export type VaultRegistryConfig = {
   address?: string;
 
@@ -65,6 +84,10 @@ export type VaultRegistryConfig = {
   version: string;
 
   swap_pools?: Record<string, SwapPoolItem>;
+
+  jobs?: VaultJobsConfig;
+
+  reward_swap?: Record<string, any>;
 };
 
 export type VaultRegistryDocument = {
@@ -93,22 +116,17 @@ export type VaultRegistryDocument = {
 };
 
 export type CreateClientVaultRequest = {
-  // identity
   chain: "base" | string;
   dex: string;
   owner: string;
 
-  // alias generation key
   par_token: string;
 
-  // metadata
   name: string;
   description?: string;
 
-  // wiring
   strategy_id: number;
 
-  // config for vault_registry
   config: {
     adapter: string;
     pool: string;
@@ -119,17 +137,17 @@ export type CreateClientVaultRequest = {
     version: string;
 
     swap_pools?: Record<string, SwapPoolItem>;
+
+    jobs?: VaultJobsConfig;
+    reward_swap?: Record<string, any>;
   };
 
-  // tx
   gas_strategy?: string;
 };
 
 export type CreateClientVaultResponse = TxRunResponse & {
   vault?: VaultRegistryDocument;
 };
-
-
 
 export type RegisterClientVaultRequest = {
   vault_address: string;
@@ -146,4 +164,40 @@ export type RegisterClientVaultRequest = {
 export type RegisterClientVaultResponse = {
   alias: string;
   mongo_id: string;
+};
+
+export type UpdateCompoundConfigRequest = {
+  enabled: boolean;
+  cooldown_sec: number;
+};
+
+export type UpdateCompoundConfigResponse = {
+  ok: boolean;
+  data?: any;
+  message?: string;
+};
+
+export type UpdateDailyHarvestConfigRequest = {
+  enabled: boolean;
+  cooldown_sec: number;
+};
+
+export type UpdateDailyHarvestConfigResponse = {
+  ok: boolean;
+  data?: any;
+  message?: string;
+};
+
+export type UpdateRewardSwapConfigRequest = {
+  enabled: boolean;
+  token_in: string;
+  token_out: string;
+  fee: number;
+  sqrt_price_limit_x96: string;
+};
+
+export type UpdateRewardSwapConfigResponse = {
+  ok: boolean;
+  data?: any;
+  message?: string;
 };

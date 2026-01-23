@@ -31,6 +31,14 @@ import { swapExactInPancake } from "@/application/vault/onchain/swapExactInPanca
 
 import type { VaultDetails } from "@/domain/vault/types";
 import type { VaultStatus } from "@/domain/vault/status";
+import { usePrivy } from "@privy-io/react-auth";
+import { useAuthToken } from "@/hooks/useAuthToken";
+import { setDailyHarvestConfigOnchain } from "@/application/vault/onchain/setDailyHarvestConfig.usecase";
+import { updateDailyHarvestConfigUseCase } from "@/application/vault/api/updateDailyHarvestConfig.usecase";
+import { setCompoundConfigOnchain } from "@/application/vault/onchain/etCompoundConfig.usecase";
+import { updateCompoundConfigUseCase } from "@/application/vault/api/updateCompoundConfig.usecase";
+import { setRewardSwapConfigOnchain } from "@/application/vault/onchain/setRewardSwapConfig.usecase";
+import { updateRewardSwapConfigUseCase } from "@/application/vault/api/updateRewardSwapConfig.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -49,6 +57,8 @@ function is0xAddress(a?: string) {
 }
 
 export default function VaultDetailsPage() {
+  const { authenticated, login } = usePrivy();
+  const { ensureTokenOrLogin } = useAuthToken();
   const params = useParams();
 
   const vaultAddress = useMemo(() => {
@@ -108,6 +118,19 @@ export default function VaultDetailsPage() {
 
   // api bot
   const [autoReason, setAutoReason] = useState<string>("manual_trigger");
+
+  // ---------------- new: client vault setConfigs ----------------
+  const [dhEnabled, setDhEnabled] = useState(true);
+  const [dhCooldownSec, setDhCooldownSec] = useState<string>("86400");
+
+  const [cpEnabled, setCpEnabled] = useState(true);
+  const [cpCooldownSec, setCpCooldownSec] = useState<string>("0");
+
+  const [rsEnabled, setRsEnabled] = useState(false);
+  const [rsTokenIn, setRsTokenIn] = useState("");
+  const [rsTokenOut, setRsTokenOut] = useState("");
+  const [rsFee, setRsFee] = useState<string>("0");
+  const [rsSqrtPriceLimitX96, setRsSqrtPriceLimitX96] = useState<string>("0");
 
   const isOwner = !!data?.owner && !!ownerAddr && data.owner.toLowerCase() === ownerAddr.toLowerCase();
 
@@ -232,6 +255,172 @@ export default function VaultDetailsPage() {
       await refreshStatus();
     } catch (e: any) {
       setErr(e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function requireToken(): Promise<string | null> {
+    if (!authenticated) {
+      login();
+      return null;
+    }
+    const token = await ensureTokenOrLogin();
+    return token || null;
+  }
+
+  async function onSetDailyHarvest() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected.");
+      return;
+    }
+
+    const cd = Number((dhCooldownSec || "").trim());
+    if (!Number.isFinite(cd) || cd < 0 || cd > 0xffffffff || Math.floor(cd) !== cd) {
+      setErr("dailyHarvestCooldownSec must be a uint32 integer.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1) onchain
+      const tx = await setDailyHarvestConfigOnchain({
+        wallet: activeWallet,
+        vault: vaultAddress,
+        enabled: !!dhEnabled,
+        cooldownSec: cd,
+      });
+      setLastTx(tx);
+
+      // 2) persist in Mongo
+      const token = await requireToken();
+      if (!token) return;
+
+      await updateDailyHarvestConfigUseCase({
+        accessToken: token,
+        vault: vaultAddress,
+        payload: { enabled: !!dhEnabled, cooldown_sec: cd },
+      });
+
+      push({ title: "Daily harvest config", description: "On-chain + Mongo updated." });
+      await refresh();
+      await refreshStatus();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onSetCompound() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected.");
+      return;
+    }
+
+    const cd = Number((cpCooldownSec || "").trim());
+    if (!Number.isFinite(cd) || cd < 0 || cd > 0xffffffff || Math.floor(cd) !== cd) {
+      setErr("compoundCooldownSec must be a uint32 integer.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1) onchain
+      const tx = await setCompoundConfigOnchain({
+        wallet: activeWallet,
+        vault: vaultAddress,
+        enabled: !!cpEnabled,
+        cooldownSec: cd,
+      });
+      setLastTx(tx);
+
+      // 2) persist in Mongo
+      const token = await requireToken();
+      if (!token) return;
+
+      await updateCompoundConfigUseCase({
+        accessToken: token,
+        vault: vaultAddress,
+        payload: { enabled: !!cpEnabled, cooldown_sec: cd },
+      });
+
+      push({ title: "Compound config", description: "On-chain + Mongo updated." });
+      await refresh();
+      await refreshStatus();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onSetRewardSwap() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected.");
+      return;
+    }
+
+    if (rsEnabled) {
+      if (!is0xAddress(rsTokenIn)) {
+        setErr("rewardSwap tokenIn must be an address.");
+        return;
+      }
+      if (!is0xAddress(rsTokenOut)) {
+        setErr("rewardSwap tokenOut must be an address.");
+        return;
+      }
+      const feeN = Number((rsFee || "").trim());
+      if (!Number.isFinite(feeN) || feeN < 0 || feeN > 0xffffff || Math.floor(feeN) !== feeN) {
+        setErr("rewardSwap fee must be uint24 integer (ex: 100, 500, 2500, 10000).");
+        return;
+      }
+    }
+
+    setLoading(true);
+    try {
+      // 1) onchain
+      const tx = await setRewardSwapConfigOnchain({
+        wallet: activeWallet,
+        vault: vaultAddress,
+        enabled: !!rsEnabled,
+        tokenIn: rsEnabled ? rsTokenIn.trim() : "0x0000000000000000000000000000000000000000",
+        tokenOut: rsEnabled ? rsTokenOut.trim() : "0x0000000000000000000000000000000000000000",
+        fee: rsEnabled ? (rsFee || "0").trim() : "0",
+        sqrtPriceLimitX96: (rsSqrtPriceLimitX96 || "0").trim() || "0",
+      });
+      setLastTx(tx);
+
+      // 2) persist in Mongo
+      const token = await requireToken();
+      if (!token) return;
+
+      await updateRewardSwapConfigUseCase({
+        accessToken: token,
+        vault: vaultAddress,
+        payload: {
+          enabled: !!rsEnabled,
+          token_in: rsEnabled ? rsTokenIn.trim() : "0x0000000000000000000000000000000000000000",
+          token_out: rsEnabled ? rsTokenOut.trim() : "0x0000000000000000000000000000000000000000",
+          fee: rsEnabled ? Number((rsFee || "0").trim()) : 0,
+          sqrt_price_limit_x96: (rsSqrtPriceLimitX96 || "0").trim() || "0",
+        },
+      });
+
+      push({ title: "Reward swap config", description: "On-chain + Mongo updated." });
+      await refresh();
+      await refreshStatus();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
     } finally {
       setLoading(false);
     }
@@ -457,6 +646,106 @@ export default function VaultDetailsPage() {
               <div style={{ marginTop: 10, opacity: 0.75 }}>
                 Current: enabled={String(data.automationEnabled)}, cooldown={data.cooldownSec}, slippageBps=
                 {data.maxSlippageBps}, allowSwap={String(data.allowSwap)}
+              </div>
+            </Card>
+            
+            <Card style={{ marginTop: 14 }}>
+              <div style={{ fontWeight: 800 }}>ClientVault setConfig (on-chain) + persist (Mongo)</div>
+              <div style={{ fontSize: 12, opacity: 0.75, marginTop: 6 }}>
+                Cada botão faz a tx on-chain (owner) e depois atualiza o vault no Mongo via API.
+              </div>
+
+              <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
+                {/* Daily harvest */}
+                <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 10 }}>
+                  <div style={{ fontWeight: 800 }}>Daily harvest</div>
+
+                  <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+                    <input type="checkbox" checked={dhEnabled} onChange={(e) => setDhEnabled(e.target.checked)} disabled={loading} />
+                    <div>enabled</div>
+                  </label>
+
+                  <Input
+                    label="cooldown_sec (uint32)"
+                    placeholder="86400"
+                    value={dhCooldownSec}
+                    onChange={(e) => setDhCooldownSec(e.target.value)}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                    <Button onClick={onSetDailyHarvest} disabled={loading}>
+                      {loading ? "Running..." : "Set daily harvest"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Compound */}
+                <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 10 }}>
+                  <div style={{ fontWeight: 800 }}>Compound</div>
+
+                  <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+                    <input type="checkbox" checked={cpEnabled} onChange={(e) => setCpEnabled(e.target.checked)} disabled={loading} />
+                    <div>enabled</div>
+                  </label>
+
+                  <Input
+                    label="cooldown_sec (uint32)"
+                    placeholder="0"
+                    value={cpCooldownSec}
+                    onChange={(e) => setCpCooldownSec(e.target.value)}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                    <Button onClick={onSetCompound} disabled={loading}>
+                      {loading ? "Running..." : "Set compound"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Reward swap */}
+                <div style={{ padding: 12, border: "1px solid #eee", borderRadius: 10 }}>
+                  <div style={{ fontWeight: 800 }}>Reward swap</div>
+
+                  <label style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 10 }}>
+                    <input type="checkbox" checked={rsEnabled} onChange={(e) => setRsEnabled(e.target.checked)} disabled={loading} />
+                    <div>enabled</div>
+                  </label>
+
+                  <Input
+                    label="tokenIn (address)"
+                    placeholder="0x..."
+                    value={rsTokenIn}
+                    onChange={(e) => setRsTokenIn(e.target.value)}
+                    disabled={loading || !rsEnabled}
+                  />
+                  <Input
+                    label="tokenOut (address)"
+                    placeholder="0x..."
+                    value={rsTokenOut}
+                    onChange={(e) => setRsTokenOut(e.target.value)}
+                    disabled={loading || !rsEnabled}
+                  />
+                  <Input
+                    label="fee (uint24)"
+                    placeholder="2500"
+                    value={rsFee}
+                    onChange={(e) => setRsFee(e.target.value)}
+                    disabled={loading || !rsEnabled}
+                  />
+                  <Input
+                    label="sqrtPriceLimitX96 (uint160)"
+                    placeholder="0"
+                    value={rsSqrtPriceLimitX96}
+                    onChange={(e) => setRsSqrtPriceLimitX96(e.target.value)}
+                    disabled={loading}
+                  />
+
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 10 }}>
+                    <Button onClick={onSetRewardSwap} disabled={loading}>
+                      {loading ? "Running..." : "Set reward swap"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </Card>
 

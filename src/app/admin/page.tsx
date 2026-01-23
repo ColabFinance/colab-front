@@ -75,6 +75,7 @@ export default function AdminPage() {
     pool: "",
     nfpm: "",
     gauge: "0x0000000000000000000000000000000000000000",
+    fee_buffer: "",
     token0: "",
     token1: "",
     pool_name: "WETH/USDC",
@@ -1125,6 +1126,13 @@ export default function AdminPage() {
               onChange={(e) => setAdapterForm((s) => ({ ...s, fee_bps: e.target.value }))}
             />
 
+            <Input
+              label="Fee Buffer (constructor param)"
+              placeholder="VaultFeeBuffer 0x..."
+              value={adapterForm.fee_buffer}
+              onChange={(e) => setAdapterForm((s) => ({ ...s, fee_buffer: e.target.value }))}
+            />
+            
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
               <Button
                 disabled={!!busy}
@@ -1136,6 +1144,7 @@ export default function AdminPage() {
                     pool: adapterForm.pool.trim(),
                     nfpm: adapterForm.nfpm.trim(),
                     gauge: adapterForm.gauge.trim(),
+                    fee_buffer: adapterForm.fee_buffer.trim(),
                     token0: adapterForm.token0.trim(),
                     token1: adapterForm.token1.trim(),
                     pool_name: adapterForm.pool_name.trim(),

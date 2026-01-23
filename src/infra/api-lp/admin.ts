@@ -36,6 +36,8 @@ export type CreateAdapterBody = {
   nfpm: string;
   gauge: string;
 
+  fee_buffer: string;
+
   token0: string;
   token1: string;
 
