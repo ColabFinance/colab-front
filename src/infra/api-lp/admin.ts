@@ -79,6 +79,11 @@ export type CreateProtocolFeeCollectorBody = {
   protocol_fee_bps: number; // uint16
 };
 
+export type CreateVaultFeeBufferBody = {
+  chain: ChainKey;
+  gas_strategy?: "default" | "buffered" | "aggressive";
+  initial_owner: string;
+};
 
 export async function apiLpAdminCreateStrategyRegistry(
   accessToken: string,
@@ -126,4 +131,11 @@ export async function apiLpAdminCreateProtocolFeeCollector(
   body: CreateProtocolFeeCollectorBody
 ): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/protocol-fee-collector/create", body, accessToken);
+}
+
+export async function apiLpAdminCreateVaultFeeBuffer(
+  accessToken: string,
+  body: CreateVaultFeeBufferBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/vault-fee-buffer/create", body, accessToken);
 }
