@@ -38,6 +38,9 @@ import { setProtocolFeeCollectorTreasuryUseCase } from "@/application/admin/onch
 import { setProtocolFeeCollectorFeeBpsUseCase } from "@/application/admin/onchain/setProtocolFeeCollectorFeeBps.usecase";
 import { allowProtocolFeeCollectorReporterUseCase } from "@/application/admin/onchain/allowProtocolFeeCollectorReporter.usecase";
 import { allowVaultFeeBufferDepositorUseCase } from "@/application/admin/onchain/allowVaultFeeBufferDepositor.usecase";
+import { setVaultFactoryExecutorUseCase } from "@/application/admin/onchain/setVaultFactoryExecutor.usecase";
+import { setVaultFactoryFeeCollectorUseCase } from "@/application/admin/onchain/setVaultFactoryFeeCollector.usecase";
+import { setVaultFactoryDefaultsUseCase } from "@/application/admin/onchain/setVaultFactoryDefaults.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -640,6 +643,125 @@ export default function AdminPage() {
                 <code style={{ marginLeft: 6 }}>VaultFeeBuffer: depositor not allowed</code>
               </div>
             </Card>
+
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>VaultFactory</div>
+
+              <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Executor (bot)</div>
+                  <input
+                    value={executorAddr}
+                    onChange={(e) => setExecutorAddr(e.target.value)}
+                    placeholder="0x..."
+                    style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                  />
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>
+                    Fee collector (ProtocolFeeCollector)
+                  </div>
+                  <input
+                    value={feeCollector}
+                    onChange={(e) => setFeeCollector(e.target.value)}
+                    placeholder="0x... (can be 0x0 to disable)"
+                    style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                  />
+                </div>
+
+                <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Default cooldown (sec)</div>
+                    <input
+                      type="number"
+                      value={cooldownSec}
+                      onChange={(e) => setCooldownSec(Number(e.target.value))}
+                      style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                    />
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Default max slippage (bps)</div>
+                    <input
+                      type="number"
+                      value={maxSlippageBps}
+                      onChange={(e) => setMaxSlippageBps(Number(e.target.value))}
+                      style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                    />
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Default allow swap</div>
+                    <label style={{ display: "flex", gap: 8, alignItems: "center", padding: 10 }}>
+                      <input
+                        type="checkbox"
+                        checked={allowSwap}
+                        onChange={(e) => setAllowSwap(e.target.checked)}
+                      />
+                      <span style={{ opacity: 0.9 }}>{String(allowSwap)}</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("VF: setExecutor", async () =>
+                      setVaultFactoryExecutorUseCase({
+                        activeWallet,
+                        executor: (executorAddr || "").trim(),
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "VF: setExecutor" ? "Working..." : "VF: setExecutor"}
+                </Button>
+
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("VF: setFeeCollector", async () =>
+                      setVaultFactoryFeeCollectorUseCase({
+                        activeWallet,
+                        feeCollector: (feeCollector || "").trim(),
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "VF: setFeeCollector" ? "Working..." : "VF: setFeeCollector"}
+                </Button>
+
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("VF: setDefaults", async () =>
+                      setVaultFactoryDefaultsUseCase({
+                        activeWallet,
+                        cooldownSec: Number(cooldownSec),
+                        maxSlippageBps: Number(maxSlippageBps),
+                        allowSwap: Boolean(allowSwap),
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "VF: setDefaults" ? "Working..." : "VF: setDefaults"}
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13 }}>
+                Lembrete: mudar executor/feeCollector/defaults no factory só afeta <b>vaults novos</b>. Vault antigo fica com os imutáveis antigos.
+              </div>
+            </Card>
+
           </div>
         </Card>
 
