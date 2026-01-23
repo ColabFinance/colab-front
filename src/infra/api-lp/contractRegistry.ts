@@ -18,6 +18,8 @@ export type ContractRegistryResponse = {
     chain: ChainKey;
     strategy_factory: { address: string };
     vault_factory: { address: string };
+    protocol_fee_collector: { address: string };
+    vault_fee_buffer: { address: string };
     adapters: AdapterRegistryItem[];
   }
 };

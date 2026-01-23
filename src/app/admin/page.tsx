@@ -34,6 +34,10 @@ import { listDexPoolsUseCase } from "@/application/admin/api/listDexPools.usecas
 import { createDexUseCase } from "@/application/admin/api/createDex.usecase";
 import { createProtocolFeeCollectorUseCase } from "@/application/admin/api/createProtocolFeeCollector.usecase";
 import { createVaultFeeBufferUseCase } from "@/application/admin/api/createVaultFeeBuffer.usecase";
+import { setProtocolFeeCollectorTreasuryUseCase } from "@/application/admin/onchain/setProtocolFeeCollectorTreasury.usecase";
+import { setProtocolFeeCollectorFeeBpsUseCase } from "@/application/admin/onchain/setProtocolFeeCollectorFeeBps.usecase";
+import { allowProtocolFeeCollectorReporterUseCase } from "@/application/admin/onchain/allowProtocolFeeCollectorReporter.usecase";
+import { allowVaultFeeBufferDepositorUseCase } from "@/application/admin/onchain/allowVaultFeeBufferDepositor.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -109,6 +113,9 @@ export default function AdminPage() {
   const [pfcFeeBps, setPfcFeeBps] = useState<number>(1000);
 
   const [vfbOwner, setVfbOwner] = useState<string>("");
+
+  const [pfcReporterAddr, setPfcReporterAddr] = useState<string>("");
+  const [vfbDepositorAddr, setVfbDepositorAddr] = useState<string>("");
 
   const sessionLabel = useMemo(() => {
     return {
@@ -449,6 +456,190 @@ export default function AdminPage() {
           <div style={{ marginTop: 10, opacity: 0.8 }}>
             Backend rule matches PFC/factories: keep a single ACTIVE record per chain and block creation unless
             latest is ARCHIVED_CAN_CREATE_NEW (or none exists).
+          </div>
+        </Card>
+
+        <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>On-chain Sets (required)</div>
+
+          <div style={{ opacity: 0.8, fontSize: 13, marginBottom: 12 }}>
+            These are <b>onlyOwner</b> calls. Your connected admin wallet must be the owner of the deployed contracts.
+          </div>
+
+          <div style={{ display: "grid", gap: 12 }}>
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>ProtocolFeeCollector</div>
+
+              <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+                <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Treasury</div>
+                    <input
+                      value={pfcTreasury}
+                      onChange={(e) => setPfcTreasury(e.target.value)}
+                      placeholder="0x... (multisig/treasury)"
+                      style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                    />
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Protocol fee (bps)</div>
+                    <input
+                      type="number"
+                      value={pfcFeeBps}
+                      onChange={(e) => setPfcFeeBps(Number(e.target.value))}
+                      style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>
+                    Reporter (adapter address)
+                  </div>
+                  <input
+                    value={pfcReporterAddr}
+                    onChange={(e) => setPfcReporterAddr(e.target.value)}
+                    placeholder="0x... (adapter that calls reportFees)"
+                    style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("PFC: setTreasury", async () =>
+                      setProtocolFeeCollectorTreasuryUseCase({
+                        activeWallet,
+                        treasury: (pfcTreasury || "").trim(),
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "PFC: setTreasury" ? "Working..." : "PFC: setTreasury"}
+                </Button>
+
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("PFC: setProtocolFeeBps", async () =>
+                      setProtocolFeeCollectorFeeBpsUseCase({
+                        activeWallet,
+                        feeBps: Number(pfcFeeBps),
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "PFC: setProtocolFeeBps" ? "Working..." : "PFC: setProtocolFeeBps"}
+                </Button>
+
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("PFC: allow reporter", async () =>
+                      allowProtocolFeeCollectorReporterUseCase({
+                        activeWallet,
+                        reporter: (pfcReporterAddr || "").trim(),
+                        allowed: true,
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "PFC: allow reporter" ? "Working..." : "PFC: allow reporter"}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("PFC: disallow reporter", async () =>
+                      allowProtocolFeeCollectorReporterUseCase({
+                        activeWallet,
+                        reporter: (pfcReporterAddr || "").trim(),
+                        allowed: false,
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "PFC: disallow reporter" ? "Working..." : "PFC: disallow reporter"}
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13 }}>
+                If the adapter is not allowlisted as reporter, <b>reportFees</b> can fail and your adapter may
+                proceed fail-open (no protocol fee collected).
+              </div>
+            </Card>
+
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 10 }}>VaultFeeBuffer</div>
+
+              <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>
+                    Depositor (adapter address)
+                  </div>
+                  <input
+                    value={vfbDepositorAddr}
+                    onChange={(e) => setVfbDepositorAddr(e.target.value)}
+                    placeholder="0x... (adapter that calls depositFor)"
+                    style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Button
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("VFB: allow depositor", async () =>
+                      allowVaultFeeBufferDepositorUseCase({
+                        activeWallet,
+                        depositor: (vfbDepositorAddr || "").trim(),
+                        allowed: true,
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "VFB: allow depositor" ? "Working..." : "VFB: allow depositor"}
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  disabled={!!busy}
+                  onClick={async () => {
+                    if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+                    const res = await runAction("VFB: disallow depositor", async () =>
+                      allowVaultFeeBufferDepositorUseCase({
+                        activeWallet,
+                        depositor: (vfbDepositorAddr || "").trim(),
+                        allowed: false,
+                      })
+                    );
+                    push({ title: "Tx sent", description: res?.txHash || "ok" });
+                  }}
+                >
+                  {busy === "VFB: disallow depositor" ? "Working..." : "VFB: disallow depositor"}
+                </Button>
+              </div>
+
+              <div style={{ marginTop: 10, opacity: 0.75, fontSize: 13 }}>
+                If the adapter is not allowlisted as depositor, <b>depositFor</b> reverts with:
+                <code style={{ marginLeft: 6 }}>VaultFeeBuffer: depositor not allowed</code>
+              </div>
+            </Card>
           </div>
         </Card>
 
