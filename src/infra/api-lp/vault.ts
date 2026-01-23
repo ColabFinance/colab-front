@@ -1,5 +1,5 @@
 import { apiLpGet, apiLpPost } from "@/infra/api-lp/client";
-import type { CreateClientVaultResponse, CreateClientVaultRequest, RegisterClientVaultResponse } from "@/domain/vault/types";
+import type { CreateClientVaultResponse, CreateClientVaultRequest, RegisterClientVaultResponse, UpdateDailyHarvestConfigRequest, UpdateDailyHarvestConfigResponse, UpdateRewardSwapConfigRequest, UpdateCompoundConfigRequest, UpdateCompoundConfigResponse, UpdateRewardSwapConfigResponse } from "@/domain/vault/types";
 
 export type VaultRegistryRecord = {
   id?: string;
@@ -65,4 +65,42 @@ export async function apiLpListVaultsByOwner(
     (typeof query.offset === "number" ? `&offset=${encodeURIComponent(String(query.offset))}` : "");
 
   return apiLpGet(`/vaults/by-owner?${qs}`, accessToken);
+}
+
+export async function updateCompoundConfigApi(params: {
+  accessToken: string;
+  vault: string;
+  payload: UpdateCompoundConfigRequest;
+}): Promise<UpdateCompoundConfigResponse> {
+  return apiLpPost<UpdateCompoundConfigResponse>(
+    `/vaults/${encodeURIComponent(params.vault)}/config/compound`,
+    params.payload,
+    params.accessToken,
+  );
+}
+
+
+export async function updateDailyHarvestConfigApi(params: {
+  accessToken: string;
+  vault: string;
+  payload: UpdateDailyHarvestConfigRequest;
+}): Promise<UpdateDailyHarvestConfigResponse> {
+  return apiLpPost<UpdateDailyHarvestConfigResponse>(
+    `/vaults/${encodeURIComponent(params.vault)}/config/daily-harvest`,
+    params.payload,
+    params.accessToken,
+  );
+}
+
+
+export async function updateRewardSwapConfigApi(params: {
+  accessToken: string;
+  vault: string;
+  payload: UpdateRewardSwapConfigRequest;
+}): Promise<UpdateRewardSwapConfigResponse> {
+  return apiLpPost<UpdateRewardSwapConfigResponse>(
+    `/vaults/${encodeURIComponent(params.vault)}/config/reward-swap`,
+    params.payload,
+    params.accessToken,
+  );
 }

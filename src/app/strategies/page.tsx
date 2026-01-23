@@ -23,6 +23,9 @@ import { listStrategiesUseCase } from "@/application/strategy/api/listStrategies
 import { DexPoolRecord, DexRegistryRecord } from "@/infra/api-lp/dexRegistry";
 import { listDexPoolsForStrategyUseCase } from "@/application/strategy/api/listDexPoolsForStrategy.usecase";
 import { listDexesForStrategyUseCase } from "@/application/strategy/api/listDexesForStrategy.usecase";
+import { setDailyHarvestConfigOnchain } from "@/application/vault/onchain/setDailyHarvestConfig.usecase";
+import { setCompoundConfigOnchain } from "@/application/vault/onchain/etCompoundConfig.usecase";
+import { setRewardSwapConfigOnchain } from "@/application/vault/onchain/setRewardSwapConfig.usecase";
 
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
@@ -339,7 +342,7 @@ export default function StrategiesPage() {
       (p ? pickAddr(p, ["gauge", "gauge_address"]) : "") ||
       (d ? pickAddr(d, ["gauge", "gauge_address"]) : "");
 
-    const version = (d ? pickStr(d, ["version"]) : "") || (p ? pickStr(p, ["version"]) : "") || "v2";
+    const version = (d ? pickStr(d, ["version"]) : "") || (p ? pickStr(p, ["version"]) : "") || "v1";
 
     const token0 = p ? pickAddr(p, ["token0", "token0_address", "token0Addr"]) : "";
     const token1 = p ? pickAddr(p, ["token1", "token1_address", "token1Addr"]) : "";
@@ -390,7 +393,7 @@ export default function StrategiesPage() {
   function resetCreateVaultModal() {
     setCreateVaultStrategyId(null);
     setPendingOpenVaultStrategyId(null);
-    
+
     setVDexKey("");
     setVDexes([]);
     setVPoolKey("");
@@ -402,6 +405,7 @@ export default function StrategiesPage() {
     setVDescription("");
     setVSwapPoolsJson("{}");
   }
+
 
   async function onOpenCreateVault(strategyId: number) {
     setErr("");
@@ -462,7 +466,6 @@ export default function StrategiesPage() {
         return;
       }
 
-      // required inputs kept
       if (!vName.trim()) {
         setErr("name is required.");
         return;
@@ -471,12 +474,7 @@ export default function StrategiesPage() {
         setErr("par_token is required (used for alias generation).");
         return;
       }
-      if (!isAddressLike(s.adapter)) {
-        setErr("Strategy adapter invalid. Refresh on-chain strategies.");
-        return;
-      }
 
-      // derived required
       if (!vDexKey.trim() || !selectedVaultDex) {
         setErr("DEX is required.");
         return;
@@ -486,11 +484,11 @@ export default function StrategiesPage() {
         return;
       }
 
-      if (!isAddressLike(vaultDerived.pool)) {
+      if (!vaultDerived.pool || !isAddressLike(vaultDerived.pool)) {
         setErr("Selected pool did not provide a valid pool address.");
         return;
       }
-      if (!isAddressLike(vaultDerived.nfpm)) {
+      if (!vaultDerived.nfpm || !isAddressLike(vaultDerived.nfpm)) {
         setErr("Selected pool did not provide a valid NFPM address.");
         return;
       }
@@ -498,12 +496,13 @@ export default function StrategiesPage() {
         setErr("Selected dex/pool provided an invalid gauge address.");
         return;
       }
+
       if (!vaultDerived.rpc_url.trim()) {
-        setErr("Selected dex did not provide rpc_url.");
+        setErr("rpc_url is required.");
         return;
       }
       if (!vaultDerived.version.trim()) {
-        setErr("Selected dex/pool did not provide version.");
+        setErr("version is required.");
         return;
       }
 
@@ -514,18 +513,21 @@ export default function StrategiesPage() {
       }
 
       setLoading(true);
+
       const token = await ensureTokenOrLogin();
       if (!token) {
         setErr("Missing access token. Please login again.");
         return;
       }
 
+      // 1) create on-chain (ONLY)
       const onchain = await createClientVaultOnchain({
         wallet: activeWallet,
         strategyId: createVaultStrategyId,
         owner: ownerAddr,
       });
 
+      // 2) register in Mongo (ONLY) — no setConfig here
       const res = await registerClientVault({
         accessToken: token,
         payload: {
@@ -573,7 +575,6 @@ export default function StrategiesPage() {
       setLoading(false);
     }
   }
-
 
   async function onOpenCreateStrategy() {
     setErr("");
@@ -1352,7 +1353,7 @@ export default function StrategiesPage() {
                 }}
               />
             </div>
-
+            
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <Button
                 onClick={() => {
@@ -1552,14 +1553,14 @@ export default function StrategiesPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <Input
                   label="Skew low (%)"
-                  placeholder="0.05"
+                  placeholder="Skew low 0.05"
                   value={form.skew_low_pct}
                   onChange={(e) => setForm((s) => ({ ...s, skew_low_pct: e.target.value }))}
                   disabled={paramsLoading}
                 />
                 <Input
                   label="Skew high (%)"
-                  placeholder="0.05"
+                  placeholder="Skew high 0.05"
                   value={form.skew_high_pct}
                   onChange={(e) => setForm((s) => ({ ...s, skew_high_pct: e.target.value }))}
                   disabled={paramsLoading}
@@ -1569,21 +1570,21 @@ export default function StrategiesPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
                 <Input
                   label="Max major side (opt)"
-                  placeholder="0.01"
+                  placeholder="Max major side 0.01"
                   value={form.max_major_side_pct}
                   onChange={(e) => setForm((s) => ({ ...s, max_major_side_pct: e.target.value }))}
                   disabled={paramsLoading}
                 />
                 <Input
                   label="High vol threshold (opt)"
-                  placeholder="0.0008"
+                  placeholder="High vol threshold 0.0008"
                   value={form.vol_high_threshold_pct}
                   onChange={(e) => setForm((s) => ({ ...s, vol_high_threshold_pct: e.target.value }))}
                   disabled={paramsLoading}
                 />
                 <Input
                   label="High vol threshold down (opt)"
-                  placeholder="0.0008"
+                  placeholder="High vol threshold down 0.0008"
                   value={form.vol_high_threshold_pct_down}
                   onChange={(e) => setForm((s) => ({ ...s, vol_high_threshold_pct_down: e.target.value }))}
                   disabled={paramsLoading}
@@ -1593,14 +1594,14 @@ export default function StrategiesPage() {
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <Input
                   label="High vol max major side"
-                  placeholder="2"
+                  placeholder="High vol max major side 2"
                   value={form.high_vol_max_major_side_pct}
                   onChange={(e) => setForm((s) => ({ ...s, high_vol_max_major_side_pct: e.target.value }))}
                   disabled={paramsLoading}
                 />
                 <Input
                   label="Standard max major side"
-                  placeholder="0.01"
+                  placeholder="Standard max major side 0.01"
                   value={form.standard_max_major_side_pct}
                   onChange={(e) => setForm((s) => ({ ...s, standard_max_major_side_pct: e.target.value }))}
                   disabled={paramsLoading}
@@ -1608,15 +1609,15 @@ export default function StrategiesPage() {
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
-                <Input label="Epsilon (eps)" placeholder="0.000001" value={form.eps} onChange={(e) => setForm((s) => ({ ...s, eps: e.target.value }))} disabled={paramsLoading} />
-                <Input label="Cooloff bars" placeholder="10" value={form.cooloff_bars} onChange={(e) => setForm((s) => ({ ...s, cooloff_bars: e.target.value }))} disabled={paramsLoading} />
-                <Input label="Breakout confirm bars" placeholder="20" value={form.breakout_confirm_bars} onChange={(e) => setForm((s) => ({ ...s, breakout_confirm_bars: e.target.value }))} disabled={paramsLoading} />
+                <Input label="Epsilon (eps)" placeholder="Epsilon (eps) 0.000001" value={form.eps} onChange={(e) => setForm((s) => ({ ...s, eps: e.target.value }))} disabled={paramsLoading} />
+                <Input label="Cooloff bars" placeholder="Cooloff bars 10" value={form.cooloff_bars} onChange={(e) => setForm((s) => ({ ...s, cooloff_bars: e.target.value }))} disabled={paramsLoading} />
+                <Input label="Breakout confirm bars" placeholder="Breakout confirm bars 20" value={form.breakout_confirm_bars} onChange={(e) => setForm((s) => ({ ...s, breakout_confirm_bars: e.target.value }))} disabled={paramsLoading} />
               </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                 <Input
                   label="In-range resize mode"
-                  placeholder="skew_swap | preserve"
+                  placeholder="In-range resize mode skew_swap | preserve"
                   value={form.inrange_resize_mode}
                   onChange={(e) =>
                     setForm((s) => ({
@@ -1626,7 +1627,7 @@ export default function StrategiesPage() {
                   }
                   disabled={paramsLoading}
                 />
-                <Input label="Low vol threshold (opt)" placeholder="0.0004" value={form.low_vol_threshold} onChange={(e) => setForm((s) => ({ ...s, low_vol_threshold: e.target.value }))} disabled={paramsLoading} />
+                <Input label="Low vol threshold (opt)" placeholder="Low vol threshold 0.0004" value={form.low_vol_threshold} onChange={(e) => setForm((s) => ({ ...s, low_vol_threshold: e.target.value }))} disabled={paramsLoading} />
               </div>
 
               <label style={{ display: "flex", gap: 10, alignItems: "center", padding: 10, border: "1px solid #eee", borderRadius: 10 }}>
