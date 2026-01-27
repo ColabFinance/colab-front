@@ -41,6 +41,9 @@ import { allowVaultFeeBufferDepositorUseCase } from "@/application/admin/onchain
 import { setVaultFactoryExecutorUseCase } from "@/application/admin/onchain/setVaultFactoryExecutor.usecase";
 import { setVaultFactoryFeeCollectorUseCase } from "@/application/admin/onchain/setVaultFactoryFeeCollector.usecase";
 import { setVaultFactoryDefaultsUseCase } from "@/application/admin/onchain/setVaultFactoryDefaults.usecase";
+import { withdrawProtocolFeeCollectorFeesUseCase } from "@/application/admin/onchain/withdrawProtocolFeeCollectorFees.usecase";
+import { formatUnits, parseUnits } from "ethers";
+import { getProtocolFeeCollectorTokenInfoUseCase } from "@/application/admin/onchain/getProtocolFeeCollectorTokenInfo.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -121,6 +124,12 @@ export default function AdminPage() {
 
   const [pfcReporterAddr, setPfcReporterAddr] = useState<string>("");
   const [vfbDepositorAddr, setVfbDepositorAddr] = useState<string>("");
+
+  const [pfcTokenAddr, setPfcTokenAddr] = useState<string>("");
+  const [pfcTokenInfo, setPfcTokenInfo] = useState<any>(null);
+
+  const [pfcWithdrawTo, setPfcWithdrawTo] = useState<string>("");
+  const [pfcWithdrawAmount, setPfcWithdrawAmount] = useState<string>(""); // human units
 
   const sessionLabel = useMemo(() => {
     return {
@@ -415,7 +424,142 @@ export default function AdminPage() {
             record is ARCHIVED_CAN_CREATE_NEW (or none exists).
           </div>
         </Card>
+        
+                <Card>
+          <div style={{ fontWeight: 900, marginBottom: 8 }}>Protocol Fees (balances & withdraw)</div>
 
+          <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Token address</div>
+                <input
+                  value={pfcTokenAddr}
+                  onChange={(e) => setPfcTokenAddr(e.target.value)}
+                  placeholder="0x... (e.g. USDC)"
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Withdraw to</div>
+                <input
+                  value={pfcWithdrawTo}
+                  onChange={(e) => setPfcWithdrawTo(e.target.value)}
+                  placeholder={ownerAddr ? ownerAddr : "0x..."}
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+              <div>
+                <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Withdraw amount (human)</div>
+                <input
+                  value={pfcWithdrawAmount}
+                  onChange={(e) => setPfcWithdrawAmount(e.target.value)}
+                  placeholder="e.g. 12.34"
+                  style={{ width: "100%", padding: 10, borderRadius: 10 }}
+                />
+              </div>
+
+              <div style={{ opacity: 0.8, fontSize: 13, paddingTop: 22 }}>
+                Reads show: <b>ERC20.balanceOf(PFC)</b> and <b>PFC.totalByToken</b>.
+              </div>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <Button
+              variant="ghost"
+              disabled={!!busy}
+              onClick={async () => {
+                const res = await runAction("PFC: load token info", async () =>
+                  getProtocolFeeCollectorTokenInfoUseCase({ token: (pfcTokenAddr || "").trim() })
+                );
+                setPfcTokenInfo(res);
+              }}
+            >
+              {busy === "PFC: load token info" ? "Loading..." : "Load token balances"}
+            </Button>
+
+            <Button
+              variant="ghost"
+              disabled={!!busy || !pfcTokenInfo?.contractBalance}
+              onClick={async () => {
+                const dec = Number(pfcTokenInfo?.decimals ?? 18);
+                const human = formatUnits(BigInt(pfcTokenInfo.contractBalance || "0"), dec);
+                setPfcWithdrawAmount(human);
+              }}
+            >
+              Use full balance
+            </Button>
+
+            <Button
+              disabled={!!busy}
+              onClick={async () => {
+                if (!activeWallet) throw new Error("Missing activeWallet (Privy).");
+
+                const to = (pfcWithdrawTo || ownerAddr || "").trim();
+                if (!to) throw new Error("Missing withdraw recipient.");
+
+                const token = (pfcTokenAddr || "").trim();
+                if (!token) throw new Error("Missing token address.");
+
+                const decimals = Number(pfcTokenInfo?.decimals ?? 18);
+                const amountHuman = (pfcWithdrawAmount || "").trim();
+                if (!amountHuman) throw new Error("Missing withdraw amount.");
+
+                const amount = parseUnits(amountHuman, decimals);
+
+                const res = await runAction("PFC: withdrawFees", async () =>
+                  withdrawProtocolFeeCollectorFeesUseCase({
+                    activeWallet,
+                    token,
+                    amount,
+                    to,
+                  })
+                );
+
+                push({ title: "Tx sent", description: res?.txHash || "ok" });
+              }}
+            >
+              {busy === "PFC: withdrawFees" ? "Working..." : "Withdraw"}
+            </Button>
+          </div>
+
+          <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
+            <Card>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>Token snapshot</div>
+
+              {pfcTokenInfo ? (
+                <div style={{ display: "grid", gap: 6, fontSize: 13 }}>
+                  <div><b>PFC:</b> {shortAddr(pfcTokenInfo?.pfc)}</div>
+                  <div><b>Token:</b> {shortAddr(pfcTokenInfo?.token)} ({pfcTokenInfo?.symbol || "TOKEN"})</div>
+                  <div>
+                    <b>Contract balance:</b>{" "}
+                    {formatUnits(BigInt(pfcTokenInfo?.contractBalance || "0"), Number(pfcTokenInfo?.decimals ?? 18))}
+                  </div>
+                  <div>
+                    <b>TotalByToken:</b>{" "}
+                    {formatUnits(BigInt(pfcTokenInfo?.totalByToken || "0"), Number(pfcTokenInfo?.decimals ?? 18))}
+                  </div>
+
+                  <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9, marginTop: 8 }}>
+                    {JSON.stringify(pfcTokenInfo, null, 2)}
+                  </pre>
+                </div>
+              ) : (
+                <div style={{ opacity: 0.8 }}>—</div>
+              )}
+            </Card>
+
+            <div style={{ opacity: 0.75, fontSize: 13 }}>
+              Observação: <b>withdrawFees</b> é <b>onlyOwner</b> do ProtocolFeeCollector. A carteira admin conectada precisa ser o owner do PFC.
+            </div>
+          </div>
+        </Card>
+
+        
         <Card>
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Vault Fee Buffer</div>
 
