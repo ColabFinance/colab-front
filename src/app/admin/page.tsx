@@ -97,13 +97,14 @@ export default function AdminPage() {
     dex: "pancake_v3",
     pool: "",
     nfpm: "",
-    gauge: "",
+    gauge: "0x0000000000000000000000000000000000000000",
     token0: "",
     token1: "",
     pair: "WETH-USDC",
     symbol: "ETHUSDT",
     fee_bps: 300,
     adapter: "",
+    reward_token: "0x0000000000000000000000000000000000000000",
     status: "ACTIVE" as "ACTIVE" | "INACTIVE",
   });
   const [poolsJson, setPoolsJson] = useState<any>(null);
@@ -919,6 +920,15 @@ export default function AdminPage() {
                 onChange={(e) => setPoolForm((s) => ({ ...s, symbol: e.target.value }))}
               />
             </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <Input
+                label="Reward Token"
+                placeholder="Reward token"
+                value={poolForm.reward_token}
+                onChange={(e) => setPoolForm((s) => ({ ...s, reward_token: e.target.value }))}
+              />
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <div>
@@ -959,6 +969,7 @@ export default function AdminPage() {
                         symbol: poolForm.symbol.trim(),
                         fee_bps: Number(poolForm.fee_bps),
                         adapter: (poolForm.adapter || "").trim() || null,
+                        reward_token: poolForm.reward_token.trim(),
                         status: poolForm.status,
                       },
                     })

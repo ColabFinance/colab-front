@@ -16,7 +16,7 @@ export default function VaultsPage() {
   const { ownerAddr, ensureWallet, activeWallet } = useOwnerAddress();
   const { ensureTokenOrLogin } = useAuthToken();
 
-  const [vaults, setVaults] = useState<string[]>([]);
+  const [vaults, setVaults] = useState<Array<{ address: string; pool: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
@@ -42,7 +42,14 @@ export default function VaultsPage() {
       }
 
       const items = Array.isArray(res?.data) ? res.data : [];
-      setVaults(items.map((v) => v.address).filter(Boolean));
+      setVaults(
+        items
+          .map((v) => ({
+            address: v.address,
+            pool: v.config?.pool || "",
+          }))
+          .filter((v) => Boolean(v.address))
+      );
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
@@ -93,8 +100,12 @@ export default function VaultsPage() {
           <div style={{ opacity: 0.8 }}>No vaults yet.</div>
         ) : (
           vaults.map((v) => (
-            <Link key={v} href={`/vaults/${v}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <Card style={{ fontFamily: "monospace", cursor: "pointer" }}>{v}</Card>
+            <Link
+              key={v.address}
+              href={`/vaults/${v.address}?pool=${encodeURIComponent(v.pool || "")}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <Card style={{ fontFamily: "monospace", cursor: "pointer" }}>{v.address}</Card>
             </Link>
           ))
         )}

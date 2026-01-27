@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
@@ -27,8 +27,6 @@ import { exitToVault } from "@/application/vault/onchain/exitToVault.usecase";
 import { exitWithdrawAll } from "@/application/vault/onchain/exitWithdrawAll.usecase";
 import { swapExactInPancake } from "@/application/vault/onchain/swapExactInPancake.usecase";
 
-// import { autoRebalancePancake } from "@/application/vault/api/autoRebalancePancake.usecase";
-
 import type { VaultDetails } from "@/domain/vault/types";
 import type { VaultStatus } from "@/domain/vault/status";
 import { usePrivy } from "@privy-io/react-auth";
@@ -39,6 +37,10 @@ import { setCompoundConfigOnchain } from "@/application/vault/onchain/etCompound
 import { updateCompoundConfigUseCase } from "@/application/vault/api/updateCompoundConfig.usecase";
 import { setRewardSwapConfigOnchain } from "@/application/vault/onchain/setRewardSwapConfig.usecase";
 import { updateRewardSwapConfigUseCase } from "@/application/vault/api/updateRewardSwapConfig.usecase";
+
+import { getVaultFeeBufferBalances } from "@/application/vault/onchain/getVaultFeeBufferBalances.usecase";
+import type { VaultFeeBufferBalances } from "@/domain/vault/feeBuffer";
+import { getPoolByPoolUseCase } from "@/application/vault/api/getDexPoolByPool.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -56,10 +58,28 @@ function is0xAddress(a?: string) {
   return /^0x[a-fA-F0-9]{40}$/.test(a);
 }
 
+function formatMs(ms?: number) {
+  if (!ms || ms <= 0) return "-";
+  return new Date(ms).toLocaleString();
+}
+
+function trimAmountHuman(x?: string, digits = 6) {
+  if (!x) return "-";
+  const n = Number(x);
+  if (!Number.isFinite(n)) return x;
+  return n.toFixed(digits);
+}
+
 export default function VaultDetailsPage() {
   const { authenticated, login } = usePrivy();
   const { ensureTokenOrLogin } = useAuthToken();
   const params = useParams();
+
+  const searchParams = useSearchParams();
+
+  const poolFromUrl = useMemo(() => {
+    return String(searchParams.get("pool") || "");
+  }, [searchParams]);
 
   const vaultAddress = useMemo(() => {
     const raw = (params as any)?.address;
@@ -84,6 +104,15 @@ export default function VaultDetailsPage() {
   const [statusErr, setStatusErr] = useState("");
   const [status, setStatus] = useState<VaultStatus | null>(null);
   const [statusOpen, setStatusOpen] = useState(false);
+
+  // fee buffer panel
+  const [feeBufferLoading, setFeeBufferLoading] = useState(false);
+  const [feeBufferErr, setFeeBufferErr] = useState("");
+  const [feeBuffer, setFeeBuffer] = useState<VaultFeeBufferBalances | null>(null);
+
+  // reward token (from dex_pools)
+  const [rewardToken, setRewardToken] = useState<string>("0x0000000000000000000000000000000000000000");
+  const [rewardLoading, setRewardLoading] = useState(false);
 
   // ---------------- form state ----------------
 
@@ -119,7 +148,7 @@ export default function VaultDetailsPage() {
   // api bot
   const [autoReason, setAutoReason] = useState<string>("manual_trigger");
 
-  // ---------------- new: client vault setConfigs ----------------
+  // ---------------- client vault setConfigs ----------------
   const [dhEnabled, setDhEnabled] = useState(true);
   const [dhCooldownSec, setDhCooldownSec] = useState<string>("86400");
 
@@ -201,6 +230,58 @@ export default function VaultDetailsPage() {
     }
   }
 
+  async function refreshFeeBuffer() {
+    if (!vaultAddress || !isAddress) return;
+    if (!data?.token0 || !data?.token1) return;
+
+    setFeeBufferErr("");
+    setFeeBufferLoading(true);
+    try {
+      let rt = rewardToken;
+
+      // se ainda não tem rewardToken, tenta buscar pelo pool
+      if (!is0xAddress(rt) || rt.toLowerCase() === "0x0000000000000000000000000000000000000000") {
+        rt = await refreshRewardTokenByPool();
+      }
+      
+      const fb = await getVaultFeeBufferBalances({
+        vaultAddress,
+        token0: data.token0,
+        token1: data.token1,
+        rewardToken: rt
+      });
+      setFeeBuffer(fb);
+
+      push({
+        title: "Fee buffer loaded",
+        description: `${trimAmountHuman(fb.token0.formatted)} ${fb.token0.symbol} / ${trimAmountHuman(fb.token1.formatted)} ${fb.token1.symbol}`,
+      });
+    } catch (e: any) {
+      setFeeBufferErr(e?.message || String(e));
+      setFeeBuffer(null);
+    } finally {
+      setFeeBufferLoading(false);
+    }
+  }
+
+  async function refreshRewardTokenByPool(): Promise<string> {
+  const pool = (poolFromUrl || "").trim();
+  if (!is0xAddress(pool)) return "0x0000000000000000000000000000000000000000";
+
+  setRewardLoading(true);
+  try {
+    const res = await getPoolByPoolUseCase(pool);
+    const rt = res?.data?.reward_token || "0x0000000000000000000000000000000000000000";
+    setRewardToken(rt);
+    return rt;
+  } catch {
+    setRewardToken("0x0000000000000000000000000000000000000000");
+    return "0x0000000000000000000000000000000000000000";
+  } finally {
+    setRewardLoading(false);
+  }
+}
+
   async function copy(text: string) {
     try {
       await navigator.clipboard.writeText(text);
@@ -231,30 +312,6 @@ export default function VaultDetailsPage() {
       await refresh();
     } catch (e: any) {
       setErr(e?.shortMessage || e?.message || String(e));
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function runApi(fn: () => Promise<any>) {
-    setErr("");
-    setLastTx(null);
-
-    if (!isAddress || !vaultAddress) {
-      setErr("Invalid vault address in URL.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fn();
-      push({ title: "API OK", description: "Operation executed." });
-      // if the API returns tx hash, show it
-      if (res?.tx_hash) setLastTx({ tx_hash: String(res.tx_hash), receipt: res });
-      await refresh();
-      await refreshStatus();
-    } catch (e: any) {
-      setErr(e?.message || String(e));
     } finally {
       setLoading(false);
     }
@@ -432,6 +489,20 @@ export default function VaultDetailsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vaultAddress]);
 
+  // auto-load fee buffer once token0/token1 are available
+  useEffect(() => {
+    if (!isAddress || !vaultAddress) return;
+    if (!data?.token0 || !data?.token1) return;
+    refreshFeeBuffer();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data?.token0, data?.token1, rewardToken, vaultAddress]);
+
+  useEffect(() => {
+    if (!poolFromUrl) return;
+    refreshRewardTokenByPool();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [poolFromUrl]);
+
   if (!vaultAddress || !isAddress) {
     return <div style={{ padding: 24 }}>Invalid or missing vault address in URL.</div>;
   }
@@ -472,7 +543,67 @@ export default function VaultDetailsPage() {
 
       {err ? <div style={{ marginTop: 12, color: "crimson" }}>{err}</div> : null}
       {statusErr ? <div style={{ marginTop: 12, color: "crimson" }}>{statusErr}</div> : null}
+      {feeBufferErr ? <div style={{ marginTop: 12, color: "crimson" }}>{feeBufferErr}</div> : null}
 
+      <Card style={{ marginTop: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "center" }}>
+          <div>
+            <div style={{ fontWeight: 900 }}>Vault Fee Buffer (on-chain)</div>
+            <div style={{ fontSize: 12, opacity: 0.75, marginTop: 4 }}>
+              Mostra o que já foi coletado/segregado no buffer (não mistura com idle balance do ClientVault).
+            </div>
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+            <Button variant="ghost" onClick={() => (feeBuffer?.feeBufferAddress ? copy(feeBuffer.feeBufferAddress) : null)} disabled={!feeBuffer?.feeBufferAddress}>
+              Copy buffer address
+            </Button>
+            <Button
+              onClick={refreshFeeBuffer}
+              disabled={feeBufferLoading || rewardLoading || !data?.token0 || !data?.token1}
+            >
+              {feeBufferLoading || rewardLoading ? "Refreshing..." : "Refresh buffer"}
+            </Button>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <Mini label="VaultFeeBuffer" value={feeBuffer?.feeBufferAddress ? feeBuffer.feeBufferAddress : "-"} />
+
+          <Mini label="Fetched at" value={feeBuffer?.fetchedAtMs ? formatMs(feeBuffer.fetchedAtMs) : "-"} />
+
+          <Mini
+            label={`Buffer balance (token0)`}
+            value={
+              feeBuffer
+                ? `${trimAmountHuman(feeBuffer.token0.formatted)} ${feeBuffer.token0.symbol}\nraw: ${feeBuffer.token0.raw}`
+                : "-"
+            }
+          />
+
+          <Mini
+            label={`Buffer balance (token1)`}
+            value={
+              feeBuffer
+                ? `${trimAmountHuman(feeBuffer.token1.formatted)} ${feeBuffer.token1.symbol}\nraw: ${feeBuffer.token1.raw}`
+                : "-"
+            }
+          />
+
+          {feeBuffer?.reward ? (
+            <Mini
+              label={`Buffer balance (reward)`}
+              value={`${trimAmountHuman(feeBuffer.reward.formatted)} ${feeBuffer.reward.symbol}\nraw: ${feeBuffer.reward.raw}`}
+            />
+          ) : (
+            <Mini label="Buffer balance (reward)" value="-" />
+          )}
+        </div>
+
+        <div style={{ marginTop: 10, fontSize: 12, opacity: 0.75 }}>
+          Dica: se você quer “total histórico coletado”, isso precisa de indexação de eventos <code>Deposited/Withdrawn</code> (backend/subgraph).
+        </div>
+      </Card>
       {/* status drawer */}
       {statusOpen && status ? (
         <Card style={{ marginTop: 12 }}>

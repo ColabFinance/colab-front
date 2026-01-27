@@ -70,6 +70,7 @@ export type CreateDexPoolBody = {
   fee_bps: number;
 
   adapter?: string | null;
+  reward_token?: string | null;
   status?: "ACTIVE" | "INACTIVE";
 };
 

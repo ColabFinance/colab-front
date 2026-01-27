@@ -7,9 +7,7 @@ import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 
 function assertRegistryHasVaultFeeBuffer(reg: any) {
   if (!reg?.data?.vault_fee_buffer?.address) {
-    throw new Error(
-      "Assert VFB: Contract not loaded: data.vault_fee_buffer.address"
-    );
+    throw new Error("Assert VFB: Contract not loaded: data.vault_fee_buffer.address");
   }
 }
 
@@ -21,6 +19,10 @@ async function resolveVaultFeeBufferAddress(): Promise<string> {
 
   assertRegistryHasVaultFeeBuffer(reg);
   return reg.data.vault_fee_buffer.address;
+}
+
+export async function getVaultFeeBufferAddress(): Promise<string> {
+  return resolveVaultFeeBufferAddress();
 }
 
 export async function getVaultFeeBufferRead() {
