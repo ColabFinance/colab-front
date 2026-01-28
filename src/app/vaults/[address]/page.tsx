@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 
+import Link from "next/link";
+
 import { Card } from "@/shared/ui/Card";
 import { Button } from "@/shared/ui/Button";
 import { Input } from "@/shared/ui/Input";
@@ -41,6 +43,9 @@ import { updateRewardSwapConfigUseCase } from "@/application/vault/api/updateRew
 import { getVaultFeeBufferBalances } from "@/application/vault/onchain/getVaultFeeBufferBalances.usecase";
 import type { VaultFeeBufferBalances } from "@/domain/vault/feeBuffer";
 import { getPoolByPoolUseCase } from "@/application/vault/api/getDexPoolByPool.usecase";
+import { persistVaultWithdrawEventUseCase } from "@/application/vault/api/persistVaultWithdrawEvent.usecase";
+import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
+import { persistVaultDepositEventUseCase } from "@/application/vault/api/persistVaultDepositEvent.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -418,6 +423,137 @@ export default function VaultDetailsPage() {
     }
   }
 
+  async function onDepositToken() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected.");
+      return;
+    }
+    if (!isOwner) {
+      setErr("Only owner can deposit in this UI.");
+      return;
+    }
+    if (!is0xAddress(depositTokenAddr)) {
+      setErr("Invalid deposit token address.");
+      return;
+    }
+    if (!depositAmount) {
+      setErr("Deposit amount is required.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1) onchain
+      const tx = await depositToken({
+        wallet: activeWallet,
+        vaultAddress,
+        tokenAddress: depositTokenAddr,
+        amount: depositAmount,
+        decimals: Number(depositDecimals || "18"),
+      } as any);
+
+      setLastTx(tx);
+      push({ title: "Tx confirmed", description: shortAddr(tx.tx_hash) });
+
+      // 2) persist in Mongo (api-lp)
+      const token = await requireToken();
+      if (token) {
+        const rt = await getActiveChainRuntime();
+
+        await persistVaultDepositEventUseCase({
+          accessToken: token,
+          vault: vaultAddress,
+          payload: {
+            chain: rt.chainKey,
+            dex: data?.config?.dex || data?.dex, // se existir, senão ignora
+            owner: activeWallet.address,
+            token: depositTokenAddr,
+            amount_human: String(depositAmount),
+            decimals: Number(depositDecimals || "18"),
+            tx_hash: tx.tx_hash,
+            receipt: tx.receipt || null,
+            from_addr: activeWallet.address,
+            to_addr: vaultAddress,
+          },
+        });
+      }
+
+      await refresh();
+      await refreshStatus();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function onExitWithdrawAll() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected.");
+      return;
+    }
+    if (!isOwner) {
+      setErr("Only owner can withdraw in this UI.");
+      return;
+    }
+    if (!is0xAddress(withdrawTo)) {
+      setErr("Invalid withdraw_to address.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1) onchain
+      const tx = await exitWithdrawAll({
+        wallet: activeWallet,
+        vaultAddress,
+        to: withdrawTo,
+      });
+
+      setLastTx(tx);
+      push({ title: "Tx confirmed", description: shortAddr(tx.tx_hash) });
+
+      // 2) persist in Mongo (api-lp) - best effort: parse transfers for token0/token1/reward
+      const token = await requireToken();
+      if (token) {
+        const rt = await getActiveChainRuntime();
+
+        const tokenAddresses: string[] = [];
+        if (data?.token0 && is0xAddress(data.token0)) tokenAddresses.push(data.token0);
+        if (data?.token1 && is0xAddress(data.token1)) tokenAddresses.push(data.token1);
+        if (rewardToken && is0xAddress(rewardToken) && rewardToken !== "0x0000000000000000000000000000000000000000") tokenAddresses.push(rewardToken);
+
+        await persistVaultWithdrawEventUseCase({
+          accessToken: token,
+          vault: vaultAddress,
+          payload: {
+            chain: rt.chainKey,
+            dex: data?.config?.dex || data?.dex,
+            owner: activeWallet.address,
+            to: withdrawTo,
+            tx_hash: tx.tx_hash,
+            receipt: tx.receipt || null,
+            token_addresses: tokenAddresses,
+          },
+        });
+      }
+
+      await refresh();
+      await refreshStatus();
+      await refreshFeeBuffer();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function onSetRewardSwap() {
     setErr("");
     setLastTx(null);
@@ -538,6 +674,9 @@ export default function VaultDetailsPage() {
           <Button onClick={refreshStatus} disabled={statusLoading}>
             {statusLoading ? "Loading status..." : "Vault status"}
           </Button>
+          <Link href={`/vaults/${encodeURIComponent(vaultAddress)}/events`} style={{ textDecoration: "none" }}>
+            <Button variant="ghost">Events</Button>
+          </Link>
         </div>
       </div>
 
@@ -943,17 +1082,7 @@ export default function VaultDetailsPage() {
 
                 <Button
                   disabled={loading || !isOwner || !activeWallet || !is0xAddress(depositTokenAddr) || !depositAmount}
-                  onClick={() =>
-                    runTx(() =>
-                      depositToken({
-                        wallet: activeWallet!,
-                        vaultAddress,
-                        tokenAddress: depositTokenAddr,
-                        amount: depositAmount,
-                        decimals: Number(depositDecimals || "18"),
-                      } as any),
-                    )
-                  }
+                  onClick={onDepositToken}
                 >
                   Deposit token
                 </Button>
@@ -1215,7 +1344,7 @@ export default function VaultDetailsPage() {
                 />
                 <Button
                   disabled={loading || !isOwner || !activeWallet || !is0xAddress(withdrawTo)}
-                  onClick={() => runTx(() => exitWithdrawAll({ wallet: activeWallet!, vaultAddress, to: withdrawTo }))}
+                  onClick={onExitWithdrawAll}
                 >
                   Exit + withdraw all
                 </Button>
