@@ -674,6 +674,11 @@ export default function VaultDetailsPage() {
           <Button onClick={refreshStatus} disabled={statusLoading}>
             {statusLoading ? "Loading status..." : "Vault status"}
           </Button>
+
+          <Link href={`/vaults/${encodeURIComponent(vaultAddress)}/performance`} style={{ textDecoration: "none" }}>
+            <Button variant="ghost">Performance</Button>
+          </Link>
+          
           <Link href={`/vaults/${encodeURIComponent(vaultAddress)}/events`} style={{ textDecoration: "none" }}>
             <Button variant="ghost">Events</Button>
           </Link>
