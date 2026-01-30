@@ -17,7 +17,7 @@ function shortAddr(a?: string) {
 export default function Home() {
   const { ready, authenticated, user, login, logout, linkWallet } = usePrivy();
   const { ownerAddr, activeWallet, wallets, ensureWallet } = useOwnerAddress();
-  const { tokenPreview } = useAuthToken();
+  // const { tokenPreview } = useAuthToken();
   const { push } = useToast();
 
   if (!ready) return <div style={{ padding: 24 }}>Loading...</div>;
@@ -45,7 +45,7 @@ export default function Home() {
             <b>wallets:</b> {wallets.length}
           </div>
           <div>
-            <b>Privy token (preview):</b> {tokenPreview || "-"}
+            {/* <b>Privy token (preview):</b> {tokenPreview || "-"} */}
           </div>
         </Card>
 

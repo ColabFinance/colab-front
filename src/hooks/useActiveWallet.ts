@@ -1,21 +1,22 @@
 "use client";
 
 import { useMemo } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import type { Wallet } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import type { ConnectedWallet } from "@privy-io/react-auth";
 
-function isMetaMask(w?: Wallet | null) {
+function isMetaMask(w?: ConnectedWallet | null) {
   const t = (w?.walletClientType || "").toLowerCase();
   return t.includes("metamask");
 }
 
-function isEmbedded(w?: Wallet | null) {
+function isEmbedded(w?: ConnectedWallet | null) {
   const t = (w?.walletClientType || "").toLowerCase();
   return t.includes("privy") || t.includes("embedded");
 }
 
 export function useActiveWallet() {
-  const { wallets, user } = usePrivy();
+  const { user } = usePrivy();
+  const { wallets } = useWallets();
 
   const activeWallet = useMemo(() => {
     // regra UX:

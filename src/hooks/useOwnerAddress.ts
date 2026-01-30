@@ -1,21 +1,22 @@
 "use client";
 
 import { useCallback, useMemo } from "react";
-import { usePrivy } from "@privy-io/react-auth";
-import type { Wallet } from "@privy-io/react-auth";
+import { usePrivy, useWallets } from "@privy-io/react-auth";
+import type { ConnectedWallet } from "@privy-io/react-auth";
 
 function normalizeAddr(a?: string | null) {
   if (!a) return "";
   return String(a);
 }
 
-function isEmbeddedWallet(w?: Wallet | null) {
+function isEmbeddedWallet(w?: ConnectedWallet | null) {
   const t = (w?.walletClientType || "").toLowerCase();
   return t.includes("privy") || t.includes("embedded");
 }
 
 export function useOwnerAddress() {
-  const { authenticated, user, wallets, createWallet, linkWallet } = usePrivy();
+  const { authenticated, user, createWallet, linkWallet } = usePrivy();
+  const { wallets } = useWallets();
 
   // Prefer: user.wallet (embedded primary) if exists; otherwise first wallet in list
   const embedded = useMemo(() => {
