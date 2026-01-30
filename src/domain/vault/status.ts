@@ -44,6 +44,8 @@ export type VaultStatus = {
   nfpm: string | null;
   gauge: string | null;
 
+  tick_spacing: string | null;
+
   // token meta
   token0: TokenMeta;
   token1: TokenMeta;
