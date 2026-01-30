@@ -1,6 +1,7 @@
 export type VaultDetails = {
   address: string;
-
+  dex?: string;
+  
   owner: string;
   executor: string;
   adapter: string;

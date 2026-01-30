@@ -50,6 +50,8 @@ function shortAddr(a?: string) {
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
 }
 
+type GasStrategy = "default" | "buffered" | "aggressive";
+
 export default function AdminPage() {
   const { ready, authenticated, login, logout } = usePrivy();
   const { ownerAddr } = useOwnerAddress();
@@ -57,6 +59,8 @@ export default function AdminPage() {
   const { token, ensureTokenOrLogin } = useAuthToken();
   const { isAdmin } = useIsAdmin();
   const { push } = useToast();
+
+  const [gasStrategy, setGasStrategy] = useState<GasStrategy>("default");
 
   const [busy, setBusy] = useState<string>("");
   const [strategiesJson, setStrategiesJson] = useState<any>(null);
@@ -310,7 +314,7 @@ export default function AdminPage() {
                 const res = await runAction("Create Strategy Factory", async (t) =>
                   createStrategyRegistryUseCase({
                     accessToken: t,
-                    body: { chain: (await getActiveChainRuntime()).chainKey, initial_owner: ownerAddr, gas_strategy: "buffered" },
+                    body: { chain: (await getActiveChainRuntime()).chainKey, initial_owner: ownerAddr, gas_strategy: gasStrategy },
                   })
                 );
                 push({ title: "Result", description: res?.message || "OK" });
@@ -334,7 +338,7 @@ export default function AdminPage() {
                       default_cooldown_sec: cooldownSec,
                       default_max_slippage_bps: maxSlippageBps,
                       default_allow_swap: allowSwap,
-                      gas_strategy: "buffered",
+                      gas_strategy: gasStrategy,
                     },
                   })
                 );
@@ -405,7 +409,7 @@ export default function AdminPage() {
                     accessToken: t,
                     body: {
                       chain,
-                      gas_strategy: "buffered",
+                      gas_strategy: gasStrategy,
                       initial_owner: (pfcOwner || ownerAddr || "").trim(),
                       treasury: (pfcTreasury || "").trim(),
                       protocol_fee_bps: Number(pfcFeeBps),
@@ -590,7 +594,7 @@ export default function AdminPage() {
                     accessToken: t,
                     body: {
                       chain,
-                      gas_strategy: "buffered",
+                      gas_strategy: gasStrategy,
                       initial_owner: (vfbOwner || ownerAddr || "").trim(),
                     },
                   })
@@ -1294,7 +1298,7 @@ export default function AdminPage() {
                 onClick={async () => {
                   const payload = {
                     chain: (await getActiveChainRuntime()).chainKey,
-                    gas_strategy: "buffered",
+                    gas_strategy: gasStrategy,
                     dex: adapterForm.dex.trim(),
                     pool: adapterForm.pool.trim(),
                     nfpm: adapterForm.nfpm.trim(),
@@ -1356,7 +1360,7 @@ export default function AdminPage() {
               onClick={async () => {
                 const res = await runAction("List Strategies", async () => {
                   // Onchain read or api-lp – reusing your existing usecase
-                  return listStrategiesOnchain();
+                  return listStrategiesOnchain("");
                 });
                 setStrategiesJson(res);
               }}

@@ -468,7 +468,7 @@ export default function VaultDetailsPage() {
           vault: vaultAddress,
           payload: {
             chain: rt.chainKey,
-            dex: data?.config?.dex || data?.dex, // se existir, senão ignora
+            dex: data?.dex, // se existir, senão ignora
             owner: activeWallet.address,
             token: depositTokenAddr,
             amount_human: String(depositAmount),
@@ -534,7 +534,7 @@ export default function VaultDetailsPage() {
           vault: vaultAddress,
           payload: {
             chain: rt.chainKey,
-            dex: data?.config?.dex || data?.dex,
+            dex: data?.dex,
             owner: activeWallet.address,
             to: withdrawTo,
             tx_hash: tx.tx_hash,
@@ -766,8 +766,8 @@ export default function VaultDetailsPage() {
           <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Mini label="Pool" value={status.pool} />
             <Mini label="Adapter" value={status.adapter} />
-            <Mini label="NFPM" value={status.nfpm} />
-            <Mini label="Gauge" value={status.gauge} />
+            <Mini label="NFPM" value={status.nfpm ?? "-"} />
+            <Mini label="Gauge" value={status.gauge ?? "-"} />
             <Mini label="Pair" value={`${status.token0.symbol}/${status.token1.symbol}`} />
             <Mini label="Tick" value={`${status.tick} (spacing ${status.tick_spacing})`} />
             <Mini label="Range" value={`${status.lower_tick} → ${status.upper_tick} (${status.range_side})`} />
