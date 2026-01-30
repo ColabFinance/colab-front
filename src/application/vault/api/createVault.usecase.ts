@@ -1,19 +1,12 @@
-import { TxRunResponse } from "@/domain/vault/types";
-import { apiLpPost } from "@/infra/api-lp/client";
+import type { CreateClientVaultRequest, CreateClientVaultResponse } from "@/domain/vault/types";
+import { createClientVaultApi } from "@/infra/api-lp/vault";
 
 export async function createVault(params: {
-  strategyId: number;
-  ownerOverride: string;
-  gasStrategy?: string;
+  payload: CreateClientVaultRequest;
   accessToken?: string;
-}): Promise<TxRunResponse> {
-  return apiLpPost<TxRunResponse>(
-    "/vaults/factory/create-client-vault",
-    {
-      strategy_id: params.strategyId,
-      owner_override: params.ownerOverride,
-      gas_strategy: params.gasStrategy || "auto",
-    },
-    params.accessToken
-  );
+}): Promise<CreateClientVaultResponse> {
+  return createClientVaultApi({
+    payload: params.payload,
+    accessToken: params.accessToken,
+  });
 }

@@ -1,8 +1,14 @@
-import { getVaultFactoryRead } from "@/infra/evm/contracts/vaultFactory";
+import { apiLpListVaultsByOwner } from "@/infra/api-lp/vault";
 
-
-export async function listVaultsByOwner(owner: string): Promise<string[]> {
-  const factory = getVaultFactoryRead();
-  const vaults: string[] = await factory.getVaultsByOwner(owner);
-  return vaults;
+export async function listVaultsByOwnerUseCase(params: {
+  accessToken: string;
+  query: {
+    owner: string;
+    chain?: "base" | "bnb";
+    dex?: string;
+    limit?: number;
+    offset?: number;
+  };
+}) {
+  return apiLpListVaultsByOwner(params.accessToken, params.query);
 }

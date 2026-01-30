@@ -3,25 +3,53 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
+
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
-import { listVaultsByOwner } from "@/application/vault/api/listVaultsByOwner.usecase";
+import { useAuthToken } from "@/hooks/useAuthToken";
+import { listVaultsByOwnerUseCase } from "@/application/vault/api/listVaultsByOwner.usecase";
+
 import { Button } from "@/shared/ui/Button";
 import { Card } from "@/shared/ui/Card";
 
 export default function VaultsPage() {
   const { ready, authenticated, login } = usePrivy();
   const { ownerAddr, ensureWallet, activeWallet } = useOwnerAddress();
+  const { ensureTokenOrLogin } = useAuthToken();
 
-  const [vaults, setVaults] = useState<string[]>([]);
+  const [vaults, setVaults] = useState<Array<{ address: string; pool: string }>>([]);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
 
   async function refresh() {
     setErr("");
     if (!ownerAddr) return;
+
     setLoading(true);
     try {
-      setVaults(await listVaultsByOwner(ownerAddr));
+      const token = await ensureTokenOrLogin();
+      if (!token) {
+        setErr("Missing access token. Please login again.");
+        return;
+      }
+
+      const res = await listVaultsByOwnerUseCase({
+        accessToken: token,
+        query: { chain: "base", owner: ownerAddr },
+      });
+
+      if (!res?.ok) {
+        throw new Error(res?.message || "Failed to list vaults.");
+      }
+
+      const items = Array.isArray(res?.data) ? res.data : [];
+      setVaults(
+        items
+          .map((v) => ({
+            address: v.address,
+            pool: v.config?.pool || "",
+          }))
+          .filter((v) => Boolean(v.address))
+      );
     } catch (e: any) {
       setErr(e?.message || String(e));
     } finally {
@@ -72,8 +100,12 @@ export default function VaultsPage() {
           <div style={{ opacity: 0.8 }}>No vaults yet.</div>
         ) : (
           vaults.map((v) => (
-            <Link key={v} href={`/vaults/${v}`} style={{ textDecoration: "none", color: "inherit" }}>
-              <Card style={{ fontFamily: "monospace", cursor: "pointer" }}>{v}</Card>
+            <Link
+              key={v.address}
+              href={`/vaults/${v.address}?pool=${encodeURIComponent(v.pool || "")}`}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              <Card style={{ fontFamily: "monospace", cursor: "pointer" }}>{v.address}</Card>
             </Link>
           ))
         )}

@@ -14,7 +14,7 @@ export async function exitWithdrawAll(params: {
   }
 
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
-  const vault = getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
+  const vault = await getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
   const tx = await vault.exitPositionAndWithdrawAll(to);
   const receipt = await tx.wait();

@@ -12,7 +12,7 @@ export async function depositToken(params: {
   decimals: number; // token decimals
 }): Promise<WalletTxResult> {
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
-  const token = getErc20Contract({ tokenAddress: params.tokenAddress, signer });
+  const token = await getErc20Contract({ tokenAddress: params.tokenAddress, signer });
 
   const value = parseUnits(String(params.amount || "0"), Number(params.decimals || 0));
   const tx = await token.transfer(params.vaultAddress, value);

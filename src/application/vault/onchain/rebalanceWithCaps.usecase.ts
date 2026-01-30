@@ -21,7 +21,7 @@ export async function rebalanceWithCaps(params: {
   const cap1 = params.cap1 ?? 0;
 
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
-  const vault = getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
+  const vault = await getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
   const tx = await vault.rebalanceWithCaps(lower, upper, cap0, cap1);
   const receipt = await tx.wait();

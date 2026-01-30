@@ -21,7 +21,7 @@ export async function swapExactInPancake(params: {
   sqrt_price_limit_x96: string | number; // uint160
 }): Promise<WalletTxResult> {
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
-  const vault = getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
+  const vault = await getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
   const tokenIn = _assertAddr(params.token_in, "token_in");
   const tokenOut = _assertAddr(params.token_out, "token_out");

@@ -8,7 +8,7 @@ export async function collectToVault(params: {
   vaultAddress: string;
 }): Promise<WalletTxResult> {
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
-  const vault = getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
+  const vault = await getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
   const tx = await vault.collectToVault();
   const receipt = await tx.wait();
