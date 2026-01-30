@@ -36,8 +36,8 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    const lp = process.env.NEXT_PUBLIC_API_LP_BASE_URL; // ex: http://13.202.89.97:8000
-    const signals = process.env.NEXT_PUBLIC_API_SIGNALS_BASE_URL; // ex: http://13.202.89.97:8080
+    const lp = process.env.API_LP_ORIGIN; // http://13.202.89.97:8000
+    const signals = process.env.API_SIGNALS_ORIGIN; // http://13.202.89.97:8080
 
     return [
       ...(lp ? [{ source: "/lp/:path*", destination: `${lp}/:path*` }] : []),
