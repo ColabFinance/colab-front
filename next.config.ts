@@ -17,7 +17,7 @@ const nextConfig: NextConfig = {
       "lokijs",
       "encoding",
 
-      // No seu caso, o build está reclamando desses módulos vindos de thread-stream/test/*
+      // build está reclamando desses módulos vindos de thread-stream/test/*
       "tape",
       "why-is-node-running",
       "tap",
