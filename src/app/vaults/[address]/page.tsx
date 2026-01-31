@@ -177,6 +177,15 @@ export default function VaultDetailsPage() {
     try {
       const d = await getVaultDetails(vaultAddress);
       setData(d);
+      
+      // prefill rewardSwap UI with on-chain config
+      if (d?.rewardSwap) {
+        setRsEnabled(Boolean(d.rewardSwap.enabled));
+        setRsTokenIn(d.rewardSwap.tokenIn || "");
+        setRsTokenOut(d.rewardSwap.tokenOut || "");
+        setRsFee(String(d.rewardSwap.fee ?? 0));
+        setRsSqrtPriceLimitX96(d.rewardSwap.sqrtPriceLimitX96 ?? "0");
+      }
 
       setCooldownSec(String(d.cooldownSec ?? 0));
       setMaxSlippageBps(String(d.maxSlippageBps ?? 0));
@@ -844,6 +853,46 @@ export default function VaultDetailsPage() {
               <Row label="token1" value={data.token1} />
               <Row label="positionTokenId" value={data.positionTokenId} />
               <Row label="lastRebalanceTs" value={String(data.lastRebalanceTs)} right={formatTs(data.lastRebalanceTs)} />
+
+              <Row
+                label="rewardSwap.enabled"
+                value={String(Boolean(data.rewardSwap?.enabled))}
+              />
+              <Row
+                label="rewardSwap.tokenIn"
+                value={data.rewardSwap?.tokenIn || "-"}
+                right={data.rewardSwap?.tokenIn ? shortAddr(data.rewardSwap.tokenIn) : "-"}
+              />
+              <Row
+                label="rewardSwap.tokenOut"
+                value={data.rewardSwap?.tokenOut || "-"}
+                right={data.rewardSwap?.tokenOut ? shortAddr(data.rewardSwap.tokenOut) : "-"}
+              />
+              <Row
+                label="rewardSwap.fee"
+                value={String(data.rewardSwap?.fee ?? 0)}
+              />
+              <Row
+                label="rewardSwap.sqrtPriceLimitX96"
+                value={String(data.rewardSwap?.sqrtPriceLimitX96 ?? "0")}
+              />
+
+              <div style={{ marginTop: 10, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <Button
+                  onClick={() => (data.rewardSwap?.tokenIn ? copy(data.rewardSwap.tokenIn) : null)}
+                  variant="ghost"
+                  disabled={!data.rewardSwap?.tokenIn}
+                >
+                  Copy tokenIn
+                </Button>
+                <Button
+                  onClick={() => (data.rewardSwap?.tokenOut ? copy(data.rewardSwap.tokenOut) : null)}
+                  variant="ghost"
+                  disabled={!data.rewardSwap?.tokenOut}
+                >
+                  Copy tokenOut
+                </Button>
+              </div>
 
               <div style={{ marginTop: 10, opacity: 0.75 }}>
                 {isOwner ? "You are the owner (owner actions enabled)." : "Not owner (owner actions disabled)."}
