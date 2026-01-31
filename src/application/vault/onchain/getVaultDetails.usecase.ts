@@ -16,6 +16,7 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
     automationConfig,
     positionTokenIdBn,
     lastRebalanceTsBn,
+    rewardSwapCfg
   ] = await Promise.all([
     v.owner(),
     v.executor(),
@@ -27,6 +28,7 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
     v.getAutomationConfig(),
     v.positionTokenId(),
     v.lastRebalanceTs(),
+    v.rewardSwap(),
   ]);
 
   const token0 = tokenPair?.[0] ?? tokenPair?.token0 ?? "";
@@ -36,6 +38,14 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
   const cooldown = Number(automationConfig?.[1] ?? automationConfig?.cooldown ?? 0);
   const slippage = Number(automationConfig?.[2] ?? automationConfig?.slippageBps ?? 0);
   const swapAllowed = automationConfig?.[3] ?? automationConfig?.swapAllowed ?? false;
+
+  const rsEnabled = Boolean(rewardSwapCfg?.[0] ?? rewardSwapCfg?.enabled ?? false);
+  const rsTokenIn = String(rewardSwapCfg?.[1] ?? rewardSwapCfg?.tokenIn ?? "");
+  const rsTokenOut = String(rewardSwapCfg?.[2] ?? rewardSwapCfg?.tokenOut ?? "");
+  const rsFee = Number(rewardSwapCfg?.[3] ?? rewardSwapCfg?.fee ?? 0);
+  const rsSqrtPriceLimitX96 =
+    rewardSwapCfg?.[4]?.toString?.() ??
+    String(rewardSwapCfg?.sqrtPriceLimitX96 ?? "0");
 
   return {
     address: vaultAddress,
@@ -57,5 +67,13 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
 
     positionTokenId: positionTokenIdBn?.toString?.() ?? String(positionTokenIdBn),
     lastRebalanceTs: Number(lastRebalanceTsBn),
+
+    rewardSwap: {
+      enabled: rsEnabled,
+      tokenIn: rsTokenIn,
+      tokenOut: rsTokenOut,
+      fee: rsFee,
+      sqrtPriceLimitX96: rsSqrtPriceLimitX96,
+    },
   };
 }

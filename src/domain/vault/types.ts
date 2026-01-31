@@ -1,3 +1,11 @@
+export type RewardSwapDetails = {
+  enabled: boolean;
+  tokenIn: string;
+  tokenOut: string;
+  fee: number;
+  sqrtPriceLimitX96: string;
+};
+
 export type VaultDetails = {
   address: string;
   dex?: string;
@@ -25,13 +33,7 @@ export type VaultDetails = {
   compoundCooldownSec?: number;
   lastCompoundTs?: number;
 
-  rewardSwap?: {
-    enabled: boolean;
-    tokenIn?: string;
-    tokenOut?: string;
-    fee?: number;
-    sqrtPriceLimitX96?: string;
-  };
+  rewardSwap: RewardSwapDetails;
 
   positionTokenId: string; // big number -> string
   lastRebalanceTs: number; // unix seconds
