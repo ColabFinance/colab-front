@@ -124,3 +124,10 @@ export async function apiSignalsListStrategies(
   if (query.status) qs += `&status=${encodeURIComponent(query.status)}`;
   return apiSignalsGet(`/strategies/list?${qs}`, accessToken);
 }
+
+export async function apiSignalsSetStrategyStatus(
+  accessToken: string,
+  body: { chain: "base" | "bnb"; owner: string; strategy_id: number; status: "ACTIVE" | "INACTIVE" },
+): Promise<{ ok: boolean; data?: StrategyParamsRecord; message?: string }> {
+  return apiSignalsPost(`/strategies/status/set`, body, accessToken);
+}
