@@ -74,9 +74,7 @@ export async function getVaultFeeBufferBalances(params: {
   
   const formatted0 = formatUnits(bal0, meta0.decimals);
   const formatted1 = formatUnits(bal1, meta1.decimals);
-  
-  console.log("rewardToken",rewardToken, rewardIsValid,metaR, balR);
-  
+
   const reward =
     rewardIsValid && metaR && balR
       ? {

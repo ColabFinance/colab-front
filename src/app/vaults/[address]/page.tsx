@@ -46,6 +46,8 @@ import { getPoolByPoolUseCase } from "@/application/vault/api/getDexPoolByPool.u
 import { persistVaultWithdrawEventUseCase } from "@/application/vault/api/persistVaultWithdrawEvent.usecase";
 import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
 import { persistVaultDepositEventUseCase } from "@/application/vault/api/persistVaultDepositEvent.usecase";
+import { apiSignalsGetStrategyParams } from "@/infra/api-signals/strategy";
+import { setStrategyStatusUseCase } from "@/application/strategy/api/setStrategyStatus.usecase";
 
 function shortAddr(a?: string) {
   if (!a) return "-";
@@ -628,6 +630,114 @@ export default function VaultDetailsPage() {
     }
   }
 
+  async function ensureStrategyExistsForVault(): Promise<{ chain: "base" | "bnb"; owner: string; strategyId: number } | null> {
+    const token = await requireToken();
+    if (!token) return null;
+
+    const rt = await getActiveChainRuntime();
+    const chain = rt.chainKey as "base" | "bnb";
+
+    const owner = (data?.owner || ownerAddr || "").toLowerCase();
+    const strategyId = Number(data?.strategyId || 0);
+
+    if (!owner || !is0xAddress(owner)) {
+      setErr("Cannot validate strategy: missing/invalid owner for this vault.");
+      return null;
+    }
+    if (!Number.isFinite(strategyId) || strategyId <= 0) {
+      setErr("Cannot validate strategy: vault has no valid strategyId.");
+      return null;
+    }
+
+    const res = await apiSignalsGetStrategyParams(token, chain, owner, strategyId);
+    if (!res?.ok || !res?.data) {
+      // regra 1: só habilita automation se existir strategy
+      setErr("You cannot enable automation: no strategy found for this vault in api-signals.");
+      return null;
+    }
+
+    return { chain, owner, strategyId };
+  }
+
+  async function setStrategyActive(chain: "base" | "bnb", owner: string, strategyId: number, active: boolean) {
+    const token = await requireToken();
+    if (!token) return;
+
+    await setStrategyStatusUseCase({
+      accessToken: token,
+      payload: {
+        chain,
+        owner,
+        strategy_id: strategyId,
+        status: active ? "ACTIVE" : "INACTIVE",
+      },
+    });
+  }
+
+  async function onToggleAutomationWithStrategySync() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected. Login/Connect with Privy first.");
+      return;
+    }
+    if (!isOwner) {
+      setErr("Only owner can enable/disable automation.");
+      return;
+    }
+    if (!data) return;
+
+    const enabling = !data.automationEnabled;
+
+    // regra 1: só habilita se strategy existe
+    let identity: { chain: "base" | "bnb"; owner: string; strategyId: number } | null = null;
+    if (enabling) {
+      identity = await ensureStrategyExistsForVault();
+      if (!identity) return;
+    } else {
+      // para desabilitar, não bloqueia se strategy não existir (mas tentamos desativar se existir)
+      const rt = await getActiveChainRuntime();
+      const chain = rt.chainKey as "base" | "bnb";
+      const owner = (data?.owner || ownerAddr || "").toLowerCase();
+      const strategyId = Number(data?.strategyId || 0);
+      if (is0xAddress(owner) && strategyId > 0) identity = { chain, owner, strategyId };
+    }
+
+    setLoading(true);
+    try {
+      // 1) onchain toggle automation
+      const tx = await setAutomationEnabled({
+        wallet: activeWallet,
+        vaultAddress,
+        enabled: enabling,
+      });
+      setLastTx(tx);
+      push({ title: "Tx confirmed", description: shortAddr(tx.tx_hash) });
+
+      // 2) backend sync strategy status
+      if (identity) {
+        if (enabling) {
+          // regra 2: habilitou automation => ativa strategy
+          await setStrategyActive(identity.chain, identity.owner, identity.strategyId, true);
+          push({ title: "Strategy activated", description: `strategy_id=${identity.strategyId}` });
+        } else {
+          // regra 3: desabilitou automation => desativa strategy
+          await setStrategyActive(identity.chain, identity.owner, identity.strategyId, false);
+          push({ title: "Strategy deactivated", description: `strategy_id=${identity.strategyId}` });
+        }
+      }
+
+      await refresh();
+      await refreshStatus();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
   useEffect(() => {
     if (!vaultAddress) return;
     refresh();
@@ -936,15 +1046,7 @@ export default function VaultDetailsPage() {
 
                 <Button
                   disabled={loading || !isOwner || !activeWallet}
-                  onClick={() =>
-                    runTx(() =>
-                      setAutomationEnabled({
-                        wallet: activeWallet!,
-                        vaultAddress,
-                        enabled: !data.automationEnabled,
-                      }),
-                    )
-                  }
+                  onClick={onToggleAutomationWithStrategySync}
                 >
                   {data.automationEnabled ? "Disable automation" : "Enable automation"}
                 </Button>
