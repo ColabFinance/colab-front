@@ -49,6 +49,8 @@ import { persistVaultDepositEventUseCase } from "@/application/vault/api/persist
 import { apiSignalsGetStrategyParams } from "@/infra/api-signals/strategy";
 import { setStrategyStatusUseCase } from "@/application/strategy/api/setStrategyStatus.usecase";
 
+const ZERO = "0x0000000000000000000000000000000000000000";
+
 function shortAddr(a?: string) {
   if (!a) return "-";
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -145,6 +147,11 @@ export default function VaultDetailsPage() {
 
   // swap exact in pancake
   const [swapTokenIn, setSwapTokenIn] = useState<string>("");
+  const [swapTokenOut, setSwapTokenOut] = useState<string>("");
+
+  const [swapFee, setSwapFee] = useState<string>("2500"); // default comum em v3 (0.25%)
+  const [swapSqrtPriceLimitX96, setSwapSqrtPriceLimitX96] = useState<string>("0");
+
   const [swapAmountIn, setSwapAmountIn] = useState<string>("");
   const [swapDecimalsIn, setSwapDecimalsIn] = useState<string>("18");
   const [swapMinOut, setSwapMinOut] = useState<string>("0");
@@ -737,6 +744,96 @@ export default function VaultDetailsPage() {
     }
   }
 
+  function fillSwapFromRewardSwapConfig() {
+    if (!data?.rewardSwap) return;
+    const rs = data.rewardSwap;
+    if (!rs.tokenIn || !rs.tokenOut) return;
+
+    setSwapTokenIn(rs.tokenIn);
+    setSwapTokenOut(rs.tokenOut);
+    setSwapFee(String(rs.fee ?? "0"));
+    setSwapSqrtPriceLimitX96(String(rs.sqrtPriceLimitX96 ?? "0"));
+  }
+
+  async function onClaimAndSwapReward() {
+    setErr("");
+    setLastTx(null);
+
+    if (!activeWallet) {
+      setErr("Wallet not connected.");
+      return;
+    }
+    if (!isOwner) {
+      setErr("Only owner can do this.");
+      return;
+    }
+    if (!is0xAddress(swapTokenIn) || !is0xAddress(swapTokenOut)) {
+      setErr("Invalid token_in/token_out.");
+      return;
+    }
+    if (!swapAmountIn) {
+      setErr("amount_in is required.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // 1) claim rewards (gauge -> vault)
+      const tx1 = await claimRewards({ wallet: activeWallet, vaultAddress } as any);
+      setLastTx(tx1);
+      push({ title: "Claim confirmed", description: shortAddr(tx1.tx_hash) });
+
+      // 2) swap in vault
+      const tx2 = await swapExactInPancake({
+        wallet: activeWallet,
+        vaultAddress,
+        token_in: swapTokenIn,
+        token_out: swapTokenOut,
+        fee: swapFee,
+        amount_in_human: swapAmountIn,
+        decimals_in: Number(swapDecimalsIn || "18"),
+        amount_out_min: String(swapMinOut || "0"),
+        sqrt_price_limit_x96: String(swapSqrtPriceLimitX96 || "0"),
+      } as any);
+
+      setLastTx(tx2);
+      push({ title: "Swap confirmed", description: shortAddr(tx2.tx_hash) });
+
+      await refresh();
+      await refreshStatus();
+      await refreshFeeBuffer();
+    } catch (e: any) {
+      setErr(e?.shortMessage || e?.message || String(e));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+
+  useEffect(() => {
+    if (!data) return;
+
+    // se tiver rewardSwap config on-chain, usa como default do swap manual
+    if (!swapTokenIn && data.rewardSwap?.tokenIn && is0xAddress(data.rewardSwap.tokenIn)) {
+      setSwapTokenIn(data.rewardSwap.tokenIn);
+    }
+    if (!swapTokenOut && data.rewardSwap?.tokenOut && is0xAddress(data.rewardSwap.tokenOut)) {
+      setSwapTokenOut(data.rewardSwap.tokenOut);
+    }
+    if (data.rewardSwap?.fee != null && String(data.rewardSwap.fee) !== "0" && swapFee === "2500") {
+      setSwapFee(String(data.rewardSwap.fee));
+    }
+    if (data.rewardSwap?.sqrtPriceLimitX96 && swapSqrtPriceLimitX96 === "0") {
+      setSwapSqrtPriceLimitX96(String(data.rewardSwap.sqrtPriceLimitX96));
+    }
+
+    // fallback: se token_out vazio, default token1
+    if (!swapTokenOut && data.token1) setSwapTokenOut(data.token1);
+
+    // fallback: se token_in vazio e rewardToken válido, usa rewardToken
+    if (!swapTokenIn && is0xAddress(rewardToken) && rewardToken !== ZERO) setSwapTokenIn(rewardToken);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, rewardToken]);
 
   useEffect(() => {
     if (!vaultAddress) return;
@@ -764,6 +861,24 @@ export default function VaultDetailsPage() {
 
   // derived helpers for selects
   const tokenOptions = useMemo(() => {
+    const opts: { label: string; value: string }[] = [];
+    if (data?.token0) opts.push({ label: `token0 (${shortAddr(data.token0)})`, value: data.token0 });
+    if (data?.token1) opts.push({ label: `token1 (${shortAddr(data.token1)})`, value: data.token1 });
+
+    // reward token (ex: CAKE) — só adiciona se não for igual ao token0/token1
+    if (
+      is0xAddress(rewardToken) &&
+      rewardToken.toLowerCase() !== ZERO &&
+      rewardToken.toLowerCase() !== (data?.token0 || "").toLowerCase() &&
+      rewardToken.toLowerCase() !== (data?.token1 || "").toLowerCase()
+    ) {
+      opts.push({ label: `reward (${shortAddr(rewardToken)})`, value: rewardToken });
+    }
+
+    return opts;
+  }, [data?.token0, data?.token1, rewardToken]);
+
+  const tokenOutOptions = useMemo(() => {
     const opts: { label: string; value: string }[] = [];
     if (data?.token0) opts.push({ label: `token0 (${shortAddr(data.token0)})`, value: data.token0 });
     if (data?.token1) opts.push({ label: `token1 (${shortAddr(data.token1)})`, value: data.token1 });
@@ -1404,6 +1519,10 @@ export default function VaultDetailsPage() {
             <Card>
               <div style={{ fontWeight: 900, marginBottom: 10 }}>6) Swap (Pancake)</div>
 
+              <div style={{ marginBottom: 10, fontSize: 12, opacity: 0.75 }}>
+                Dica: para swap de reward do gauge, faça <b>Claim rewards</b> e depois swap do <b>reward token</b> (ex: CAKE) para token0/token1.
+              </div>
+
               <div style={{ display: "grid", gap: 10 }}>
                 <div>
                   <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>token_in</div>
@@ -1428,6 +1547,46 @@ export default function VaultDetailsPage() {
                   </select>
                 </div>
 
+                <div>
+                  <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>token_out (pool token)</div>
+                  <select
+                    value={swapTokenOut}
+                    onChange={(e) => setSwapTokenOut(e.target.value)}
+                    disabled={!isOwner}
+                    style={{
+                      width: "100%",
+                      padding: "10px 12px",
+                      borderRadius: 10,
+                      border: "1px solid #ddd",
+                      fontFamily: "monospace",
+                    }}
+                  >
+                    <option value="">Select token...</option>
+                    {tokenOutOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  <Input
+                    label="fee (uint24)"
+                    value={swapFee}
+                    onChange={(e) => setSwapFee(e.target.value)}
+                    placeholder="2500"
+                    disabled={!isOwner}
+                  />
+                  <Input
+                    label="sqrtPriceLimitX96 (uint160)"
+                    value={swapSqrtPriceLimitX96}
+                    onChange={(e) => setSwapSqrtPriceLimitX96(e.target.value)}
+                    placeholder="0"
+                    disabled={!isOwner}
+                  />
+                </div>
+
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
                   <Input
                     label="amount_in (human)"
@@ -1446,34 +1605,64 @@ export default function VaultDetailsPage() {
                 </div>
 
                 <Input
-                  label="min_out (raw)"
+                  label="amount_out_min (raw)"
                   value={swapMinOut}
                   onChange={(e) => setSwapMinOut(e.target.value)}
                   placeholder="0"
                   disabled={!isOwner}
                 />
 
-                <Button
-                  disabled={loading || !isOwner || !activeWallet || !is0xAddress(swapTokenIn) || !swapAmountIn}
-                  onClick={() =>
-                    runTx(() =>
-                      swapExactInPancake({
-                        wallet: activeWallet!,
-                        vaultAddress,
-                        token_in: swapTokenIn,
-                        amount_in: swapAmountIn,
-                        decimals_in: Number(swapDecimalsIn || "18"),
-                        min_out: String(swapMinOut || "0"),
-                      } as any),
-                    )
-                  }
-                >
-                  Swap exact in
-                </Button>
+                <div style={{ display: "flex", gap: 10, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  <Button variant="ghost" disabled={!data?.rewardSwap} onClick={fillSwapFromRewardSwapConfig}>
+                    Fill from rewardSwap config
+                  </Button>
+
+                  <Button
+                    disabled={
+                      loading ||
+                      !isOwner ||
+                      !activeWallet ||
+                      !is0xAddress(swapTokenIn) ||
+                      !is0xAddress(swapTokenOut) ||
+                      !swapAmountIn
+                    }
+                    onClick={() =>
+                      runTx(() =>
+                        swapExactInPancake({
+                          wallet: activeWallet!,
+                          vaultAddress,
+                          token_in: swapTokenIn,
+                          token_out: swapTokenOut,
+                          fee: swapFee,
+                          amount_in_human: swapAmountIn,
+                          decimals_in: Number(swapDecimalsIn || "18"),
+                          amount_out_min: String(swapMinOut || "0"),
+                          sqrt_price_limit_x96: String(swapSqrtPriceLimitX96 || "0"),
+                        } as any),
+                      )
+                    }
+                  >
+                    Swap exact in
+                  </Button>
+
+                  <Button
+                    disabled={
+                      loading ||
+                      !isOwner ||
+                      !activeWallet ||
+                      !is0xAddress(swapTokenIn) ||
+                      !is0xAddress(swapTokenOut) ||
+                      !swapAmountIn
+                    }
+                    onClick={onClaimAndSwapReward}
+                  >
+                    Claim + Swap
+                  </Button>
+                </div>
               </div>
 
               <div style={{ marginTop: 10, opacity: 0.75 }}>
-                Se você não sabe o min_out, deixe 0 (não recomendado em produção).
+                Se você não sabe o <code>amount_out_min</code>, deixe 0 (não recomendado em produção).
               </div>
             </Card>
 
