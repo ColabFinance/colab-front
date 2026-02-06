@@ -7,7 +7,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <NavBar />
-      <div style={{ paddingTop: 64 }}>{children}</div>
+      <div style={{ paddingTop: "var(--nav-h)" }}>{children}</div>
     </>
   );
 }

@@ -945,7 +945,7 @@ export default function VaultDetailsPage() {
           </div>
         </div>
 
-        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+        <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
           <Mini label="VaultFeeBuffer" value={feeBuffer?.feeBufferAddress ? feeBuffer.feeBufferAddress : "-"} />
 
           <Mini label="Fetched at" value={feeBuffer?.fetchedAtMs ? formatMs(feeBuffer.fetchedAtMs) : "-"} />
@@ -997,7 +997,7 @@ export default function VaultDetailsPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             <Mini label="Pool" value={status.pool} />
             <Mini label="Adapter" value={status.adapter} />
             <Mini label="NFPM" value={status.nfpm ?? "-"} />
@@ -1047,7 +1047,7 @@ export default function VaultDetailsPage() {
       ) : (
         <>
           {/* top info */}
-          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 10 }}>Wiring</div>
 
@@ -1126,12 +1126,12 @@ export default function VaultDetailsPage() {
           </div>
 
           {/* ACTIONS GRID */}
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             {/* Automation */}
             <Card>
               <div style={{ fontWeight: 900, marginBottom: 10 }}>1) Automation</div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="cooldown_sec"
                   value={cooldownSec}
@@ -1334,7 +1334,7 @@ export default function VaultDetailsPage() {
                   disabled={!isOwner}
                 />
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                   <Input
                     label="amount (human)"
                     value={depositAmount}
@@ -1368,7 +1368,7 @@ export default function VaultDetailsPage() {
             <Card>
               <div style={{ fontWeight: 900, marginBottom: 10 }}>3) Open initial position</div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="lower_tick"
                   value={openLowerTick}
@@ -1416,7 +1416,7 @@ export default function VaultDetailsPage() {
             <Card>
               <div style={{ fontWeight: 900, marginBottom: 10 }}>4) Rebalance (manual)</div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="lower_tick"
                   value={rebalLowerTick}
@@ -1433,7 +1433,7 @@ export default function VaultDetailsPage() {
                 />
               </div>
 
-              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ marginTop: 10, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="cap0 (raw, optional)"
                   value={cap0}
@@ -1570,7 +1570,7 @@ export default function VaultDetailsPage() {
                   </select>
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                   <Input
                     label="fee (uint24)"
                     value={swapFee}
@@ -1587,7 +1587,7 @@ export default function VaultDetailsPage() {
                   />
                 </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                   <Input
                     label="amount_in (human)"
                     value={swapAmountIn}

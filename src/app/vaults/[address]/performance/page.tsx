@@ -112,7 +112,7 @@ export default function VaultPerformancePage() {
       ) : (
         <>
           {/* Summary */}
-          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             <Card>
               <div style={{ fontWeight: 900, marginBottom: 10 }}>Vault</div>
               <Row label="alias" value={String(data.vault?.alias || "-")} />
@@ -133,7 +133,7 @@ export default function VaultPerformancePage() {
           </div>
 
           {/* Current / Profit */}
-          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div style={{ marginTop: 12, display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 12 }}>
             <Card>
               <div style={{ fontWeight: 900, marginBottom: 10 }}>Current value</div>
               <Row label="total" value={formatUsd(data.current_value?.total_usd)} right={String(data.current_value?.source || "unknown")} />

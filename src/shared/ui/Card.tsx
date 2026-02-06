@@ -8,8 +8,11 @@ export function Card({ style, ...props }: React.HTMLAttributes<HTMLDivElement>) 
       {...props}
       style={{
         padding: 14,
-        borderRadius: 12,
-        border: "1px solid #eee",
+        borderRadius: 14,
+        border: "1px solid var(--border)",
+        background: "var(--panel)",
+        boxShadow: "var(--shadow)",
+        maxWidth: "100%",
         ...style,
       }}
     />
