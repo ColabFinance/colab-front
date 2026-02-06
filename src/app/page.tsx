@@ -23,7 +23,8 @@ export default function Home() {
   if (!ready) return <div style={{ padding: 24 }}>Loading...</div>;
 
   return (
-    <main style={{ padding: 24, maxWidth: 900 }}>
+    <main style={{ padding: "var(--page-pad)", maxWidth: 900, margin: "0 auto" }}>
+
       <h1 style={{ fontSize: 22, fontWeight: 800 }}>Colab Front</h1>
 
       <div style={{ marginTop: 14, display: "grid", gap: 12 }}>

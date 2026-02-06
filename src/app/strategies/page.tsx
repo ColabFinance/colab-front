@@ -1511,7 +1511,7 @@ export default function StrategiesPage() {
           <div style={{ marginTop: 12, display: "grid", gap: 10 }}>
             <Input label="On-chain name (read-only)" placeholder="—" value={selectedStrategy?.name || ""} onChange={() => {}} disabled />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="Symbol"
                 placeholder="ETHUSDT"
@@ -1550,7 +1550,7 @@ export default function StrategiesPage() {
             <div style={{ fontWeight: 800, marginBottom: 8 }}>Params</div>
 
             <div style={{ display: "grid", gap: 10 }}>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="Skew low (%)"
                   placeholder="Skew low 0.05"
@@ -1567,7 +1567,7 @@ export default function StrategiesPage() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
                 <Input
                   label="Max major side (opt)"
                   placeholder="Max major side 0.01"
@@ -1591,7 +1591,7 @@ export default function StrategiesPage() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="High vol max major side"
                   placeholder="High vol max major side 2"
@@ -1608,13 +1608,13 @@ export default function StrategiesPage() {
                 />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
                 <Input label="Epsilon (eps)" placeholder="Epsilon (eps) 0.000001" value={form.eps} onChange={(e) => setForm((s) => ({ ...s, eps: e.target.value }))} disabled={paramsLoading} />
                 <Input label="Cooloff bars" placeholder="Cooloff bars 10" value={form.cooloff_bars} onChange={(e) => setForm((s) => ({ ...s, cooloff_bars: e.target.value }))} disabled={paramsLoading} />
                 <Input label="Breakout confirm bars" placeholder="Breakout confirm bars 20" value={form.breakout_confirm_bars} onChange={(e) => setForm((s) => ({ ...s, breakout_confirm_bars: e.target.value }))} disabled={paramsLoading} />
               </div>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                 <Input
                   label="In-range resize mode"
                   placeholder="In-range resize mode skew_swap | preserve"

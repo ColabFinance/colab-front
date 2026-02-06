@@ -12,7 +12,7 @@ export function Input({ label, containerStyle, labelStyle, style, ...props }: Pr
   return (
     <div style={{ display: "grid", gap: 6, ...containerStyle }}>
       {label ? (
-        <label style={{ fontSize: 12, color: "#444", ...labelStyle }}>
+        <label style={{ fontSize: 12, color: "var(--muted)", ...labelStyle }}>
           {label}
         </label>
       ) : null}
@@ -21,10 +21,23 @@ export function Input({ label, containerStyle, labelStyle, style, ...props }: Pr
         {...props}
         style={{
           padding: "10px 12px",
-          borderRadius: 10,
-          border: "1px solid #ddd",
+          borderRadius: 12,
+          border: "1px solid var(--border)",
           width: "100%",
+          background: "var(--panel-2)",
+          color: "var(--text)",
+          outline: "none",
           ...style,
+        }}
+        onFocus={(e) => {
+          (e.currentTarget as HTMLInputElement).style.boxShadow = "0 0 0 3px rgba(125, 211, 252, 0.20)";
+          (e.currentTarget as HTMLInputElement).style.borderColor = "var(--border-2)";
+          props.onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          (e.currentTarget as HTMLInputElement).style.boxShadow = "none";
+          (e.currentTarget as HTMLInputElement).style.borderColor = "var(--border)";
+          props.onBlur?.(e);
         }}
       />
     </div>

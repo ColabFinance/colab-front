@@ -240,7 +240,7 @@ export default function AdminPage() {
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Factories</div>
 
           <div style={{ display: "grid", gap: 8, marginBottom: 12 }}>
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>StrategyRegistry (for VaultFactory)</div>
                 <input
@@ -262,7 +262,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Cooldown (sec)</div>
                 <input
@@ -360,7 +360,7 @@ export default function AdminPage() {
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Protocol Fee Collector</div>
 
           <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Initial owner (optional)</div>
                 <input
@@ -382,7 +382,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Protocol fee (bps)</div>
                 <input
@@ -433,7 +433,7 @@ export default function AdminPage() {
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Protocol Fees (balances & withdraw)</div>
 
           <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Token address</div>
                 <input
@@ -455,7 +455,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+            <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Withdraw amount (human)</div>
                 <input
@@ -624,7 +624,7 @@ export default function AdminPage() {
               <div style={{ fontWeight: 800, marginBottom: 10 }}>ProtocolFeeCollector</div>
 
               <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-                <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr" }}>
+                <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}>
                   <div>
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Treasury</div>
                     <input
@@ -820,7 +820,7 @@ export default function AdminPage() {
                   />
                 </div>
 
-                <div style={{ display: "grid", gap: 8, gridTemplateColumns: "1fr 1fr 1fr" }}>
+                <div style={{ display: "grid", gap: 8, gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}>
                   <div>
                     <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Default cooldown (sec)</div>
                     <input
@@ -920,7 +920,7 @@ export default function AdminPage() {
           <div style={{ fontWeight: 900, marginBottom: 8 }}>DEX Registry</div>
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="DEX key"
                 placeholder="pancake_v3"
@@ -997,7 +997,7 @@ export default function AdminPage() {
           <div style={{ fontWeight: 900, marginBottom: 8 }}>DEX Pools</div>
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="DEX key (parent)"
                 placeholder="pancake_v3"
@@ -1024,7 +1024,7 @@ export default function AdminPage() {
               onChange={(e) => setPoolForm((s) => ({ ...s, pool: e.target.value }))}
             />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="NFPM"
                 placeholder="NFPM 0x..."
@@ -1039,7 +1039,7 @@ export default function AdminPage() {
               />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="Token0"
                 placeholder="Token0 0x..."
@@ -1054,7 +1054,7 @@ export default function AdminPage() {
               />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="Pair label"
                 placeholder="Pair WETH-USDC"
@@ -1069,7 +1069,7 @@ export default function AdminPage() {
               />
             </div>
             
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="Reward Token"
                 placeholder="Reward token"
@@ -1078,7 +1078,7 @@ export default function AdminPage() {
               />
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <div>
                 <div style={{ fontSize: 12, opacity: 0.8, marginBottom: 4 }}>Fee (bps)</div>
                 <input
@@ -1156,7 +1156,7 @@ export default function AdminPage() {
           <div style={{ fontWeight: 900, marginBottom: 8 }}>Adapters</div>
           
           <div style={{ display: "grid", gap: 10, marginBottom: 12 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="Prefill pools from DEX"
                 placeholder="pancake_v3"
@@ -1215,7 +1215,7 @@ export default function AdminPage() {
           </div>
 
           <div style={{ display: "grid", gap: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="DEX"
                 placeholder="pancake_v3"
@@ -1256,7 +1256,7 @@ export default function AdminPage() {
               onChange={(e) => setAdapterForm((s) => ({ ...s, gauge: e.target.value }))}
             />
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <Input
                 label="Token0"
                 placeholder="Token0 0x..."
