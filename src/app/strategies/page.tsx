@@ -27,6 +27,19 @@ import { setDailyHarvestConfigOnchain } from "@/application/vault/onchain/setDai
 import { setCompoundConfigOnchain } from "@/application/vault/onchain/etCompoundConfig.usecase";
 import { setRewardSwapConfigOnchain } from "@/application/vault/onchain/setRewardSwapConfig.usecase";
 
+const codeBlockStyle: React.CSSProperties = {
+  marginTop: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  color: "rgba(255,255,255,0.90)",
+  overflow: "auto",
+  maxHeight: 520,
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
   symbol: string;
@@ -1193,7 +1206,7 @@ export default function StrategiesPage() {
           <div>
             <b>Last tx:</b>
           </div>
-          <pre style={{ marginTop: 8, background: "#fafafa", padding: 10, borderRadius: 10, overflow: "auto" }}>
+          <pre style={codeBlockStyle}>
             {JSON.stringify(lastTx, null, 2)}
           </pre>
         </Card>

@@ -45,6 +45,19 @@ import { withdrawProtocolFeeCollectorFeesUseCase } from "@/application/admin/onc
 import { formatUnits, parseUnits } from "ethers";
 import { getProtocolFeeCollectorTokenInfoUseCase } from "@/application/admin/onchain/getProtocolFeeCollectorTokenInfo.usecase";
 
+const codeBlockStyle: React.CSSProperties = {
+  marginTop: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  color: "rgba(255,255,255,0.90)",
+  overflow: "auto",
+  maxHeight: 520,
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
 function shortAddr(a?: string) {
   if (!a) return "-";
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -548,7 +561,7 @@ export default function AdminPage() {
                     {formatUnits(BigInt(pfcTokenInfo?.totalByToken || "0"), Number(pfcTokenInfo?.decimals ?? 18))}
                   </div>
 
-                  <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9, marginTop: 8 }}>
+                  <pre style={{ ...codeBlockStyle, marginTop: 8 }}>
                     {JSON.stringify(pfcTokenInfo, null, 2)}
                   </pre>
                 </div>
@@ -986,7 +999,7 @@ export default function AdminPage() {
 
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>DEX Registries</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {dexesJson ? JSON.stringify(dexesJson, null, 2) : "—"}
               </pre>
             </Card>
@@ -1145,7 +1158,7 @@ export default function AdminPage() {
 
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>DEX Pools</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {poolsJson ? JSON.stringify(poolsJson, null, 2) : "—"}
               </pre>
             </Card>
@@ -1343,7 +1356,7 @@ export default function AdminPage() {
 
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>Adapters</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {adaptersJson ? JSON.stringify(adaptersJson, null, 2) : "—"}
               </pre>
             </Card>
@@ -1404,28 +1417,28 @@ export default function AdminPage() {
           <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>Strategies</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {strategiesJson ? JSON.stringify(strategiesJson, null, 2) : "—"}
               </pre>
             </Card>
 
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>Vaults</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {vaultsJson ? JSON.stringify(vaultsJson, null, 2) : "—"}
               </pre>
             </Card>
 
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>Owners</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {ownersJson ? JSON.stringify(ownersJson, null, 2) : "—"}
               </pre>
             </Card>
 
             <Card>
               <div style={{ fontWeight: 800, marginBottom: 8 }}>Users</div>
-              <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, opacity: 0.9 }}>
+              <pre style={codeBlockStyle}>
                 {usersJson ? JSON.stringify(usersJson, null, 2) : "—"}
               </pre>
             </Card>

@@ -49,6 +49,19 @@ import { persistVaultDepositEventUseCase } from "@/application/vault/api/persist
 import { apiSignalsGetStrategyParams } from "@/infra/api-signals/strategy";
 import { setStrategyStatusUseCase } from "@/application/strategy/api/setStrategyStatus.usecase";
 
+const codeBlockStyle: React.CSSProperties = {
+  marginTop: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  color: "rgba(255,255,255,0.90)",
+  overflow: "auto",
+  maxHeight: 520,
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
 const ZERO = "0x0000000000000000000000000000000000000000";
 
 function shortAddr(a?: string) {
@@ -1021,7 +1034,7 @@ export default function VaultDetailsPage() {
             <Mini label="Last rebalance" value={formatTs(status.last_rebalance_ts)} />
           </div>
 
-          <pre style={{ marginTop: 12, background: "#fafafa", padding: 10, borderRadius: 10, overflow: "auto" }}>
+          <pre style={codeBlockStyle}>
             {JSON.stringify(status, null, 2)}
           </pre>
         </Card>
@@ -1034,7 +1047,7 @@ export default function VaultDetailsPage() {
           <div style={{ marginTop: 6, opacity: 0.8, fontFamily: "monospace" }}>
             tx_hash: {lastTx.tx_hash ? shortAddr(lastTx.tx_hash) : "-"}
           </div>
-          <pre style={{ marginTop: 8, background: "#fafafa", padding: 10, borderRadius: 10, overflow: "auto" }}>
+          <pre style={codeBlockStyle}>
             {JSON.stringify(lastTx, null, 2)}
           </pre>
         </Card>

@@ -12,6 +12,19 @@ import { useToast } from "@/shared/ui/toast/useToast";
 import { getVaultPerformanceUseCase } from "@/application/vault/api/getVaultPerformance.usecase";
 import type { VaultPerformanceData } from "@/domain/vault/performance";
 
+const codeBlockStyle: React.CSSProperties = {
+  marginTop: 12,
+  padding: 12,
+  borderRadius: 12,
+  border: "1px solid rgba(255,255,255,0.12)",
+  background: "rgba(255,255,255,0.06)",
+  color: "rgba(255,255,255,0.90)",
+  overflow: "auto",
+  maxHeight: 520,
+  fontSize: 12,
+  lineHeight: 1.35,
+};
+
 function shortAddr(a?: string) {
   if (!a) return "-";
   return `${a.slice(0, 6)}…${a.slice(-4)}`;
@@ -251,7 +264,7 @@ export default function VaultPerformancePage() {
 
           <Card style={{ marginTop: 12 }}>
             <div style={{ fontWeight: 900, marginBottom: 10 }}>Raw JSON</div>
-            <pre style={{ background: "#fafafa", padding: 10, borderRadius: 10, overflow: "auto" }}>
+            <pre style={codeBlockStyle}>
               {JSON.stringify(data, null, 2)}
             </pre>
           </Card>
