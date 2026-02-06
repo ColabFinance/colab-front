@@ -71,7 +71,8 @@ export default function VaultsPage() {
 
   if (!authenticated) {
     return (
-      <main style={{ padding: 24, maxWidth: 900 }}>
+      <main style={{ padding: "var(--page-pad)", maxWidth: 900, margin: "0 auto" }}>
+
         <h1 style={{ fontSize: 22, fontWeight: 800 }}>My Vaults</h1>
         <Button onClick={login}>Login to view</Button>
       </main>
@@ -79,7 +80,8 @@ export default function VaultsPage() {
   }
 
   return (
-    <main style={{ padding: 24, maxWidth: 900 }}>
+    <main style={{ padding: "var(--page-pad)", maxWidth: 900, margin: "0 auto" }}>
+
       <h1 style={{ fontSize: 22, fontWeight: 800 }}>My Vaults</h1>
 
       <div style={{ marginTop: 8, opacity: 0.85 }}>
