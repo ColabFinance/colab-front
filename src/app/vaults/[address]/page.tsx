@@ -48,6 +48,7 @@ import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
 import { persistVaultDepositEventUseCase } from "@/application/vault/api/persistVaultDepositEvent.usecase";
 import { apiSignalsGetStrategyParams } from "@/infra/api-signals/strategy";
 import { setStrategyStatusUseCase } from "@/application/strategy/api/setStrategyStatus.usecase";
+import { DEFAULT_V3_SWAP_FEE, getPreferredV3FeeForPair } from "@/shared/config/v3SwapFees";
 
 const codeBlockStyle: React.CSSProperties = {
   marginTop: 12,
@@ -168,6 +169,8 @@ export default function VaultDetailsPage() {
   const [swapAmountIn, setSwapAmountIn] = useState<string>("");
   const [swapDecimalsIn, setSwapDecimalsIn] = useState<string>("18");
   const [swapMinOut, setSwapMinOut] = useState<string>("0");
+
+  const [swapFeeAuto, setSwapFeeAuto] = useState<boolean>(true);
 
   // withdraw
   const [withdrawTo, setWithdrawTo] = useState<string>("");
@@ -766,6 +769,8 @@ export default function VaultDetailsPage() {
     setSwapTokenOut(rs.tokenOut);
     setSwapFee(String(rs.fee ?? "0"));
     setSwapSqrtPriceLimitX96(String(rs.sqrtPriceLimitX96 ?? "0"));
+    
+    setSwapFeeAuto(false);
   }
 
   async function onClaimAndSwapReward() {
@@ -847,6 +852,24 @@ export default function VaultDetailsPage() {
     if (!swapTokenIn && is0xAddress(rewardToken) && rewardToken !== ZERO) setSwapTokenIn(rewardToken);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, rewardToken]);
+
+  useEffect(() => {
+    if (!swapFeeAuto) return;
+
+    if (!is0xAddress(swapTokenIn) || !is0xAddress(swapTokenOut)) return;
+
+    const suggested = getPreferredV3FeeForPair(swapTokenIn, swapTokenOut);
+
+    if (suggested) {
+      const next = String(suggested);
+      if (next !== swapFee) setSwapFee(next);
+      return;
+    }
+
+    // fallback caso fique vazio
+    if (!swapFee) setSwapFee(DEFAULT_V3_SWAP_FEE);
+  }, [swapFeeAuto, swapTokenIn, swapTokenOut, swapFee]);
+
 
   useEffect(() => {
     if (!vaultAddress) return;
@@ -1541,7 +1564,10 @@ export default function VaultDetailsPage() {
                   <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>token_in</div>
                   <select
                     value={swapTokenIn}
-                    onChange={(e) => setSwapTokenIn(e.target.value)}
+                    onChange={(e) => {
+                      setSwapTokenIn(e.target.value);
+                      setSwapFeeAuto(true);
+                    }}
                     disabled={!isOwner}
                     style={{
                       width: "100%",
@@ -1564,7 +1590,10 @@ export default function VaultDetailsPage() {
                   <div style={{ fontSize: 12, opacity: 0.75, marginBottom: 6 }}>token_out (pool token)</div>
                   <select
                     value={swapTokenOut}
-                    onChange={(e) => setSwapTokenOut(e.target.value)}
+                    onChange={(e) => {
+                      setSwapTokenIn(e.target.value);
+                      setSwapFeeAuto(true);
+                    }}
                     disabled={!isOwner}
                     style={{
                       width: "100%",
@@ -1587,10 +1616,14 @@ export default function VaultDetailsPage() {
                   <Input
                     label="fee (uint24)"
                     value={swapFee}
-                    onChange={(e) => setSwapFee(e.target.value)}
+                    onChange={(e) => {
+                      setSwapFee(e.target.value);
+                      if (swapFeeAuto) setSwapFeeAuto(false);
+                    }}
                     placeholder="2500"
                     disabled={!isOwner}
                   />
+
                   <Input
                     label="sqrtPriceLimitX96 (uint160)"
                     value={swapSqrtPriceLimitX96}
@@ -1599,6 +1632,16 @@ export default function VaultDetailsPage() {
                     disabled={!isOwner}
                   />
                 </div>
+                
+                <label style={{ display: "flex", gap: 10, alignItems: "center", opacity: isOwner ? 1 : 0.6 }}>
+                  <input
+                    type="checkbox"
+                    checked={swapFeeAuto}
+                    onChange={(e) => setSwapFeeAuto(e.target.checked)}
+                    disabled={!isOwner}
+                  />
+                  auto fee (by pair)
+                  </label>
 
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
                   <Input
