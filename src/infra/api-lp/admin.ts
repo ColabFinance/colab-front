@@ -71,6 +71,7 @@ export type CreateDexPoolBody = {
 
   adapter?: string | null;
   reward_token?: string | null;
+  reward_swap_pool?: string | null;
   status?: "ACTIVE" | "INACTIVE";
 };
 
