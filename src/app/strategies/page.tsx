@@ -26,6 +26,10 @@ import { listDexesForStrategyUseCase } from "@/application/strategy/api/listDexe
 import { setDailyHarvestConfigOnchain } from "@/application/vault/onchain/setDailyHarvestConfig.usecase";
 import { setCompoundConfigOnchain } from "@/application/vault/onchain/etCompoundConfig.usecase";
 import { setRewardSwapConfigOnchain } from "@/application/vault/onchain/setRewardSwapConfig.usecase";
+import { createIndicatorSetUseCase } from "@/application/strategy/api/createIndicatorSet.usecase";
+import { getIndicatorSetUseCase } from "@/application/strategy/api/getIndicatorSet.usecase";
+import { IndicatorSetRecord } from "@/infra/api-market-data/indicatorSet";
+import { listIndicatorSetsUseCase } from "@/application/strategy/api/listIndicatorSets.usecase";
 
 const codeBlockStyle: React.CSSProperties = {
   marginTop: 12,
@@ -43,8 +47,14 @@ const codeBlockStyle: React.CSSProperties = {
 type StrategyParamsForm = {
   // identity / metadata (name comes from onchain, read-only)
   symbol: string;
-  indicator_set_id: string;
+  indicator_set_id: string; // resolved automatically (cfg_hash)
   status: "ACTIVE" | "INACTIVE";
+
+  // indicator set (treated as part of strategy in UI)
+  ind_source: string;
+  ema_fast: string;
+  ema_slow: string;
+  atr_window: string;
 
   // params (typed inputs)
   skew_low_pct: string;
@@ -66,6 +76,7 @@ type StrategyParamsForm = {
   gauge_flow_enabled: boolean;
   low_vol_threshold: string; // optional
 };
+
 
 function numToStr(v: any, fallback = ""): string {
   if (v === null || v === undefined) return fallback;
@@ -205,7 +216,20 @@ export default function StrategiesPage() {
   const [cName, setCName] = useState("");
   const [cDesc, setCDesc] = useState("");
   const [cSymbol, setCSymbol] = useState("ETHUSDT");
-  const [cIndicatorSetId, setCIndicatorSetId] = useState("");
+  const [cIndSource, setCIndSource] = useState("binance");
+  const [cEmaFast, setCEmaFast] = useState("10");
+  const [cEmaSlow, setCEmaSlow] = useState("50");
+  const [cAtrWindow, setCAtrWindow] = useState("20");
+
+  // --- indicator sets
+  const [indicatorSets, setIndicatorSets] = useState<IndicatorSetRecord[]>([]);
+  const [indicatorSetsLoading, setIndicatorSetsLoading] = useState(false);
+
+  const [isSymbol, setIsSymbol] = useState("ETHUSDT");
+  const [isSource, setIsSource] = useState("binance");
+  const [isEmaFast, setIsEmaFast] = useState("10");
+  const [isEmaSlow, setIsEmaSlow] = useState("50");
+  const [isAtrWindow, setIsAtrWindow] = useState("20");
 
   // --- create vault modal (refactor: select dex/pool, auto-fill config) ---
   const [createVaultOpen, setCreateVaultOpen] = useState(false);
@@ -244,6 +268,11 @@ export default function StrategiesPage() {
     indicator_set_id: "",
     status: "INACTIVE",
 
+    ind_source: "binance",
+    ema_fast: "10",
+    ema_slow: "50",
+    atr_window: "20",
+
     skew_low_pct: "0.05",
     skew_high_pct: "0.05",
 
@@ -263,6 +292,7 @@ export default function StrategiesPage() {
     gauge_flow_enabled: true,
     low_vol_threshold: "0.0004",
   });
+
 
   function pickAddr(obj: any, keys: string[]): string {
     for (const k of keys) {
@@ -418,7 +448,6 @@ export default function StrategiesPage() {
     setVDescription("");
     setVSwapPoolsJson("{}");
   }
-
 
   async function onOpenCreateVault(strategyId: number) {
     setErr("");
@@ -611,9 +640,53 @@ export default function StrategiesPage() {
     setCName("");
     setCDesc("");
     setCSymbol("ETHUSDT");
-    setCIndicatorSetId("");
+    setCIndSource("binance");
+    setCEmaFast("10");
+    setCEmaSlow("50");
+    setCAtrWindow("20");
 
     setCreateOpen(true);
+  }
+
+  async function resolveIndicatorSetId(params: {
+    accessToken: string;
+    symbol: string;
+    source: string;
+    ema_fast: string;
+    ema_slow: string;
+    atr_window: string;
+  }): Promise<string> {
+    const symbol = normalizeSymbol(params.symbol);
+    if (!symbol) throw new Error("Symbol is required to build indicator set.");
+
+    const emaFast = Number((params.ema_fast || "").trim());
+    const emaSlow = Number((params.ema_slow || "").trim());
+    const atrWin = Number((params.atr_window || "").trim());
+
+    if (!Number.isFinite(emaFast) || emaFast <= 0) throw new Error("ema_fast must be a positive integer.");
+    if (!Number.isFinite(emaSlow) || emaSlow <= 0) throw new Error("ema_slow must be a positive integer.");
+    if (!Number.isFinite(atrWin) || atrWin <= 0) throw new Error("atr_window must be a positive integer.");
+    if (Math.trunc(emaFast) !== emaFast) throw new Error("ema_fast must be an integer.");
+    if (Math.trunc(emaSlow) !== emaSlow) throw new Error("ema_slow must be an integer.");
+    if (Math.trunc(atrWin) !== atrWin) throw new Error("atr_window must be an integer.");
+    if (emaFast >= emaSlow) throw new Error("ema_fast must be < ema_slow.");
+
+    const source = (params.source || "binance").trim().toLowerCase() || "binance";
+
+    const res = await createIndicatorSetUseCase({
+      accessToken: params.accessToken,
+      payload: {
+        symbol,
+        source,
+        ema_fast: emaFast,
+        ema_slow: emaSlow,
+        atr_window: atrWin,
+      },
+    });
+
+    const cfg = (res as any)?.cfg_hash;
+    if (!cfg) throw new Error("Failed to resolve indicator_set_id (missing cfg_hash).");
+    return String(cfg);
   }
 
   async function onSubmitCreateStrategy() {
@@ -638,7 +711,6 @@ export default function StrategiesPage() {
 
       const name = cName.trim();
       const symbol = normalizeSymbol(cSymbol);
-      const indicator_set_id = (cIndicatorSetId || "").trim();
 
       if (!name) {
         setErr("Name is required.");
@@ -646,10 +718,6 @@ export default function StrategiesPage() {
       }
       if (!symbol) {
         setErr("Symbol is required (e.g. ETHUSDT).");
-        return;
-      }
-      if (!indicator_set_id) {
-        setErr("Indicator set id is required.");
         return;
       }
 
@@ -710,6 +778,15 @@ export default function StrategiesPage() {
           description: cDesc.trim(),
         },
       });
+      
+      const indicator_set_id = await resolveIndicatorSetId({
+        accessToken: token,
+        symbol,
+        source: cIndSource,
+        ema_fast: cEmaFast,
+        ema_slow: cEmaSlow,
+        atr_window: cAtrWindow,
+      });
 
       const dbRes = await registerStrategyDbUseCase({
         accessToken: token,
@@ -752,8 +829,7 @@ export default function StrategiesPage() {
       setCName("");
       setCDesc("");
       setCSymbol("ETHUSDT");
-      setCIndicatorSetId("");
-
+      
       await refresh();
     } catch (e: any) {
       const msg = e?.message || String(e);
@@ -763,7 +839,6 @@ export default function StrategiesPage() {
       setLoading(false);
     }
   }
-
 
   async function onOpenParams(strategyId: number) {
     setErr("");
@@ -804,6 +879,25 @@ export default function StrategiesPage() {
       });
 
       const p = res?.data?.params || {};
+
+      const cfgHash = String(res?.data?.indicator_set_id || "").trim();
+      if (cfgHash) {
+        try {
+          const ind = await getIndicatorSetUseCase({ accessToken: token, cfgHash });
+          const d = (ind as any)?.data;
+          if (d) {
+            setForm((s) => ({
+              ...s,
+              ind_source: String(d.source || "binance"),
+              ema_fast: String(d.ema_fast ?? s.ema_fast),
+              ema_slow: String(d.ema_slow ?? s.ema_slow),
+              atr_window: String(d.atr_window ?? s.atr_window),
+            }));
+          }
+        } catch {
+          // best-effort: keep defaults if indicator set is missing
+        }
+      }
 
       setForm((s) => ({
         ...s,
@@ -863,14 +957,9 @@ export default function StrategiesPage() {
       }
 
       const symbol = normalizeSymbol(form.symbol);
-      const indicator_set_id = (form.indicator_set_id || "").trim();
 
       if (!symbol) {
         setErr("Symbol is required (e.g. ETHUSDT).");
-        return;
-      }
-      if (!indicator_set_id) {
-        setErr("Indicator set id is required.");
         return;
       }
 
@@ -887,6 +976,15 @@ export default function StrategiesPage() {
         setErr("Missing access token. Please login again.");
         return;
       }
+      
+      const resolvedIndicatorSetId = await resolveIndicatorSetId({
+        accessToken: token,
+        symbol,
+        source: form.ind_source,
+        ema_fast: form.ema_fast,
+        ema_slow: form.ema_slow,
+        atr_window: form.atr_window,
+      });
 
       const payload: any = {
         chain: chainKey,
@@ -896,7 +994,7 @@ export default function StrategiesPage() {
         // IMPORTANT: name must match on-chain strategy name
         name: onchainName,
         symbol,
-        indicator_set_id,
+        indicator_set_id: resolvedIndicatorSetId,
         status: form.status,
 
         // onchain metadata (no form)
@@ -931,6 +1029,67 @@ export default function StrategiesPage() {
       setParamsLoading(false);
     }
   }
+
+  async function refreshIndicatorSets() {
+    setErr("");
+    try {
+      if (!authenticated) {
+        login();
+        return;
+      }
+      const token = await ensureTokenOrLogin();
+      if (!token) {
+        setErr("Missing access token. Please login again.");
+        return;
+      }
+
+      setIndicatorSetsLoading(true);
+      const res = await listIndicatorSetsUseCase({ accessToken: token, query: { status: "ACTIVE", limit: 5000 } });
+      setIndicatorSets((res as any)?.data || []);
+    } catch (e: any) {
+      setErr(e?.message || String(e));
+    } finally {
+      setIndicatorSetsLoading(false);
+    }
+  }
+
+  async function onCreateIndicatorSetManual() {
+    setErr("");
+    try {
+      if (!authenticated) {
+        login();
+        return;
+      }
+      const token = await ensureTokenOrLogin();
+      if (!token) {
+        setErr("Missing access token. Please login again.");
+        return;
+      }
+
+      const cfg = await resolveIndicatorSetId({
+        accessToken: token,
+        symbol: isSymbol,
+        source: isSource,
+        ema_fast: isEmaFast,
+        ema_slow: isEmaSlow,
+        atr_window: isAtrWindow,
+      });
+
+      push({ title: "Indicator set resolved", description: `cfg_hash: ${cfg}` });
+      await refreshIndicatorSets();
+    } catch (e: any) {
+      const msg = e?.message || String(e);
+      setErr(msg);
+      push({ title: "Create indicator set failed", description: msg });
+    }
+  }
+
+  useEffect(() => {
+    if (!ready) return;
+    if (!authenticated) return;
+    refreshIndicatorSets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, authenticated]);
 
   useEffect(() => {
     if (!createOpen) return;
@@ -1489,7 +1648,25 @@ export default function StrategiesPage() {
             <Input label="On-chain name" placeholder="Name..." value={cName} onChange={(e) => setCName(e.target.value)} />
             <Input label="On-chain description" placeholder="Description..." value={cDesc} onChange={(e) => setCDesc(e.target.value)} />
             <Input label="Symbol" placeholder="ETHUSDT..." value={cSymbol} onChange={(e) => setCSymbol(e.target.value)} />
-            <Input label="Indicator set id" placeholder="cfg_hash..." value={cIndicatorSetId} onChange={(e) => setCIndicatorSetId(e.target.value)} />
+            <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)" }}>
+              <div style={{ fontWeight: 800, marginBottom: 8 }}>Indicator set (auto)</div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                <Input
+                  label="source"
+                  placeholder="binance | thegraph | ..."
+                  value={cIndSource}
+                  onChange={(e) => setCIndSource(e.target.value)}
+                />
+                <Input label="ema_fast" placeholder="10" value={cEmaFast} onChange={(e) => setCEmaFast(e.target.value)} />
+                <Input label="ema_slow" placeholder="50" value={cEmaSlow} onChange={(e) => setCEmaSlow(e.target.value)} />
+                <Input label="atr_window" placeholder="20" value={cAtrWindow} onChange={(e) => setCAtrWindow(e.target.value)} />
+              </div>
+
+              <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+                The indicator_set_id is resolved automatically (cfg_hash) and stored in strategy params.
+              </div>
+            </div>
 
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
               <Button onClick={() => setCreateOpen(false)} disabled={loading}>
@@ -1532,13 +1709,63 @@ export default function StrategiesPage() {
                 onChange={(e) => setForm((s) => ({ ...s, symbol: e.target.value }))}
                 disabled={paramsLoading}
               />
-              <Input
-                label="Indicator set id"
-                placeholder="cfg_hash"
-                value={form.indicator_set_id}
-                onChange={(e) => setForm((s) => ({ ...s, indicator_set_id: e.target.value }))}
-                disabled={paramsLoading}
-              />
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
+                <Input
+                  label="Symbol"
+                  placeholder="ETHUSDT"
+                  value={form.symbol}
+                  onChange={(e) => setForm((s) => ({ ...s, symbol: e.target.value }))}
+                  disabled={paramsLoading}
+                />
+
+                <Input
+                  label="indicator_set_id (cfg_hash) — read-only"
+                  placeholder="(auto)"
+                  value={form.indicator_set_id}
+                  onChange={() => {}}
+                  disabled
+                />
+              </div>
+
+              <div style={{ marginTop: 10, padding: 12, borderRadius: 12, border: "1px solid rgba(255,255,255,0.12)" }}>
+                <div style={{ fontWeight: 800, marginBottom: 8 }}>Indicator set</div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+                  <Input
+                    label="source"
+                    placeholder="binance | thegraph | ..."
+                    value={form.ind_source}
+                    onChange={(e) => setForm((s) => ({ ...s, ind_source: e.target.value }))}
+                    disabled={paramsLoading}
+                  />
+                  <Input
+                    label="ema_fast"
+                    placeholder="10"
+                    value={form.ema_fast}
+                    onChange={(e) => setForm((s) => ({ ...s, ema_fast: e.target.value }))}
+                    disabled={paramsLoading}
+                  />
+                  <Input
+                    label="ema_slow"
+                    placeholder="50"
+                    value={form.ema_slow}
+                    onChange={(e) => setForm((s) => ({ ...s, ema_slow: e.target.value }))}
+                    disabled={paramsLoading}
+                  />
+                  <Input
+                    label="atr_window"
+                    placeholder="20"
+                    value={form.atr_window}
+                    onChange={(e) => setForm((s) => ({ ...s, atr_window: e.target.value }))}
+                    disabled={paramsLoading}
+                  />
+                </div>
+
+                <div style={{ marginTop: 8, fontSize: 12, opacity: 0.75 }}>
+                  On save, the UI resolves the cfg_hash (create or reuse) and updates strategy.indicator_set_id automatically.
+                </div>
+              </div>
+
             </div>
 
             <Input
@@ -1690,6 +1917,57 @@ export default function StrategiesPage() {
           </div>
         </Card>
       ) : null}
+
+      <Card style={{ marginTop: 14 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center" }}>
+          <div style={{ fontWeight: 800 }}>Indicator Sets</div>
+          <Button onClick={refreshIndicatorSets} disabled={indicatorSetsLoading}>
+            {indicatorSetsLoading ? "Refreshing..." : "Refresh"}
+          </Button>
+        </div>
+
+        <div style={{ marginTop: 10, display: "grid", gap: 10 }}>
+          <div style={{ fontWeight: 800 }}>Create / Reuse</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 10 }}>
+            <Input label="symbol" value={isSymbol} onChange={(e) => setIsSymbol(e.target.value)} />
+            <Input label="source" value={isSource} onChange={(e) => setIsSource(e.target.value)} />
+            <Input label="ema_fast" value={isEmaFast} onChange={(e) => setIsEmaFast(e.target.value)} />
+            <Input label="ema_slow" value={isEmaSlow} onChange={(e) => setIsEmaSlow(e.target.value)} />
+            <Input label="atr_window" value={isAtrWindow} onChange={(e) => setIsAtrWindow(e.target.value)} />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <Button onClick={onCreateIndicatorSetManual} disabled={indicatorSetsLoading}>
+              Create / Reuse
+            </Button>
+          </div>
+
+          <div style={{ marginTop: 10, fontSize: 12, opacity: 0.8 }}>
+            {indicatorSets.length} active sets loaded.
+          </div>
+
+          <pre style={codeBlockStyle}>
+            {JSON.stringify(
+              indicatorSets.slice(0, 50).map((x) => ({
+                cfg_hash: x.cfg_hash,
+                symbol: x.symbol,
+                source: x.source,
+                ema_fast: x.ema_fast,
+                ema_slow: x.ema_slow,
+                atr_window: x.atr_window,
+                stream_key: x.stream_key,
+              })),
+              null,
+              2
+            )}
+          </pre>
+
+          <div style={{ fontSize: 12, opacity: 0.7 }}>
+            Showing first 50 items (JSON). You can extend to a table later without changing the API.
+          </div>
+        </div>
+      </Card>
 
       <div style={{ marginTop: 16, display: "grid", gap: 12 }}>
         {strategies.map((s) => (
