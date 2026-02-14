@@ -87,6 +87,7 @@ export type VaultRegistryConfig = {
   version: string;
 
   swap_pools?: Record<string, SwapPoolItem>;
+  reward_swap_pool?: string;
 
   jobs?: VaultJobsConfig;
 
@@ -143,6 +144,7 @@ export type CreateClientVaultRequest = {
 
     jobs?: VaultJobsConfig;
     reward_swap?: Record<string, any>;
+    reward_swap_pool?: string;
   };
 
   gas_strategy?: string;
