@@ -26,18 +26,6 @@ const nextConfig: NextConfig = {
 
     return config;
   },
-
-  async rewrites() {
-    const lp = SERVER_CONFIG.apiLpOrigin; // http://13.202.89.97:8000
-    const signals = SERVER_CONFIG.apiSignalsOrigin; // http://13.202.89.97:8080
-    const marketData = SERVER_CONFIG.apiMarketDataOrigin; // http://13.202.89.97:8081
-
-    return [
-      ...(lp ? [{ source: "/lp/:path*", destination: `${lp}/:path*` }] : []),
-      ...(signals ? [{ source: "/signals/:path*", destination: `${signals}/:path*` }] : []),
-      ...(marketData ? [{ source: "/market-data/:path*", destination: `${marketData}/:path*` }] : []),
-    ];
-  },
 };
 
 export default nextConfig;
