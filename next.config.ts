@@ -1,23 +1,16 @@
 import type { NextConfig } from "next";
-import { CONFIG } from "./src/shared/config/env";
+import { SERVER_CONFIG } from "./src/shared/config/env";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
 
-  /**
-   * Evita o Next tentar bundlar thread-stream/pino no server (causa desses imports de /test).
-   * Recomendação do próprio thread-stream para Next.js.
-   */
   serverExternalPackages: ["thread-stream", "pino"],
 
   webpack: (config) => {
-    // Reown recomenda externals pra SSR no Next
     const extraExternals = [
       "pino-pretty",
       "lokijs",
       "encoding",
-
-      // build está reclamando desses módulos vindos de thread-stream/test/*
       "tape",
       "why-is-node-running",
       "tap",
@@ -35,9 +28,9 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    const lp = CONFIG.apiLpBaseUrl; // http://127.0.0.1:8000
-    const signals = CONFIG.apiSignalsBaseUrl; // http://127.0.0.1:8080
-    const marketData = CONFIG.apiMarketDataUrl; // http://127.0.0.1:8081
+    const lp = SERVER_CONFIG.apiLpOrigin; // http://13.202.89.97:8000
+    const signals = SERVER_CONFIG.apiSignalsOrigin; // http://13.202.89.97:8080
+    const marketData = SERVER_CONFIG.apiMarketDataOrigin; // http://13.202.89.97:8081
 
     return [
       ...(lp ? [{ source: "/lp/:path*", destination: `${lp}/:path*` }] : []),
