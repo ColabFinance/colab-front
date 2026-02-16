@@ -18,10 +18,15 @@ const ENV = {
   NEXT_PUBLIC_RPC_BASE: process.env.NEXT_PUBLIC_RPC_BASE,
   NEXT_PUBLIC_RPC_BNB: process.env.NEXT_PUBLIC_RPC_BNB,
 
-  // API
-  NEXT_PUBLIC_API_LP_BASE_URL: process.env.API_LP_ORIGIN,
-  NEXT_PUBLIC_API_SIGNALS_BASE_URL: process.env.API_SIGNALS_ORIGIN,
-  NEXT_PUBLIC_API_MARKET_DATA_URL: process.env.API_MARKET_DATA_ORIGIN,
+  // Client base URLs (should be rewrite paths)
+  NEXT_PUBLIC_API_LP_BASE_URL: process.env.NEXT_PUBLIC_API_LP_BASE_URL,
+  NEXT_PUBLIC_API_SIGNALS_BASE_URL: process.env.NEXT_PUBLIC_API_SIGNALS_BASE_URL,
+  NEXT_PUBLIC_API_MARKET_DATA_URL: process.env.NEXT_PUBLIC_API_MARKET_DATA_URL,
+
+  // Server origins (used by next.config rewrites only)
+  API_LP_ORIGIN: process.env.API_LP_ORIGIN,
+  API_SIGNALS_ORIGIN: process.env.API_SIGNALS_ORIGIN,
+  API_MARKET_DATA_ORIGIN: process.env.API_MARKET_DATA_ORIGIN,
 
   // Admin
   NEXT_PUBLIC_ADMIN_WALLETS: process.env.NEXT_PUBLIC_ADMIN_WALLETS,
@@ -35,17 +40,26 @@ export function getRpcUrl(chain: ChainKey): string {
   return required("NEXT_PUBLIC_RPC_BASE", ENV.NEXT_PUBLIC_RPC_BASE);
 }
 
+/**
+ * Used by client code (fetch base URLs).
+ * Defaults to rewrite paths to avoid CORS in production.
+ */
 export const CONFIG = {
-  apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL, "http://127.0.0.1:8000/api"),
-  apiSignalsBaseUrl: optional(ENV.NEXT_PUBLIC_API_SIGNALS_BASE_URL, "http://127.0.0.1:8080/api"),
-  apiMarketDataUrl: optional(ENV.NEXT_PUBLIC_API_MARKET_DATA_URL, "http://127.0.0.1:8081/api"),
-  
-  /**
-   * Admin allowlist (client guard only).
-   * MUST be enforced again in api-lp (server-side) as the source of truth.
-   */
+  apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL, "/lp/api"),
+  apiSignalsBaseUrl: optional(ENV.NEXT_PUBLIC_API_SIGNALS_BASE_URL, "/signals/api"),
+  apiMarketDataUrl: optional(ENV.NEXT_PUBLIC_API_MARKET_DATA_URL, "/market-data/api"),
+
   adminWallets: optional(ENV.NEXT_PUBLIC_ADMIN_WALLETS, "")
     .split(",")
     .map((x) => x.trim().toLowerCase())
     .filter(Boolean),
+};
+
+/**
+ * Used by server (next.config) to set rewrites destinations.
+ */
+export const SERVER_CONFIG = {
+  apiLpOrigin: optional(ENV.API_LP_ORIGIN, ""),
+  apiSignalsOrigin: optional(ENV.API_SIGNALS_ORIGIN, ""),
+  apiMarketDataOrigin: optional(ENV.API_MARKET_DATA_ORIGIN, ""),
 };
