@@ -3,7 +3,7 @@ import { isAddress, parseUnits } from "ethers";
 
 import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 import { getClientVaultContract } from "@/infra/evm/contracts/clientVault";
-import type { WalletTxResult } from "@/application/vault/onchain/setAutomationEnabled.usecase";
+import { WalletTxResult } from "@/shared/types/tx";
 
 function _assertAddr(a: string, label: string) {
   const v = (a || "").trim();

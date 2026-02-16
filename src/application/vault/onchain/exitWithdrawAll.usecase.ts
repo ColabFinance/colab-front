@@ -1,7 +1,8 @@
 import type { ConnectedWallet } from "@privy-io/react-auth";
 import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 import { getClientVaultContract } from "@/infra/evm/contracts/clientVault";
-import type { WalletTxResult } from "@/application/vault/onchain/setAutomationEnabled.usecase";
+import type { WalletTxResult } from "@/shared/types/tx";
+import { sendUncheckedAndWait } from "@/infra/evm/tx";
 
 export async function exitWithdrawAll(params: {
   wallet: ConnectedWallet;
@@ -16,8 +17,7 @@ export async function exitWithdrawAll(params: {
   const signer = await getEvmSignerFromPrivyWallet(params.wallet);
   const vault = await getClientVaultContract({ vaultAddress: params.vaultAddress, signer });
 
-  const tx = await vault.exitPositionAndWithdrawAll(to);
-  const receipt = await tx.wait();
-
-  return { tx_hash: tx.hash as string, receipt };
+  const txReq = await (vault as any).exitPositionAndWithdrawAll.populateTransaction(to);
+  
+  return await sendUncheckedAndWait({ signer, tx: txReq });
 }

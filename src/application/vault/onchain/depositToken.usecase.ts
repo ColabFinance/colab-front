@@ -2,7 +2,7 @@ import type { ConnectedWallet } from "@privy-io/react-auth";
 import { parseUnits } from "ethers";
 import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 import { getErc20Contract } from "@/infra/evm/contracts/erc20";
-import type { WalletTxResult } from "@/application/vault/onchain/setAutomationEnabled.usecase";
+import { WalletTxResult } from "@/shared/types/tx";
 
 export async function depositToken(params: {
   wallet: ConnectedWallet;
