@@ -1,7 +1,7 @@
 import type { ConnectedWallet } from "@privy-io/react-auth";
 import { getEvmSignerFromPrivyWallet } from "@/infra/evm/privySigner";
 import { getClientVaultContract } from "@/infra/evm/contracts/clientVault";
-import type { WalletTxResult } from "@/application/vault/onchain/setAutomationEnabled.usecase";
+import { WalletTxResult } from "@/shared/types/tx";
 
 export async function stake(params: {
   wallet: ConnectedWallet;

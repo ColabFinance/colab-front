@@ -125,6 +125,7 @@ export default function AdminPage() {
     fee_bps: 300,
     adapter: "",
     reward_token: "0x0000000000000000000000000000000000000000",
+    reward_swap_pool: "0x0000000000000000000000000000000000000000",
     status: "ACTIVE" as "ACTIVE" | "INACTIVE",
   });
   const [poolsJson, setPoolsJson] = useState<any>(null);
@@ -1090,6 +1091,15 @@ export default function AdminPage() {
                 onChange={(e) => setPoolForm((s) => ({ ...s, reward_token: e.target.value }))}
               />
             </div>
+            
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
+              <Input
+                label="Reward Swap Pool (can be zero)"
+                placeholder="Reward swap pool (pool address)"
+                value={poolForm.reward_swap_pool}
+                onChange={(e) => setPoolForm((s) => ({ ...s, reward_swap_pool: e.target.value }))}
+              />
+            </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 10 }}>
               <div>
@@ -1131,6 +1141,7 @@ export default function AdminPage() {
                         fee_bps: Number(poolForm.fee_bps),
                         adapter: (poolForm.adapter || "").trim() || null,
                         reward_token: poolForm.reward_token.trim(),
+                        reward_swap_pool: (poolForm.reward_swap_pool || "").trim() || "0x0000000000000000000000000000000000000000",
                         status: poolForm.status,
                       },
                     })

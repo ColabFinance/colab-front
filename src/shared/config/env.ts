@@ -19,8 +19,9 @@ const ENV = {
   NEXT_PUBLIC_RPC_BNB: process.env.NEXT_PUBLIC_RPC_BNB,
 
   // API
-  NEXT_PUBLIC_API_LP_BASE_URL: process.env.NEXT_PUBLIC_API_LP_BASE_URL,
-  NEXT_PUBLIC_API_SIGNALS_BASE_URL: process.env.NEXT_PUBLIC_API_SIGNALS_BASE_URL,
+  NEXT_PUBLIC_API_LP_BASE_URL: process.env.API_LP_ORIGIN,
+  NEXT_PUBLIC_API_SIGNALS_BASE_URL: process.env.API_SIGNALS_ORIGIN,
+  NEXT_PUBLIC_API_MARKET_DATA_URL: process.env.API_MARKET_DATA_ORIGIN,
 
   // Admin
   NEXT_PUBLIC_ADMIN_WALLETS: process.env.NEXT_PUBLIC_ADMIN_WALLETS,
@@ -37,7 +38,8 @@ export function getRpcUrl(chain: ChainKey): string {
 export const CONFIG = {
   apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL, "http://127.0.0.1:8000/api"),
   apiSignalsBaseUrl: optional(ENV.NEXT_PUBLIC_API_SIGNALS_BASE_URL, "http://127.0.0.1:8080/api"),
-
+  apiMarketDataUrl: optional(ENV.NEXT_PUBLIC_API_MARKET_DATA_URL, "http://127.0.0.1:8081/api"),
+  
   /**
    * Admin allowlist (client guard only).
    * MUST be enforced again in api-lp (server-side) as the source of truth.
