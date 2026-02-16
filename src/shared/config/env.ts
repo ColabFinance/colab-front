@@ -23,11 +23,6 @@ const ENV = {
   NEXT_PUBLIC_API_SIGNALS_BASE_URL: process.env.NEXT_PUBLIC_API_SIGNALS_BASE_URL,
   NEXT_PUBLIC_API_MARKET_DATA_URL: process.env.NEXT_PUBLIC_API_MARKET_DATA_URL,
 
-  // Server origins (used by next.config rewrites only)
-  API_LP_ORIGIN: process.env.API_LP_ORIGIN,
-  API_SIGNALS_ORIGIN: process.env.API_SIGNALS_ORIGIN,
-  API_MARKET_DATA_ORIGIN: process.env.API_MARKET_DATA_ORIGIN,
-
   // Admin
   NEXT_PUBLIC_ADMIN_WALLETS: process.env.NEXT_PUBLIC_ADMIN_WALLETS,
 };
@@ -53,13 +48,4 @@ export const CONFIG = {
     .split(",")
     .map((x) => x.trim().toLowerCase())
     .filter(Boolean),
-};
-
-/**
- * Used by server (next.config) to set rewrites destinations.
- */
-export const SERVER_CONFIG = {
-  apiLpOrigin: optional(ENV.API_LP_ORIGIN, ""),
-  apiSignalsOrigin: optional(ENV.API_SIGNALS_ORIGIN, ""),
-  apiMarketDataOrigin: optional(ENV.API_MARKET_DATA_ORIGIN, ""),
 };
