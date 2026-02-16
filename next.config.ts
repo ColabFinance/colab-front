@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
+import { CONFIG } from "./src/shared/config/env";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   reactCompiler: true,
 
   /**
@@ -26,7 +26,6 @@ const nextConfig: NextConfig = {
     if (Array.isArray(config.externals)) {
       config.externals.push(...extraExternals);
     } else if (config.externals) {
-      // caso o Next tenha definido externals como função/objeto, preserva e adiciona nossos externals
       config.externals = [config.externals as any, ...extraExternals];
     } else {
       config.externals = extraExternals as any;
@@ -36,12 +35,14 @@ const nextConfig: NextConfig = {
   },
 
   async rewrites() {
-    const lp = process.env.API_LP_ORIGIN; // http://13.202.89.97:8000
-    const signals = process.env.API_SIGNALS_ORIGIN; // http://13.202.89.97:8080
+    const lp = CONFIG.apiLpBaseUrl; // http://127.0.0.1:8000
+    const signals = CONFIG.apiSignalsBaseUrl; // http://127.0.0.1:8080
+    const marketData = CONFIG.apiMarketDataUrl; // http://127.0.0.1:8081
 
     return [
       ...(lp ? [{ source: "/lp/:path*", destination: `${lp}/:path*` }] : []),
       ...(signals ? [{ source: "/signals/:path*", destination: `${signals}/:path*` }] : []),
+      ...(marketData ? [{ source: "/market-data/:path*", destination: `${marketData}/:path*` }] : []),
     ];
   },
 };
