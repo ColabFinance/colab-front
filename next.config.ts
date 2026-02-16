@@ -1,5 +1,4 @@
 import type { NextConfig } from "next";
-import { SERVER_CONFIG } from "./src/shared/config/env";
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
