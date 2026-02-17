@@ -40,9 +40,9 @@ export function getRpcUrl(chain: ChainKey): string {
  * Defaults to rewrite paths to avoid CORS in production.
  */
 export const CONFIG = {
-  apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL, "/lp/api"),
-  apiSignalsBaseUrl: optional(ENV.NEXT_PUBLIC_API_SIGNALS_BASE_URL, "/signals/api"),
-  apiMarketDataUrl: optional(ENV.NEXT_PUBLIC_API_MARKET_DATA_URL, "/market-data/api"),
+  apiLpBaseUrl: optional(ENV.NEXT_PUBLIC_API_LP_BASE_URL),
+  apiSignalsBaseUrl: optional(ENV.NEXT_PUBLIC_API_SIGNALS_BASE_URL),
+  apiMarketDataUrl: optional(ENV.NEXT_PUBLIC_API_MARKET_DATA_URL),
 
   adminWallets: optional(ENV.NEXT_PUBLIC_ADMIN_WALLETS, "")
     .split(",")

@@ -47,7 +47,7 @@ export async function apiLpListDexes(
     `chain=${encodeURIComponent(query.chain)}` +
     `&limit=${encodeURIComponent(String(query.limit ?? 200))}`;
 
-  return apiLpGet(`/dexes/?${qs}`, accessToken);
+  return apiLpGet(`/dexes?${qs}`, accessToken);
 }
 
 export async function apiLpListDexPools(
