@@ -23,9 +23,6 @@ import { listStrategiesUseCase } from "@/application/strategy/api/listStrategies
 import { DexPoolRecord, DexRegistryRecord } from "@/infra/api-lp/dexRegistry";
 import { listDexPoolsForStrategyUseCase } from "@/application/strategy/api/listDexPoolsForStrategy.usecase";
 import { listDexesForStrategyUseCase } from "@/application/strategy/api/listDexesForStrategy.usecase";
-import { setDailyHarvestConfigOnchain } from "@/application/vault/onchain/setDailyHarvestConfig.usecase";
-import { setCompoundConfigOnchain } from "@/application/vault/onchain/etCompoundConfig.usecase";
-import { setRewardSwapConfigOnchain } from "@/application/vault/onchain/setRewardSwapConfig.usecase";
 import { createIndicatorSetUseCase } from "@/application/strategy/api/createIndicatorSet.usecase";
 import { getIndicatorSetUseCase } from "@/application/strategy/api/getIndicatorSet.usecase";
 import { IndicatorSetRecord } from "@/infra/api-market-data/indicatorSet";
@@ -648,14 +645,14 @@ export default function StrategiesPage() {
     setCreateOpen(true);
   }
 
-  async function resolveIndicatorSetId(params: {
+  async function resolveIndicatorSet(params: {
     accessToken: string;
     symbol: string;
     source: string;
     ema_fast: string;
     ema_slow: string;
     atr_window: string;
-  }): Promise<string> {
+  }): Promise<IndicatorSetRecord> {
     const symbol = normalizeSymbol(params.symbol);
     if (!symbol) throw new Error("Symbol is required to build indicator set.");
 
@@ -685,8 +682,10 @@ export default function StrategiesPage() {
     });
 
     const cfg = (res as any)?.cfg_hash;
+    const stream_key = (res as any)?.stream_key;
     if (!cfg) throw new Error("Failed to resolve indicator_set_id (missing cfg_hash).");
-    return String(cfg);
+    if (!stream_key) throw new Error("Failed to resolve indicator_set_id (missing stream_key).");
+    return res
   }
 
   async function onSubmitCreateStrategy() {
@@ -779,7 +778,7 @@ export default function StrategiesPage() {
         },
       });
       
-      const indicator_set_id = await resolveIndicatorSetId({
+      const indicatorSet = await resolveIndicatorSet({
         accessToken: token,
         symbol,
         source: cIndSource,
@@ -797,7 +796,8 @@ export default function StrategiesPage() {
           name,
 
           symbol,
-          indicator_set_id,
+          indicator_set_id: indicatorSet.cfg_hash,
+          stream_key: indicatorSet.stream_key,
 
           adapter,
           dex_router: dexRouter,
@@ -977,7 +977,7 @@ export default function StrategiesPage() {
         return;
       }
       
-      const resolvedIndicatorSetId = await resolveIndicatorSetId({
+      const indicatorSet = await resolveIndicatorSet({
         accessToken: token,
         symbol,
         source: form.ind_source,
@@ -994,7 +994,8 @@ export default function StrategiesPage() {
         // IMPORTANT: name must match on-chain strategy name
         name: onchainName,
         symbol,
-        indicator_set_id: resolvedIndicatorSetId,
+        indicator_set_id: indicatorSet.cfg_hash,
+        stream_key: indicatorSet.stream_key,
         status: form.status,
 
         // onchain metadata (no form)
@@ -1066,7 +1067,7 @@ export default function StrategiesPage() {
         return;
       }
 
-      const cfg = await resolveIndicatorSetId({
+      const indicatorSet = await resolveIndicatorSet({
         accessToken: token,
         symbol: isSymbol,
         source: isSource,
@@ -1075,7 +1076,7 @@ export default function StrategiesPage() {
         atr_window: isAtrWindow,
       });
 
-      push({ title: "Indicator set resolved", description: `cfg_hash: ${cfg}` });
+      push({ title: "Indicator set resolved", description: `cfg_hash: ${indicatorSet.cfg_hash}` });
       await refreshIndicatorSets();
     } catch (e: any) {
       const msg = e?.message || String(e);

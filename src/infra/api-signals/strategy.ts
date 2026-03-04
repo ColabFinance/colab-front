@@ -35,6 +35,7 @@ export type UpsertStrategyParamsBody = {
   name: string;
   symbol: string;
   indicator_set_id: string;
+  stream_key: string;
   status?: string;
 
   params: Record<string, any>;
@@ -51,16 +52,19 @@ export type RegisterStrategyBody = {
   chain: "base" | "bnb";
   owner: string;
   strategy_id: number;
-
   name: string;
 
-  // optional
-  status?: "ACTIVE" | "INACTIVE";
+  symbol: string;
+  indicator_set_id: string;
+  stream_key: string;
+  
   adapter?: string;
   dex_router?: string;
   token0?: string;
   token1?: string;
+
   tx_hash?: string;
+  status?: "ACTIVE" | "INACTIVE";
 };
 
 export type StrategyExistsQuery = {
