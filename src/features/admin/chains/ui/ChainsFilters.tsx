@@ -11,7 +11,7 @@ export default function ChainsFilters(props: {
   onRefresh: () => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-white/10 bg-white/5 p-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex flex-col gap-4 rounded-xl border border-slate-700 bg-slate-900 p-4 lg:flex-row lg:items-center lg:justify-between">
       {/* Search */}
       <div className="w-full lg:w-auto">
         <div className="relative w-full lg:w-72">

@@ -35,7 +35,7 @@ export default function ChainsTable(props: {
   onToggle: (row: ChainRow) => void;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-white/10 bg-white/5 shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-900 shadow-sm">
       <div className="overflow-x-auto">
         <table className="min-w-[1000px] w-full border-collapse text-left">
           <thead>

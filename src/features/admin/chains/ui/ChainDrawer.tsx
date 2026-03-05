@@ -229,7 +229,7 @@ export default function ChainDrawer(props: {
                     {stables.map((s) => (
                       <span
                         key={s}
-                        className="inline-flex items-center gap-1 rounded border border-white/10 bg-white/5 px-2 py-1 text-xs text-slate-200"
+                        className="inline-flex items-center gap-1 rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-200"
                       >
                         {s}
                         <button

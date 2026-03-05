@@ -24,7 +24,7 @@ export default function ChainsEnvPage() {
               <h1 className="text-xl font-bold tracking-tight text-white md:text-2xl lg:text-3xl">
                 Chains &amp; Environments
               </h1>
-              <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-slate-200">
+              <span className="rounded border border-slate-700 bg-slate-900 px-2 py-0.5 text-xs font-medium text-slate-200">
                 {st.activeCount} Active
               </span>
             </div>
@@ -64,7 +64,7 @@ export default function ChainsEnvPage() {
         />
 
         {/* Pagination */}
-        <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-6 py-4">
+        <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900 px-6 py-4">
           <div className="text-xs text-slate-400">
             Showing <span className="font-medium text-slate-200">{st.range.from}</span> to{" "}
             <span className="font-medium text-slate-200">{st.range.to}</span> of{" "}
