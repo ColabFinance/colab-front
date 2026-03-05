@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { ChainStatus } from "./types";
+import type { ChainStatus } from "../types";
 
 export default function ChainsFilters(props: {
   query: string;

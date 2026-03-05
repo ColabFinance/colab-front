@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import type { ChainDrawerPayload, ChainRow, RpcTestState } from "./types";
+import type { ChainDrawerPayload, ChainRow, RpcTestState } from "../types";
 
 function normalizeExplorerLabel(url: string) {
   return url.replace(/^https?:\/\//, "").split("/")[0] || url;

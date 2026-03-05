@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import type { ChainRow } from "./types";
+import type { ChainRow } from "../types";
 
 function StatusPill({ status }: { status: ChainRow["status"] }) {
   if (status === "enabled") {

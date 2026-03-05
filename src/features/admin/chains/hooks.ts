@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { ChainRow, ChainDrawerPayload, ChainStatus, RpcTestState } from "./ui/types";
+import type { ChainRow, ChainDrawerPayload, ChainStatus, RpcTestState } from "./types";
 
 const CHAINS_SEED: ChainRow[] = [
   {
