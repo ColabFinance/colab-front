@@ -1,73 +1,36 @@
 @import "tailwindcss";
 
-/* --- hard reset (evita “borda” no topo/esquerda) --- */
+/* --- reset (evita “borda” no topo/esquerda) --- */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
-/* ----------------------------------------------- */
-
-/* Design tokens (light/dark) */
+/* --- minimal tokens (dark) --- */
 :root {
-  --bg: #0b1220;             /* app background */
-  --panel: #0f1a2e;          /* cards/nav */
-  --panel-2: #12213a;
-  --text: #e8eefc;           /* primary text */
-  --muted: rgba(232, 238, 252, 0.72);
-  --muted-2: rgba(232, 238, 252, 0.55);
-
-  --border: rgba(232, 238, 252, 0.10);
-  --border-2: rgba(232, 238, 252, 0.16);
-
-  --primary: #7dd3fc;        /* accent */
-  --primary-2: #38bdf8;
-
-  --danger: #fb7185;
-  --success: #34d399;
-
+  --bg: #020617; /* navy-950 */
+  --panel: #0f172a; /* navy-900 */
+  --text: #cbd5e1; /* slate-300 */
+  --muted: #94a3b8; /* slate-400 */
+  --border: rgba(51, 65, 85, 0.5); /* navy-700-ish */
+  --primary: #22d3ee; /* cyan-400 */
   --shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-
-  /* layout */
-  --nav-h: 64px;
-  --page-max: 1200px;
-  --page-pad: 24px;
-}
-
-@media (max-width: 640px) {
-  :root {
-    --page-pad: 14px;
-  }
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    --bg: #f7f9ff;
-    --panel: #ffffff;
-    --panel-2: #fbfcff;
-    --text: #0f172a;
-    --muted: rgba(15, 23, 42, 0.75);
-    --muted-2: rgba(15, 23, 42, 0.55);
-    --border: rgba(15, 23, 42, 0.10);
-    --border-2: rgba(15, 23, 42, 0.16);
-    --shadow: 0 10px 30px rgba(2, 8, 23, 0.10);
-  }
-}
-
+/* --- base --- */
 body {
   background: var(--bg);
   color: var(--text);
@@ -76,8 +39,9 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* sane defaults for long code/json */
-pre, code {
+/* --- code --- */
+pre,
+code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
 }
 
@@ -86,18 +50,35 @@ pre {
   max-width: 100%;
 }
 
-/* links */
+/* --- links --- */
 a {
-  color: var(--text);
-  opacity: 0.9;
+  color: inherit;
 }
 
 a:hover {
-  opacity: 1;
   text-decoration: underline;
 }
 
-/* selection */
+/* --- selection --- */
 ::selection {
-  background: rgba(125, 211, 252, 0.25);
+  background: rgba(34, 211, 238, 0.25);
+}
+
+/* --- scrollbar (match admin/user vibe) --- */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
