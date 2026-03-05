@@ -12,7 +12,7 @@ import { PlusIcon } from "./ui/icons";
 import { CHAIN_LABEL, CHAIN_SHORT, GLOBAL_CONTRACTS } from "./mock";
 import { ContractTabKey, GlobalContract } from "./types";
 
-export default function ContractsAdminPage() {
+export default function ContractsPage() {
   const [activeTab, setActiveTab] = React.useState<ContractTabKey>("strategy-registry");
 
   const [deployOpen, setDeployOpen] = React.useState(false);

@@ -5,7 +5,7 @@ import { PoolsTable } from "./ui/PoolsTable";
 import { PoolDrawer } from "./ui/PoolDrawer";
 import { usePoolsPage } from "./hooks";
 
-export default function AdminDexPoolsPage() {
+export default function DexPoolsPage() {
   const vm = usePoolsPage();
 
   return (

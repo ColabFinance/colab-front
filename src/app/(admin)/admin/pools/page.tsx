@@ -1,5 +1,5 @@
-import AdminDexPoolsPage from "@/features/admin/pools/page";
+import DexPoolsPage from "@/features/admin/pools/page";
 
 export default function Page() {
-  return <AdminDexPoolsPage />;
+  return <DexPoolsPage />;
 }
