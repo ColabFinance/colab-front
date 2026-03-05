@@ -1,13 +1,5 @@
-import React from "react";
-import { PageHeader } from "@/presentation/shell/PageHeader";
+import ChainsEnvPage from "@/features/admin/chains/page";
 
 export default function Page() {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="Chains & Environments" subtitle="Manage supported chains and base configurations." />
-      <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-6 text-slate-400">
-        Stub page (UI vem no próximo HTML).
-      </div>
-    </div>
-  );
+  return <ChainsEnvPage />;
 }
