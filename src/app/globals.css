@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+/* --- hard reset (evita “borda” no topo/esquerda) --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+/* ----------------------------------------------- */
+
 /* Design tokens (light/dark) */
 :root {
   --bg: #0b1220;             /* app background */
@@ -39,7 +54,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-/* keep OS preference if you want: but app already uses dark-friendly tokens */
 @media (prefers-color-scheme: light) {
   :root {
     --bg: #f7f9ff;
@@ -52,10 +66,6 @@
     --border-2: rgba(15, 23, 42, 0.16);
     --shadow: 0 10px 30px rgba(2, 8, 23, 0.10);
   }
-}
-
-html, body {
-  height: 100%;
 }
 
 body {
