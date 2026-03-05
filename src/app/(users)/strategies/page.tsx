@@ -10,10 +10,10 @@ import { upsertStrategyParamsUseCase } from "@/core/application/strategy/api/ups
 import { Strategy } from "@/core/domain/strategy/types";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useAuthToken } from "@/hooks/useAuthToken";
-import { useToast } from "@/shared/ui/toast/useToast";
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
-import { Input } from "@/shared/ui/Input";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Card } from "@/shared/ui-legacy/Card";
+import { Input } from "@/shared/ui-legacy/Input";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
 import { createClientVaultOnchain } from "@/core/application/vault/onchain/createClientVault.usecase";
 import { registerClientVault } from "@/core/application/vault/api/registerClientVault.usecase";

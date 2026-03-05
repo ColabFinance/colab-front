@@ -2,7 +2,7 @@
 
 import React from "react";
 import { usePathname } from "next/navigation";
-import NavBar from "@/shared/ui/NavBar";
+import NavBar from "@/shared/ui-legacy/NavBar";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

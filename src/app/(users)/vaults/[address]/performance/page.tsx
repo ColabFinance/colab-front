@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 
-import { Card } from "@/shared/ui/Card";
-import { Button } from "@/shared/ui/Button";
-import { Input } from "@/shared/ui/Input";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { Card } from "@/shared/ui-legacy/Card";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Input } from "@/shared/ui-legacy/Input";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 
 import { getVaultPerformanceUseCase } from "@/core/application/vault/api/getVaultPerformance.usecase";
 import type { VaultPerformanceData } from "@/core/domain/vault/performance";

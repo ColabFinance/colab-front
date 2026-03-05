@@ -8,8 +8,8 @@ import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { listVaultsByOwnerUseCase } from "@/core/application/vault/api/listVaultsByOwner.usecase";
 
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Card } from "@/shared/ui-legacy/Card";
 
 export default function VaultsPage() {
   const { ready, authenticated, login } = usePrivy();

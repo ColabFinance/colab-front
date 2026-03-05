@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
-import { Card } from "@/shared/ui/Card";
-import { Button } from "@/shared/ui/Button";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { Card } from "@/shared/ui-legacy/Card";
+import { Button } from "@/shared/ui-legacy/Button";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 
 import { usePrivy } from "@privy-io/react-auth";
 import { useAuthToken } from "@/hooks/useAuthToken";

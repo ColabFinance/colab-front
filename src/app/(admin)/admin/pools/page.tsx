@@ -1,13 +1,5 @@
-import React from "react";
-import { PageHeader } from "@/presentation/shell/PageHeader";
+import AdminDexPoolsPage from "@/features/admin/pools/page";
 
 export default function Page() {
-  return (
-    <div className="space-y-6">
-      <PageHeader title="DEX Pools" subtitle="Manage pools per dexKey and chain." />
-      <div className="rounded-xl border border-slate-700 bg-slate-900/50 p-6 text-slate-400">
-        Stub page (UI vem no próximo HTML).
-      </div>
-    </div>
-  );
+  return <AdminDexPoolsPage />;
 }

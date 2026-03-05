@@ -5,9 +5,9 @@ import { usePrivy } from "@privy-io/react-auth";
 
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useAuthToken } from "@/hooks/useAuthToken";
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Card } from "@/shared/ui-legacy/Card";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 
 function shortAddr(a?: string) {
   if (!a) return "-";

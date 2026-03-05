@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 import { useChainsEnvState } from "./hooks";
 import ChainsFilters from "./ui/ChainsFilters";
 import ChainsTable from "./ui/ChainsTable";

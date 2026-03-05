@@ -2,8 +2,8 @@
 
 import React, { useEffect } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
-import { ToastProvider } from "@/shared/ui/toast/ToastProvider";
-import { ToastViewport } from "@/shared/ui/toast/ToastViewport";
+import { ToastProvider } from "@/shared/ui-legacy/toast/ToastProvider";
+import { ToastViewport } from "@/shared/ui-legacy/toast/ToastViewport";
 
 import type { ChainKey } from "@/shared/config/env";
 import { getRpcUrl } from "@/shared/config/env";

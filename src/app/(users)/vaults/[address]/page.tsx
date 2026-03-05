@@ -5,10 +5,10 @@ import { useParams, useSearchParams } from "next/navigation";
 
 import Link from "next/link";
 
-import { Card } from "@/shared/ui/Card";
-import { Button } from "@/shared/ui/Button";
-import { Input } from "@/shared/ui/Input";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { Card } from "@/shared/ui-legacy/Card";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Input } from "@/shared/ui-legacy/Input";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useActiveWallet } from "@/hooks/useActiveWallet";

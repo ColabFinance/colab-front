@@ -4,10 +4,10 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePrivy } from "@privy-io/react-auth";
 
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
-import { Input } from "@/shared/ui/Input";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Card } from "@/shared/ui-legacy/Card";
+import { Input } from "@/shared/ui-legacy/Input";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { usePrivy } from "@privy-io/react-auth";
 
-import { Button } from "@/shared/ui/Button";
-import { Card } from "@/shared/ui/Card";
-import { useToast } from "@/shared/ui/toast/useToast";
+import { Button } from "@/shared/ui-legacy/Button";
+import { Card } from "@/shared/ui-legacy/Card";
+import { useToast } from "@/shared/ui-legacy/toast/useToast";
 
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useActiveWallet } from "@/hooks/useActiveWallet";
