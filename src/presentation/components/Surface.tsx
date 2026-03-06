@@ -22,7 +22,15 @@ export function SurfaceHeader({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-4 py-3 border-b border-slate-700", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "px-4 py-3 border-b border-slate-700 bg-slate-950/40",
+        className
+      )}
+      {...props}
+    />
+  );
 }
 
 export function SurfaceBody({
@@ -36,5 +44,13 @@ export function SurfaceFooter({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("px-4 py-3 border-t border-slate-700", className)} {...props} />;
+  return (
+    <div
+      className={cn(
+        "px-4 py-3 border-t border-slate-700 bg-slate-950/40",
+        className
+      )}
+      {...props}
+    />
+  );
 }

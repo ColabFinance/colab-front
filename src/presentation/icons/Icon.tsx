@@ -23,7 +23,8 @@ export type IconName =
   | "heart"
   | "clock"
   | "warning"
-  | "check";
+  | "check"
+  | "layerGroup";
 
 type Props = {
   name: IconName;
@@ -225,6 +226,14 @@ export function Icon({ name, className }: Props) {
       return (
         <Svg className={className}>
           <path d="M20 6L9 17l-5-5" />
+        </Svg>
+      );
+    case "layerGroup":
+      return (
+        <Svg className={className}>
+          <path d="M12 2l9 5-9 5-9-5 9-5z" />
+          <path d="M3 12l9 5 9-5" />
+          <path d="M3 17l9 5 9-5" />
         </Svg>
       );
     default:
