@@ -8,6 +8,59 @@ export type AdminResult = {
 
 export type ChainKey = "base" | "bnb";
 
+export type ChainRegistryStatus = "ENABLED" | "MAINTENANCE" | "DISABLED";
+
+export type AdminChainItem = {
+  id?: string;
+  key: string;
+  name: string;
+  chain_id: number;
+  status: ChainRegistryStatus;
+
+  rpc_url: string;
+
+  explorer_url: string;
+  explorer_label: string;
+
+  native_symbol: string;
+  stables: string[];
+
+  logo_url?: string;
+
+  created_at?: number;
+  created_at_iso?: string;
+  updated_at?: number;
+  updated_at_iso?: string;
+};
+
+export type AdminChainResult = AdminResult & {
+  data?: AdminChainItem;
+};
+
+export type AdminChainsResult = AdminResult & {
+  data?: AdminChainItem[];
+};
+
+export type CreateChainBody = {
+  name: string;
+  chain_id: number;
+  native_symbol: string;
+
+  rpc_url: string;
+
+  explorer_url: string;
+  explorer_label?: string;
+
+  stables: string[];
+  status?: ChainRegistryStatus;
+
+  logo_url?: string | null;
+};
+
+export type UpdateChainBody = CreateChainBody & {
+  key: string;
+};
+
 export type CreateStrategyRegistryBody = {
   chain: ChainKey;
   gas_strategy?: "default" | "buffered" | "aggressive";
@@ -80,7 +133,7 @@ export type CreateProtocolFeeCollectorBody = {
   gas_strategy?: "default" | "buffered" | "aggressive";
   initial_owner: string;
   treasury: string;
-  protocol_fee_bps: number; // uint16
+  protocol_fee_bps: number;
 };
 
 export type CreateVaultFeeBufferBody = {
@@ -88,6 +141,27 @@ export type CreateVaultFeeBufferBody = {
   gas_strategy?: "default" | "buffered" | "aggressive";
   initial_owner: string;
 };
+
+export async function apiLpAdminCreateChain(
+  accessToken: string,
+  body: CreateChainBody
+): Promise<AdminChainResult> {
+  return apiLpPost<AdminChainResult>("/admin/chains/create", body, accessToken);
+}
+
+export async function apiLpAdminUpdateChain(
+  accessToken: string,
+  body: UpdateChainBody
+): Promise<AdminChainResult> {
+  return apiLpPost<AdminChainResult>("/admin/chains/update", body, accessToken);
+}
+
+export async function apiLpAdminListChains(
+  accessToken: string,
+  limit = 500
+): Promise<AdminChainsResult> {
+  return apiLpGet<AdminChainsResult>(`/admin/chains?limit=${limit}`, accessToken);
+}
 
 export async function apiLpAdminCreateStrategyRegistry(
   accessToken: string,
@@ -111,7 +185,10 @@ export async function apiLpAdminListUsers(accessToken: string): Promise<any[]> {
   return apiLpGet<any[]>("/admin/users", accessToken);
 }
 
-export async function apiLpAdminCreateAdapter(accessToken: string, payload: CreateAdapterBody): Promise<AdminResult> {
+export async function apiLpAdminCreateAdapter(
+  accessToken: string,
+  payload: CreateAdapterBody
+): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/adapters/create", payload, accessToken);
 }
 
@@ -122,11 +199,17 @@ export async function apiLpAdminListAdapters(
   return apiLpGet<AdminResult>(`/admin/adapters?chain=${chain}`, accessToken);
 }
 
-export async function apiLpAdminCreateDex(accessToken: string, body: CreateDexBody): Promise<AdminResult> {
+export async function apiLpAdminCreateDex(
+  accessToken: string,
+  body: CreateDexBody
+): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/dexes/create", body, accessToken);
 }
 
-export async function apiLpAdminCreateDexPool(accessToken: string, body: CreateDexPoolBody): Promise<AdminResult> {
+export async function apiLpAdminCreateDexPool(
+  accessToken: string,
+  body: CreateDexPoolBody
+): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
 }
 

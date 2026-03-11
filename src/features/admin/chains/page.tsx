@@ -17,7 +17,6 @@ export default function ChainsEnvPage() {
   return (
     <>
       <div className="space-y-6">
-        {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="flex items-center gap-3">
@@ -44,26 +43,21 @@ export default function ChainsEnvPage() {
           </div>
         </div>
 
-        {/* Filters */}
         <ChainsFilters
           query={st.query}
           onQueryChange={st.setQuery}
           status={st.status}
           onStatusChange={st.setStatus}
-          onRefresh={() =>
-            push({ title: "Refresh", description: "Mock only (no backend yet)." })
-          }
+          onRefresh={() => void st.refreshChains()}
         />
 
-        {/* Table */}
         <ChainsTable
           rows={st.pageRows}
           onTestRpc={(row) => st.testRpc(row)}
           onEdit={(row) => st.openEdit(row)}
-          onToggle={(row) => st.toggleRow(row)}
+          onToggle={(row) => void st.toggleRow(row)}
         />
 
-        {/* Pagination */}
         <div className="flex items-center justify-between rounded-xl border border-slate-700 bg-slate-900 px-6 py-4">
           <div className="text-xs text-slate-400">
             Showing <span className="font-medium text-slate-200">{st.range.from}</span> to{" "}
@@ -89,20 +83,18 @@ export default function ChainsEnvPage() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="mt-8 border-t border-white/10 pt-8 pb-4 text-center text-xs text-slate-500">
           <p>&copy; 2024 Protocol Admin Dashboard. All actions are recorded on-chain.</p>
         </div>
       </div>
 
-      {/* Drawer */}
       <ChainDrawer
         open={st.drawerOpen}
         mode={st.drawerMode}
         initial={st.editing}
         onClose={st.closeDrawer}
-        onSubmit={(payload) => st.submitDrawer(payload)}
-        onTestRpc={(rpcUrl) => st.testRpcInline(rpcUrl)}
+        onSubmit={(payload) => void st.submitDrawer(payload)}
+        onTestRpc={(rpcUrl) => void st.testRpcInline(rpcUrl)}
         rpcTest={st.rpcTest}
       />
     </>

@@ -1,4 +1,4 @@
-import type { NavItem } from "@/presentation/shell/Sidebar";
+import type { NavItem } from "@/presentation/shell/AdminSidebar";
 
 export const userNav: NavItem[] = [
   { label: "Home", href: "/", icon: "home" },

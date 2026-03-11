@@ -1,100 +1,131 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import type { ChainRow, ChainDrawerPayload, ChainStatus, RpcTestState } from "./types";
+import { useEffect, useMemo, useState } from "react";
 
-const CHAINS_SEED: ChainRow[] = [
-  {
-    key: "ethereum",
-    name: "Ethereum Mainnet",
-    chainId: 1,
-    status: "enabled",
-    rpcUrl: "https://eth-mainnet…",
-    explorerLabel: "etherscan.io",
-    explorerUrl: "https://etherscan.io",
-    nativeSymbol: "ETH",
-    stables: ["USDC", "USDT", "DAI"],
-    updatedAt: "2 mins ago",
-    logoUrl:
-      "https://storage.googleapis.com/uxpilot-auth.appspot.com/748fc90d1c-fd3da7b1eeda49dbf09d.png",
-  },
-  {
-    key: "arbitrum",
-    name: "Arbitrum One",
-    chainId: 42161,
-    status: "enabled",
-    rpcUrl: "https://arb1.arbit…",
-    explorerLabel: "arbiscan.io",
-    explorerUrl: "https://arbiscan.io",
-    nativeSymbol: "ETH",
-    stables: ["USDC.e", "USDT"],
-    updatedAt: "1 day ago",
-    logoUrl:
-      "https://storage.googleapis.com/uxpilot-auth.appspot.com/f4a51f4e3c-07a515278e95e6d26a4a.png",
-  },
-  {
-    key: "optimism",
-    name: "Optimism",
-    chainId: 10,
-    status: "maintenance",
-    rpcUrl: "https://mainnet.opt…",
-    explorerLabel: "optimistic.etherscan.io",
-    explorerUrl: "https://optimistic.etherscan.io",
-    nativeSymbol: "ETH",
-    stables: ["USDC", "DAI"],
-    updatedAt: "3 days ago",
-    logoUrl:
-      "https://storage.googleapis.com/uxpilot-auth.appspot.com/1df20551de-74b020e4587cdaf5f839.png",
-  },
-  {
-    key: "polygon",
-    name: "Polygon PoS",
-    chainId: 137,
-    status: "disabled",
-    rpcUrl: "https://polygon-rp…",
-    explorerLabel: "polygonscan.com",
-    explorerUrl: "https://polygonscan.com",
-    nativeSymbol: "MATIC",
-    stables: ["USDC", "USDT"],
-    updatedAt: "1 week ago",
-    logoUrl:
-      "https://storage.googleapis.com/uxpilot-auth.appspot.com/ec8afc0622-233fff3d9e44378a288f.png",
-  },
-  {
-    key: "base",
-    name: "Base",
-    chainId: 8453,
-    status: "enabled",
-    rpcUrl: "https://mainnet.base…",
-    explorerLabel: "basescan.org",
-    explorerUrl: "https://basescan.org",
-    nativeSymbol: "ETH",
-    stables: ["USDC", "USDbC"],
-    updatedAt: "2 weeks ago",
-    logoUrl:
-      "https://storage.googleapis.com/uxpilot-auth.appspot.com/52b04f8e41-8c488ec604e5c8802b0a.png",
-  },
-  {
-    key: "bnb",
-    name: "BNB Smart Chain",
-    chainId: 56,
-    status: "enabled",
-    rpcUrl: "https://bsc-dataseed…",
-    explorerLabel: "bscscan.com",
-    explorerUrl: "https://bscscan.com",
-    nativeSymbol: "BNB",
-    stables: ["USDT", "USDC"],
-    updatedAt: "1 month ago",
-    logoUrl:
-      "https://storage.googleapis.com/uxpilot-auth.appspot.com/11e860ba4b-4bb817aacbebe25507af.png",
-  },
-];
+import { useAuthToken } from "@/hooks/useAuthToken";
+
+import {
+  type AdminChainItem,
+  type ChainRegistryStatus,
+  type CreateChainBody,
+  type UpdateChainBody,
+} from "@/core/infra/api/api-lp/admin";
+
+import { createChainUseCase } from "@/core/usecases/admin/chains/createChain.usecase";
+import { listChainsUseCase } from "@/core/usecases/admin/chains/listChains.usecase";
+import { updateChainUseCase } from "@/core/usecases/admin/chains/updateChain.usecase";
+
+import type { ChainDrawerPayload, ChainRow, ChainStatus, RpcTestState } from "./types";
 
 type Toast = { title: string; description?: string };
 
-export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
-  const [rows, setRows] = useState<ChainRow[]>(CHAINS_SEED);
+function normalizeExplorerLabel(url: string) {
+  return url.replace(/^https?:\/\//, "").split("/")[0] || url;
+}
 
+function formatRelativeTime(iso?: string) {
+  if (!iso) return "-";
+
+  const ts = new Date(iso).getTime();
+  if (Number.isNaN(ts)) return iso;
+
+  const diffSec = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+
+  if (diffSec < 60) return "just now";
+
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min${diffMin === 1 ? "" : "s"} ago`;
+
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? "" : "s"} ago`;
+
+  const diffDay = Math.floor(diffHour / 24);
+  if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? "" : "s"} ago`;
+
+  const diffWeek = Math.floor(diffDay / 7);
+  if (diffWeek < 5) return `${diffWeek} week${diffWeek === 1 ? "" : "s"} ago`;
+
+  const diffMonth = Math.floor(diffDay / 30);
+  if (diffMonth < 12) return `${diffMonth} month${diffMonth === 1 ? "" : "s"} ago`;
+
+  const diffYear = Math.floor(diffDay / 365);
+  return `${diffYear} year${diffYear === 1 ? "" : "s"} ago`;
+}
+
+function getErrorMessage(error: unknown) {
+  if (error instanceof Error && error.message) return error.message;
+
+  if (typeof error === "object" && error !== null) {
+    const maybe = error as { message?: unknown; detail?: unknown };
+
+    if (typeof maybe.detail === "string") return maybe.detail;
+    if (typeof maybe.message === "string") return maybe.message;
+  }
+
+  return "Unknown error.";
+}
+
+function toUiStatus(status?: ChainRegistryStatus): ChainStatus {
+  if (status === "MAINTENANCE") return "maintenance";
+  if (status === "DISABLED") return "disabled";
+  return "enabled";
+}
+
+function toApiStatus(status: ChainStatus): ChainRegistryStatus {
+  if (status === "maintenance") return "MAINTENANCE";
+  if (status === "disabled") return "DISABLED";
+  return "ENABLED";
+}
+
+function mapApiItemToRow(item: AdminChainItem): ChainRow {
+  return {
+    key: item.key || String(item.chain_id),
+    name: item.name,
+    chainId: item.chain_id,
+    status: toUiStatus(item.status),
+    rpcUrl: item.rpc_url,
+    explorerUrl: item.explorer_url,
+    explorerLabel: item.explorer_label || normalizeExplorerLabel(item.explorer_url),
+    nativeSymbol: item.native_symbol,
+    stables: Array.isArray(item.stables) ? item.stables : [],
+    updatedAt: formatRelativeTime(item.updated_at_iso || item.created_at_iso),
+    logoUrl: item.logo_url || "",
+  };
+}
+
+function mapDrawerPayloadToCreateBody(payload: ChainDrawerPayload): CreateChainBody {
+  return {
+    name: payload.name.trim(),
+    chain_id: Number(payload.chainId),
+    native_symbol: payload.nativeSymbol.trim().toUpperCase(),
+    rpc_url: payload.rpcUrl.trim(),
+    explorer_url: payload.explorerUrl.trim(),
+    explorer_label: payload.explorerLabel?.trim() || undefined,
+    stables: payload.stables.map((item) => item.trim().toUpperCase()).filter(Boolean),
+    status: payload.enabled ? "ENABLED" : "DISABLED",
+    logo_url: payload.logoUrl?.trim() || undefined,
+  };
+}
+
+function mapRowToUpdateBody(row: ChainRow, nextStatus?: ChainStatus): UpdateChainBody {
+  return {
+    key: row.key,
+    name: row.name,
+    chain_id: row.chainId,
+    native_symbol: row.nativeSymbol,
+    rpc_url: row.rpcUrl,
+    explorer_url: row.explorerUrl,
+    explorer_label: row.explorerLabel,
+    stables: row.stables,
+    status: toApiStatus(nextStatus ?? row.status),
+    logo_url: row.logoUrl || undefined,
+  };
+}
+
+export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
+  const { token, ready, ensureTokenOrLogin } = useAuthToken();
+
+  const [rows, setRows] = useState<ChainRow[]>([]);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<ChainStatus | "all">("all");
 
@@ -106,6 +137,7 @@ export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
   const [editing, setEditing] = useState<ChainRow | null>(null);
 
   const [rpcTest, setRpcTest] = useState<RpcTestState>({ state: "idle" });
+  const [isLoading, setIsLoading] = useState(false);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -124,7 +156,6 @@ export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
   }, [rows, query, status]);
 
   const filteredCount = filtered.length;
-
   const maxPage = Math.max(1, Math.ceil(filteredCount / pageSize));
   const safePage = Math.min(page, maxPage);
 
@@ -147,9 +178,68 @@ export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
   const nextPage = () => setPage((p) => Math.min(maxPage, p + 1));
 
   const activeCount = useMemo(() => {
-    // “Active” = enabled + maintenance (igual no visual do HTML)
     return rows.filter((r) => r.status === "enabled" || r.status === "maintenance").length;
   }, [rows]);
+
+  async function getAccessTokenOrToast() {
+    const accessToken = token || (await ensureTokenOrLogin());
+
+    if (!accessToken) {
+      opts.onToast({
+        title: "Authentication required",
+        description: "Admin access token not found.",
+      });
+      return "";
+    }
+
+    return accessToken;
+  }
+
+  async function refreshChains(params?: { silent?: boolean }) {
+    const silent = params?.silent ?? false;
+    const accessToken = token || (await ensureTokenOrLogin());
+
+    if (!accessToken) {
+      if (!silent) {
+        opts.onToast({
+          title: "Authentication required",
+          description: "Admin access token not found.",
+        });
+      }
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const response = await listChainsUseCase({
+        accessToken,
+        limit: 500,
+      });
+
+      const items = Array.isArray(response.data) ? (response.data as AdminChainItem[]) : [];
+      setRows(items.map(mapApiItemToRow));
+
+      if (!silent) {
+        opts.onToast({
+          title: "Chains refreshed",
+          description: `${items.length} chain(s) loaded from backend.`,
+        });
+      }
+    } catch (error) {
+      opts.onToast({
+        title: "Failed to load chains",
+        description: getErrorMessage(error),
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!ready || !token) return;
+    void refreshChains({ silent: true });
+  }, [ready, token]);
 
   function openCreate() {
     setDrawerMode("create");
@@ -179,86 +269,93 @@ export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
   async function testRpcInline(rpcUrl: string) {
     setRpcTest({ state: "loading" });
 
-    // mock delay
     await new Promise((r) => setTimeout(r, 900));
 
-    // mock latest block
-    const latestBlock = (12_000_000 + Math.floor(Math.random() * 900_000)).toLocaleString("en-US");
+    const latestBlock = (
+      12_000_000 + Math.floor(Math.random() * 900_000)
+    ).toLocaleString("en-US");
+
     setRpcTest({ state: "success", latestBlock });
   }
 
-  function toggleRow(row: ChainRow) {
-    setRows((prev) =>
-      prev.map((r) => {
-        if (r.key !== row.key) return r;
+  async function toggleRow(row: ChainRow) {
+    const accessToken = await getAccessTokenOrToast();
+    if (!accessToken) return;
 
-        if (r.status === "disabled") {
-          opts.onToast({ title: "Enabled", description: `${r.name} is now enabled (mock).` });
-          return { ...r, status: "enabled", updatedAt: "just now" };
-        }
+    const nextStatus: ChainStatus = row.status === "disabled" ? "enabled" : "disabled";
 
-        opts.onToast({ title: "Disabled", description: `${r.name} is now disabled (mock).` });
-        return { ...r, status: "disabled", updatedAt: "just now" };
-      }),
-    );
-  }
+    try {
+      await updateChainUseCase({
+        accessToken,
+        body: mapRowToUpdateBody(row, nextStatus),
+      });
 
-  function submitDrawer(payload: ChainDrawerPayload) {
-    if (drawerMode === "create") {
-      const key = `${payload.chainId}-${payload.name}`.toLowerCase().replace(/\s+/g, "-");
-      const next: ChainRow = {
-        key,
-        name: payload.name,
-        chainId: payload.chainId,
-        status: payload.enabled ? "enabled" : "disabled",
-        rpcUrl: payload.rpcUrl,
-        explorerUrl: payload.explorerUrl,
-        explorerLabel: payload.explorerLabel || payload.explorerUrl.replace(/^https?:\/\//, "").split("/")[0],
-        nativeSymbol: payload.nativeSymbol,
-        stables: payload.stables,
-        updatedAt: "just now",
-        logoUrl: payload.logoUrl || "",
-      };
+      await refreshChains({ silent: true });
 
-      setRows((prev) => [next, ...prev]);
-      opts.onToast({ title: "Chain created", description: `${payload.name} (mock)` });
-      setDrawerOpen(false);
-      setPage(1);
-      return;
-    }
-
-    if (drawerMode === "edit" && editing) {
-      setRows((prev) =>
-        prev.map((r) => {
-          if (r.key !== editing.key) return r;
-
-          return {
-            ...r,
-            name: payload.name,
-            chainId: payload.chainId,
-            status: payload.enabled ? "enabled" : "disabled",
-            rpcUrl: payload.rpcUrl,
-            explorerUrl: payload.explorerUrl,
-            explorerLabel:
-              payload.explorerLabel ||
-              payload.explorerUrl.replace(/^https?:\/\//, "").split("/")[0],
-            nativeSymbol: payload.nativeSymbol,
-            stables: payload.stables,
-            updatedAt: "just now",
-          };
-        }),
-      );
-
-      opts.onToast({ title: "Chain updated", description: `${payload.name} (mock)` });
-      setDrawerOpen(false);
+      opts.onToast({
+        title: nextStatus === "disabled" ? "Chain disabled" : "Chain enabled",
+        description: `${row.name} was updated in backend.`,
+      });
+    } catch (error) {
+      opts.onToast({
+        title: "Failed to update chain",
+        description: getErrorMessage(error),
+      });
     }
   }
 
-  // keep page stable when filters change
+  async function submitDrawer(payload: ChainDrawerPayload) {
+    const accessToken = await getAccessTokenOrToast();
+    if (!accessToken) return;
+
+    try {
+      if (drawerMode === "create") {
+        await createChainUseCase({
+          accessToken,
+          body: mapDrawerPayloadToCreateBody(payload),
+        });
+
+        opts.onToast({
+          title: "Chain created",
+          description: `${payload.name} was saved to database.`,
+        });
+
+        setDrawerOpen(false);
+        setPage(1);
+        await refreshChains({ silent: true });
+        return;
+      }
+
+      if (drawerMode === "edit" && editing) {
+        await updateChainUseCase({
+          accessToken,
+          body: {
+            key: editing.key,
+            ...mapDrawerPayloadToCreateBody(payload),
+          },
+        });
+
+        opts.onToast({
+          title: "Chain updated",
+          description: `${payload.name} was updated in database.`,
+        });
+
+        setDrawerOpen(false);
+        await refreshChains({ silent: true });
+      }
+    } catch (error) {
+      opts.onToast({
+        title: drawerMode === "create" ? "Failed to create chain" : "Failed to update chain",
+        description: getErrorMessage(error),
+      });
+    }
+  }
+
   function setQuerySafe(v: string) {
     setQuery(v);
     setPage(1);
   }
+
   function setStatusSafe(v: ChainStatus | "all") {
     setStatus(v);
     setPage(1);
@@ -293,5 +390,8 @@ export function useChainsEnvState(opts: { onToast: (t: Toast) => void }) {
 
     toggleRow,
     activeCount,
+
+    refreshChains,
+    isLoading,
   };
 }

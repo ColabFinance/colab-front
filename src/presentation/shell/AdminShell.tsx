@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Topbar } from "@/presentation/shell/Topbar";
-import { Sidebar, MobileSidebar } from "@/presentation/shell/Sidebar";
+import { AdminTopbar } from "@/presentation/shell/AdminTopbar";
+import { AdminSidebar, MobileSidebar } from "@/presentation/shell/AdminSidebar";
 import { adminNav } from "@/shared/config/nav.admin";
 import { userNav } from "@/shared/config/nav.user";
 
@@ -31,10 +31,10 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         "bg-[size:40px_40px]",
       ].join(" ")}
     >
-      <Topbar pageTitle={pageTitle} onOpenMobileMenu={() => setMobileOpen(true)} />
+      <AdminTopbar pageTitle={pageTitle} onOpenMobileMenu={() => setMobileOpen(true)} />
 
       <div className="flex h-full pt-16">
-        <Sidebar adminItems={adminNav} userItems={userNav} />
+        <AdminSidebar adminItems={adminNav} userItems={userNav} />
         <MobileSidebar
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}

@@ -13,7 +13,7 @@ export type NavItem = {
   icon: IconName;
 };
 
-export function Sidebar({
+export function AdminSidebar({
   adminItems,
   userItems,
   onNavigate,

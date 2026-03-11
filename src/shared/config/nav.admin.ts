@@ -1,4 +1,4 @@
-import type { NavItem } from "@/presentation/shell/Sidebar";
+import type { NavItem } from "@/presentation/shell/AdminSidebar";
 
 export const adminNav: NavItem[] = [
   { label: "Admin Overview", href: "/admin", icon: "chart" },

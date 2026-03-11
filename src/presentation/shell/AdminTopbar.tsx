@@ -1,16 +1,27 @@
 "use client";
 
 import React from "react";
+import { usePrivy } from "@privy-io/react-auth";
 import { Icon } from "@/presentation/icons/Icon";
 import { cn } from "@/shared/utils/cn";
+import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 
-export function Topbar({
+function shortAddr(addr: string) {
+  if (!addr) return "";
+  if (addr.length <= 12) return addr;
+  return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+}
+
+export function AdminTopbar({
   pageTitle,
   onOpenMobileMenu,
 }: {
   pageTitle: string;
   onOpenMobileMenu: () => void;
 }) {
+  const { ready, authenticated, login } = usePrivy();
+  const { ownerAddr, activeWallet } = useOwnerAddress();
+
   return (
     <header className="fixed top-0 z-50 flex h-16 w-full items-center justify-between border-b border-slate-700 bg-slate-950/90 px-4 backdrop-blur-md lg:px-6">
       {/* Left */}
@@ -52,7 +63,6 @@ export function Topbar({
 
       {/* Right */}
       <div className="flex items-center gap-3">
-        {/* Chain Selector (mock) */}
         <button
           type="button"
           className="hidden items-center gap-2 rounded-md border border-slate-700 bg-slate-900 px-3 py-1.5 text-sm font-medium text-slate-300 hover:border-cyan-500/50 hover:text-white sm:flex"
@@ -62,14 +72,31 @@ export function Topbar({
           <Icon name="chevronDown" className="h-4 w-4 text-slate-500" />
         </button>
 
-        {/* Wallet (mock) */}
-        <button
-          type="button"
-          className="flex items-center gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-300 hover:bg-blue-500/20"
-        >
-          <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
-          <span className="font-mono text-blue-300">0xAdmin...8f2a</span>
-        </button>
+        {ready && authenticated && ownerAddr ? (
+          <button
+            type="button"
+            aria-label="Wallet address"
+            className="group relative flex items-center gap-2 rounded-md border border-blue-500/30 bg-blue-500/10 px-3 py-1.5 text-sm font-medium text-blue-300 hover:bg-blue-500/20"
+          >
+            <span className="h-2 w-2 rounded-full bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.5)]" />
+            <span className="font-mono text-blue-300">{shortAddr(ownerAddr)}</span>
+
+            <div className="absolute right-0 top-full z-50 mt-2 hidden whitespace-nowrap rounded border border-slate-700 bg-slate-900 px-2 py-1 text-xs text-slate-300 shadow-xl group-hover:block">
+              Connected via {activeWallet?.walletClientType ?? "wallet"}
+            </div>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              if (ready) void login();
+            }}
+            className="rounded-md bg-gradient-to-r from-blue-600 to-cyan-600 px-3 py-1.5 text-sm font-medium text-white shadow-[0_0_20px_-5px_rgba(59,130,246,0.3)] transition-all hover:from-blue-500 hover:to-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+            disabled={!ready}
+          >
+            Connect Wallet
+          </button>
+        )}
 
         <button type="button" className="relative p-2 text-slate-400 hover:text-white">
           <Icon name="bell" className="h-5 w-5" />
