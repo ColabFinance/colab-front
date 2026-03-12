@@ -1,46 +1,82 @@
 export type PoolStatus = "active" | "paused";
-export type PoolType = "VOLATILE" | "STABLE" | "WEIGHTED";
+export type PoolType = "VOLATILE" | "STABLE" | "WEIGHTED" | "CONCENTRATED";
+
+export type ChainOption = {
+  key: string;
+  name: string;
+  chainId: number;
+};
+
+export type DexOption = {
+  key: string;
+  label: string;
+};
 
 export type DexPoolRow = {
   id: string;
+
+  chainKey: string;
   chainName: string;
+
   dexKey: string;
+
   poolAddressShort: string;
   poolAddressFull: string;
 
   token0Symbol: string;
+  token0AddressFull: string;
   token0AddressShort: string;
 
   token1Symbol: string;
+  token1AddressFull: string;
   token1AddressShort: string;
 
-  feeTierLabel: string; // e.g. "0.05%"
-  feeTierBps: number;   // e.g. 500
-  tickSpacing: string;  // e.g. "10" or "-"
+  feeTierLabel: string;
+  feeTierBps: number;
+  tickSpacing: string;
   type: PoolType;
 
   status: PoolStatus;
   updatedAt: Date;
+
+  nfpm: string;
+  gauge: string;
+  pair: string;
+  symbol: string;
+  adapter: string;
+  rewardToken: string;
+  rewardSwapPool: string;
 };
 
 export type PoolsFilters = {
-  chain: string;        // e.g. "Ethereum"
-  dexKey: string;       // e.g. "uniswap_v3"
-  tokenSymbol: string;  // e.g. "USDC"
-  feeTier: string;      // e.g. "500"
+  chain: string;
+  dexKey: string;
+  tokenSymbol: string;
+  feeTier: string;
   status: "all" | PoolStatus;
 };
 
 export type PoolDraft = {
+  chain: string;
   dexKey: string;
+
   poolAddress: string;
+  nfpm: string;
+  gauge: string;
 
   token0Address: string;
   token1Address: string;
 
+  pair: string;
+  symbol: string;
+
   feeTier: string;
   tickSpacing: string;
+  poolType: PoolType;
 
-  isStablePair: boolean;
+  adapterAddress: string;
+  rewardToken: string;
+  rewardSwapPool: string;
+
   isActive: boolean;
 };

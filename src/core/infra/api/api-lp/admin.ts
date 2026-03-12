@@ -278,6 +278,8 @@ export type UpdateDexBody = {
   status?: "ACTIVE" | "INACTIVE";
 };
 
+export type AdminDexPoolType = "VOLATILE" | "STABLE" | "WEIGHTED" | "CONCENTRATED";
+
 export type CreateDexPoolBody = {
   chain: ChainKey | string;
   dex: string;
@@ -293,9 +295,35 @@ export type CreateDexPoolBody = {
   symbol?: string;
 
   fee_bps: number;
+  tick_spacing?: number | null;
+  pool_type?: AdminDexPoolType;
 
   adapter?: string | null;
-  reward_token?: string | null;
+  reward_token: string;
+  reward_swap_pool?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
+export type UpdateDexPoolBody = {
+  chain: ChainKey | string;
+  dex: string;
+
+  pool: string;
+  nfpm: string;
+  gauge: string;
+
+  token0: string;
+  token1: string;
+
+  pair?: string;
+  symbol?: string;
+
+  fee_bps: number;
+  tick_spacing?: number | null;
+  pool_type?: AdminDexPoolType;
+
+  adapter?: string | null;
+  reward_token: string;
   reward_swap_pool?: string | null;
   status?: "ACTIVE" | "INACTIVE";
 };
@@ -327,6 +355,8 @@ export type AdminDexPoolItem = {
   symbol?: string | null;
   fee_bps: number;
   fee_rate: string;
+  tick_spacing?: number | null;
+  pool_type?: AdminDexPoolType | null;
   adapter?: string | null;
   reward_token?: string | null;
   reward_swap_pool?: string | null;
@@ -368,6 +398,13 @@ export async function apiLpAdminCreateDexPool(
   body: CreateDexPoolBody
 ): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
+}
+
+export async function apiLpAdminUpdateDexPool(
+  accessToken: string,
+  body: UpdateDexPoolBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/dexes/pools/update", body, accessToken);
 }
 
 export async function apiLpAdminListDexPools(
