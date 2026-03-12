@@ -3,54 +3,72 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/shared/utils/cn";
 import { Surface } from "@/presentation/components/Surface";
-import { Adapter, AdapterDraft, AdapterType } from "../types";
+import { AdminDexItem, AdminDexPoolItem } from "@/core/infra/api/api-lp/admin";
+import { AdapterDraft } from "../types";
 
-const CAPABILITIES = ["QUOTE", "SWAP", "MINT", "COLLECT", "STAKE", "UNSTAKE", "CLAIM", "FLASH"] as const;
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 export function AdapterDrawer({
   open,
-  mode,
-  initial,
+  chain,
+  dexes,
+  pools,
+  poolsLoading,
+  saving,
   onClose,
+  onDexChange,
   onSave,
 }: {
   open: boolean;
-  mode: "create" | "edit";
-  initial?: Adapter;
+  chain: string;
+  dexes: AdminDexItem[];
+  pools: AdminDexPoolItem[];
+  poolsLoading: boolean;
+  saving: boolean;
   onClose: () => void;
+  onDexChange: (dex: string) => void;
   onSave: (draft: AdapterDraft) => void;
 }) {
-  const title = mode === "edit" && initial ? `Edit Adapter: ${initial.dexKey}` : "Add New Adapter";
-
-  const initialDraft: AdapterDraft = useMemo(() => {
-    const baseCaps: Record<string, boolean> = {};
-    for (const c of CAPABILITIES) baseCaps[c] = false;
-
-    if (initial?.capabilities?.length) {
-      for (const c of initial.capabilities) baseCaps[c] = true;
-    }
-
-    return {
-      dexKey: initial?.dexKey ?? "",
-      adapterAddress: initial?.adapterAddress ?? "",
-      poolAddress: initial?.poolAddress ?? "",
-      adapterType: (initial?.adapterType ?? "standard") as AdapterType,
-      version: initial?.version ?? "",
-      capabilities: baseCaps,
-      enabled: initial?.enabled ?? true,
-      notes: initial?.notes ?? "",
-    };
-  }, [initial]);
-
-  const [draft, setDraft] = useState<AdapterDraft>(initialDraft);
+  const [draft, setDraft] = useState<AdapterDraft>({
+    dex: "",
+    pool: "",
+    feeBuffer: "",
+    status: "ACTIVE",
+  });
 
   useEffect(() => {
-    if (open) setDraft(initialDraft);
-  }, [open, initialDraft]);
+    if (!open) return;
+    setDraft({
+      dex: "",
+      pool: "",
+      feeBuffer: "",
+      status: "ACTIVE",
+    });
+  }, [open]);
+
+  const selectedDex = useMemo(
+    () => dexes.find((item) => item.dex === draft.dex),
+    [dexes, draft.dex]
+  );
+
+  const selectedPool = useMemo(
+    () => pools.find((item) => item.pool === draft.pool),
+    [pools, draft.pool]
+  );
+
+  const selectedPoolHasAdapter =
+    !!selectedPool?.adapter &&
+    selectedPool.adapter.toLowerCase() !== ZERO_ADDRESS;
+
+  const canSave =
+    !!draft.dex &&
+    !!draft.pool &&
+    isValidNonZeroAddress(draft.feeBuffer) &&
+    !selectedPoolHasAdapter &&
+    !saving;
 
   return (
     <>
-      {/* Backdrop */}
       <div
         className={cn(
           "fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm transition-opacity",
@@ -59,19 +77,20 @@ export function AdapterDrawer({
         onClick={onClose}
       />
 
-      {/* Panel */}
       <div
         className={cn(
-          "fixed inset-y-0 right-0 z-[70] w-full max-w-lg border-l border-slate-700 bg-slate-900 shadow-2xl transition-transform duration-300",
+          "fixed inset-y-0 right-0 z-[70] flex h-full w-full max-w-2xl flex-col border-l border-slate-700 bg-slate-900 shadow-2xl transition-transform duration-300",
           open ? "translate-x-0" : "translate-x-full"
         )}
       >
-        {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-950/40">
           <div>
-            <h3 className="text-xl font-bold text-slate-100">{title}</h3>
-            <p className="text-sm text-slate-400 mt-1">Configure logic adapter for DEX integration.</p>
+            <h3 className="text-xl font-bold text-slate-100">Deploy New Adapter</h3>
+            <p className="text-sm text-slate-400 mt-1">
+              Create a real adapter using the selected chain, dex and pool from the registry.
+            </p>
           </div>
+
           <button
             type="button"
             onClick={onClose}
@@ -82,194 +101,162 @@ export function AdapterDrawer({
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto p-6 space-y-8">
-          {/* Identification */}
-          <SectionTitle dotClassName="bg-cyan-500" title="Adapter Identification" />
-
-          <div className="grid grid-cols-2 gap-4">
-            <div className="col-span-2">
-              <Label>
-                DEX Key <Req />
-              </Label>
-              <select
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                value={draft.dexKey}
-                onChange={(e) => setDraft({ ...draft, dexKey: e.target.value })}
-              >
-                <option value="" disabled>
-                  Select DEX...
-                </option>
-                <option value="uniswap_v3">Uniswap V3</option>
-                <option value="curve_v2">Curve V2</option>
-                <option value="balancer_v2">Balancer V2</option>
-              </select>
-            </div>
-
-            <div className="col-span-2">
-              <Label>
-                Adapter Contract Address <Req />
-              </Label>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                  placeholder="0x..."
-                  value={draft.adapterAddress}
-                  onChange={(e) => setDraft({ ...draft, adapterAddress: e.target.value })}
-                />
-                <button
-                  type="button"
-                  className="px-3 py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-xs text-slate-300 hover:text-slate-100 hover:border-cyan-500/30 hover:bg-slate-700 transition-colors whitespace-nowrap"
-                  title="Verify Contract"
-                  onClick={() => {}}
-                >
-                  <CheckIcon className="h-4 w-4 inline-block mr-1" />
-                  Verify
-                </button>
-              </div>
-            </div>
-
-            <div className="col-span-2">
-              <Label>
-                Target Pool Address <Req />
-              </Label>
-              <input
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                placeholder="0x..."
-                value={draft.poolAddress}
-                onChange={(e) => setDraft({ ...draft, poolAddress: e.target.value })}
-              />
-              <p className="text-[10px] text-slate-500 mt-1.5">
-                The specific DEX pool this adapter interacts with.
-              </p>
-            </div>
-          </div>
-
-          {/* Configuration */}
-          <div className="pt-4 border-t border-slate-800 space-y-4">
-            <SectionTitle dotClassName="bg-blue-500" title="Configuration" />
+          <div className="space-y-4">
+            <SectionTitle dotClassName="bg-cyan-500" title="Registry Source" />
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>
-                  Adapter Type <Req />
-                </Label>
-                <select
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                  value={draft.adapterType}
-                  onChange={(e) => setDraft({ ...draft, adapterType: e.target.value as AdapterType })}
-                >
-                  <option value="standard">Standard</option>
-                  <option value="flashloan">Flashloan</option>
-                  <option value="vault">Vault</option>
-                </select>
-              </div>
-
-              <div>
-                <Label>
-                  Version <Req />
-                </Label>
+              <div className="col-span-2">
+                <Label>Chain</Label>
                 <input
-                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500"
-                  placeholder="e.g. 1.0.0"
-                  value={draft.version}
-                  onChange={(e) => setDraft({ ...draft, version: e.target.value })}
+                  value={chain}
+                  disabled
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-400 uppercase"
                 />
               </div>
 
               <div className="col-span-2">
-                <Label>Capabilities</Label>
-
-                <Surface
-                  variant="inset"
-                  className="p-3"
+                <Label>DEX</Label>
+                <select
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  value={draft.dex}
+                  onChange={(e) => {
+                    const nextDex = e.target.value;
+                    setDraft((prev) => ({ ...prev, dex: nextDex, pool: "" }));
+                    onDexChange(nextDex);
+                  }}
                 >
-                  <div className="grid grid-cols-3 gap-2">
-                    {CAPABILITIES.map((cap) => (
-                      <label key={cap} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="h-4 w-4 rounded border-slate-600 bg-slate-900 text-cyan-500 focus:ring-cyan-500/20"
-                          checked={!!draft.capabilities[cap]}
-                          onChange={(e) =>
-                            setDraft({
-                              ...draft,
-                              capabilities: { ...draft.capabilities, [cap]: e.target.checked },
-                            })
-                          }
-                        />
-                        <span className="text-xs text-slate-300">{capLabel(cap)}</span>
-                      </label>
-                    ))}
-                  </div>
-                </Surface>
+                  <option value="" disabled>
+                    Select DEX...
+                  </option>
+                  {dexes.map((dex) => (
+                    <option key={dex.dex} value={dex.dex}>
+                      {dex.dex}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="col-span-2">
+                <Label>Pool</Label>
+                <select
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500 disabled:opacity-60"
+                  value={draft.pool}
+                  disabled={!draft.dex || poolsLoading}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, pool: e.target.value }))}
+                >
+                  <option value="" disabled>
+                    {poolsLoading
+                      ? "Loading pools..."
+                      : !draft.dex
+                      ? "Select a DEX first"
+                      : "Select pool..."}
+                  </option>
+                  {pools.map((pool) => (
+                    <option key={pool.pool} value={pool.pool}>
+                      {(pool.pair || pool.symbol || pool.pool) + ` • ${pool.fee_bps} bps`}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-
-            <Surface variant="inset" className="p-3 flex items-center justify-between">
-              <div>
-                <span className="block text-sm font-medium text-slate-100">Adapter Status</span>
-                <span className="text-xs text-slate-500">Enable or disable this adapter globally</span>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={draft.enabled}
-                  className="sr-only peer"
-                  onChange={(e) => setDraft({ ...draft, enabled: e.target.checked })}
-                />
-                <div className="w-9 h-5 bg-slate-800 rounded-full peer-focus:outline-none peer-checked:bg-cyan-500 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:border-slate-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-full" />
-              </label>
-            </Surface>
           </div>
 
-          {/* Notes */}
           <div className="pt-4 border-t border-slate-800 space-y-4">
-            <SectionTitle dotClassName="bg-purple-500" title="Additional Info" />
+            <SectionTitle dotClassName="bg-blue-500" title="Deployment Settings" />
 
-            <div>
-              <Label>Notes (Optional)</Label>
-              <textarea
-                rows={3}
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500 resize-none"
-                placeholder="Add internal notes about this adapter deployment..."
-                value={draft.notes}
-                onChange={(e) => setDraft({ ...draft, notes: e.target.value })}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="col-span-2">
+                <Label>Fee Buffer Address</Label>
+                <input
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 font-mono placeholder-slate-600 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  placeholder="0x..."
+                  value={draft.feeBuffer}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, feeBuffer: e.target.value }))}
+                />
+                <p className="mt-1.5 text-[10px] text-slate-500">
+                  This value is required by the backend to deploy the adapter contract.
+                </p>
+              </div>
+
+              <div className="col-span-2">
+                <Label>Record Status</Label>
+                <select
+                  className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                  value={draft.status}
+                  onChange={(e) =>
+                    setDraft((prev) => ({
+                      ...prev,
+                      status: e.target.value as "ACTIVE" | "ARCHIVED_CAN_CREATE_NEW",
+                    }))
+                  }
+                >
+                  <option value="ACTIVE">ACTIVE</option>
+                  <option value="ARCHIVED_CAN_CREATE_NEW">ARCHIVED_CAN_CREATE_NEW</option>
+                </select>
+              </div>
             </div>
+          </div>
+
+          <div className="pt-4 border-t border-slate-800 space-y-4">
+            <SectionTitle dotClassName="bg-purple-500" title="Resolved Pool Data" />
+
+            <Surface variant="inset" className="p-4 space-y-3">
+              {!selectedPool ? (
+                <p className="text-sm text-slate-500">
+                  Select a pool to preview the payload that will be sent to the backend.
+                </p>
+              ) : (
+                <>
+                  {selectedPoolHasAdapter && (
+                    <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-sm text-amber-300">
+                      This pool already has an adapter registered: {selectedPool.adapter}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <FieldRow label="DEX" value={draft.dex} />
+                    <FieldRow label="DEX Router" value={selectedDex?.dex_router ?? "-"} mono />
+
+                    <FieldRow label="Pool" value={selectedPool.pool} mono />
+                    <FieldRow label="NFPM" value={selectedPool.nfpm} mono />
+
+                    <FieldRow label="Gauge" value={selectedPool.gauge} mono />
+                    <FieldRow label="Pair / Symbol" value={selectedPool.pair || selectedPool.symbol || "-"} />
+
+                    <FieldRow label="Token0" value={selectedPool.token0} mono />
+                    <FieldRow label="Token1" value={selectedPool.token1} mono />
+
+                    <FieldRow label="Fee BPS" value={String(selectedPool.fee_bps)} />
+                    <FieldRow label="Pool Type" value={selectedPool.pool_type || "-"} />
+
+                    <FieldRow label="Reward Token" value={selectedPool.reward_token || "-"} mono />
+                    <FieldRow label="Reward Swap Pool" value={selectedPool.reward_swap_pool || "-"} mono />
+                  </div>
+                </>
+              )}
+            </Surface>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-slate-700 bg-slate-950/40 flex flex-col gap-3">
+        <div className="p-6 border-t border-slate-700 bg-slate-950/40 flex gap-3">
           <button
             type="button"
-            className="w-full px-4 py-2.5 rounded-lg border border-slate-700 bg-slate-800 text-cyan-300 hover:bg-slate-700 hover:border-cyan-500/30 transition-colors flex items-center justify-center gap-2"
-            onClick={() => {}}
+            onClick={onClose}
+            className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 bg-transparent text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors"
           >
-            <BugIcon className="h-4 w-4" />
-            Test Connectivity
+            Cancel
           </button>
 
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 rounded-lg border border-slate-700 bg-transparent text-slate-300 hover:text-slate-100 hover:bg-slate-800 transition-colors"
-            >
-              Cancel
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onSave(draft)}
-              className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-medium shadow-[0_0_20px_-8px_rgba(59,130,246,0.45)] transition-colors flex items-center justify-center gap-2"
-            >
-              <SaveIcon className="h-4 w-4" />
-              Save Adapter
-            </button>
-          </div>
+          <button
+            type="button"
+            disabled={!canSave}
+            onClick={() => onSave(draft)}
+            className="flex-1 px-4 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-60 disabled:cursor-not-allowed text-white font-medium shadow-[0_0_20px_-8px_rgba(59,130,246,0.45)] transition-colors flex items-center justify-center gap-2"
+          >
+            <SaveIcon className="h-4 w-4" />
+            {saving ? "Deploying..." : "Deploy Adapter"}
+          </button>
         </div>
       </div>
     </>
@@ -289,25 +276,36 @@ function Label({ children }: { children: React.ReactNode }) {
   return <label className="block text-sm font-medium text-slate-300 mb-1.5">{children}</label>;
 }
 
-function Req() {
-  return <span className="text-red-400">*</span>;
+function FieldRow({
+  label,
+  value,
+  mono,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+}) {
+  return (
+    <div className="space-y-1">
+      <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+        {label}
+      </div>
+      <div
+        className={cn(
+          "rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-slate-200",
+          mono && "font-mono text-xs break-all"
+        )}
+      >
+        {value}
+      </div>
+    </div>
+  );
 }
 
-function capLabel(cap: string) {
-  const map: Record<string, string> = {
-    QUOTE: "Quote",
-    SWAP: "Swap",
-    MINT: "Mint",
-    COLLECT: "Collect",
-    STAKE: "Stake",
-    UNSTAKE: "Unstake",
-    CLAIM: "Claim",
-    FLASH: "Flash",
-  };
-  return map[cap] ?? cap;
+function isValidNonZeroAddress(value: string) {
+  const normalized = value.trim().toLowerCase();
+  return /^0x[a-f0-9]{40}$/.test(normalized) && normalized !== ZERO_ADDRESS;
 }
-
-/* ---------- icons ---------- */
 
 function XIcon({ className }: { className?: string }) {
   return (
@@ -329,39 +327,6 @@ function SaveIcon({ className }: { className?: string }) {
       />
       <path d="M7 21V13h10v8" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
       <path d="M7 3v4h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function BugIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path d="M9 9h6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M10 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path
-        d="M8 7a4 4 0 0 1 8 0v6a4 4 0 0 1-8 0V7z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinejoin="round"
-      />
-      <path d="M4 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16 13h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M6 19l2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-      <path d="M18 19l-2-2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden="true">
-      <path
-        d="M20 6L9 17l-5-5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
     </svg>
   );
 }

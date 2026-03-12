@@ -82,26 +82,6 @@ export type CreateVaultFactoryBody = {
   default_allow_swap?: boolean;
 };
 
-export type CreateAdapterBody = {
-  chain: ChainKey;
-  gas_strategy?: "default" | "buffered" | "aggressive";
-
-  dex: string;
-
-  pool: string;
-  nfpm: string;
-  gauge: string;
-
-  fee_buffer: string;
-
-  token0: string;
-  token1: string;
-
-  pool_name: string;
-  fee_bps: string;
-  status?: "ACTIVE" | "INACTIVE";
-};
-
 export type CreateProtocolFeeCollectorBody = {
   chain: ChainKey;
   gas_strategy?: "default" | "buffered" | "aggressive";
@@ -212,20 +192,6 @@ export async function apiLpAdminListOwners(accessToken: string): Promise<any[]> 
 
 export async function apiLpAdminListUsers(accessToken: string): Promise<any[]> {
   return apiLpGet<any[]>("/admin/users", accessToken);
-}
-
-export async function apiLpAdminCreateAdapter(
-  accessToken: string,
-  payload: CreateAdapterBody
-): Promise<AdminResult> {
-  return apiLpPost<AdminResult>("/admin/adapters/create", payload, accessToken);
-}
-
-export async function apiLpAdminListAdapters(
-  accessToken: string,
-  chain: ChainKey
-): Promise<AdminResult> {
-  return apiLpGet<AdminResult>(`/admin/adapters?chain=${chain}`, accessToken);
 }
 
 export async function apiLpAdminCreateProtocolFeeCollector(
@@ -417,4 +383,67 @@ export async function apiLpAdminListDexPools(
     `/admin/dexes/pools?chain=${chain}&dex=${dex}&limit=${limit}`,
     accessToken
   );
+}
+
+export type AdminAdapterStatus = "ACTIVE" | "ARCHIVED_CAN_CREATE_NEW";
+
+export type CreateAdapterBody = {
+  chain: string;
+  gas_strategy?: "default" | "buffered" | "aggressive";
+
+  dex: string;
+
+  pool: string;
+  nfpm: string;
+  gauge: string;
+
+  fee_buffer: string;
+
+  token0: string;
+  token1: string;
+
+  pool_name: string;
+  fee_bps: string;
+  status?: AdminAdapterStatus;
+};
+
+export type AdminAdapterItem = {
+  chain: string;
+  address: string;
+  tx_hash?: string | null;
+
+  dex: string;
+
+  pool: string;
+  nfpm: string;
+  gauge: string;
+  fee_buffer: string;
+
+  token0: string;
+  token1: string;
+
+  pool_name: string;
+  fee_bps: string;
+  status: AdminAdapterStatus;
+
+  created_at?: string | null;
+  created_by?: string | null;
+};
+
+export type AdminAdaptersResult = AdminResult & {
+  data?: AdminAdapterItem[];
+};
+
+export async function apiLpAdminCreateAdapter(
+  accessToken: string,
+  payload: CreateAdapterBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/adapters/create", payload, accessToken);
+}
+
+export async function apiLpAdminListAdapters(
+  accessToken: string,
+  chain: string
+): Promise<AdminAdaptersResult> {
+  return apiLpGet<AdminAdaptersResult>(`/admin/adapters?chain=${chain}`, accessToken);
 }
