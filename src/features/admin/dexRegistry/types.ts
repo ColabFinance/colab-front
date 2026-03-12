@@ -1,32 +1,40 @@
-export type DexPoolType =
-  | "STABLE"
-  | "VOLATILE"
-  | "VOLATILE_V2"
-  | "CONCENTRATED"
-  | "WEIGHTED"
-  | "V3";
-
-export type DexVerification = "verified" | "pending";
+export type DexRegistryFilters = {
+  chain: string | "all";
+  keyQuery: string;
+  status: "all" | "enabled" | "disabled";
+};
 
 export type ChainOption = {
+  key: string;
   chainId: number;
   name: string;
+  explorerUrl?: string;
+  explorerLabel?: string;
+};
+
+export type DexFormValues = {
+  chain: string;
+  key: string;
+  routerAddress: string;
+  enabled: boolean;
 };
 
 export type DexRegistryItem = {
   id: string;
+  chainKey: string;
   chainId: number;
+  chainName: string;
+
   name: string;
   key: string;
-
   routerAddress: string;
-  quoterAddress?: string;
-  positionManagerAddress?: string;
-
-  poolTypes: DexPoolType[];
 
   enabled: boolean;
-  verification: DexVerification;
+  status: "ACTIVE" | "INACTIVE";
+
+  poolsCount: number;
+  poolsPreview: string[];
 
   updatedAtLabel: string;
+  explorerUrl?: string;
 };

@@ -102,35 +102,6 @@ export type CreateAdapterBody = {
   status?: "ACTIVE" | "INACTIVE";
 };
 
-export type CreateDexBody = {
-  chain: ChainKey;
-  dex: string;
-  dex_router: string;
-  status?: "ACTIVE" | "INACTIVE";
-};
-
-export type CreateDexPoolBody = {
-  chain: ChainKey;
-  dex: string;
-
-  pool: string;
-  nfpm: string;
-  gauge: string;
-
-  token0: string;
-  token1: string;
-
-  pair?: string;
-  symbol?: string;
-
-  fee_bps: number;
-
-  adapter?: string | null;
-  reward_token?: string | null;
-  reward_swap_pool?: string | null;
-  status?: "ACTIVE" | "INACTIVE";
-};
-
 export type CreateProtocolFeeCollectorBody = {
   chain: ChainKey;
   gas_strategy?: "default" | "buffered" | "aggressive";
@@ -257,20 +228,6 @@ export async function apiLpAdminListAdapters(
   return apiLpGet<AdminResult>(`/admin/adapters?chain=${chain}`, accessToken);
 }
 
-export async function apiLpAdminCreateDex(
-  accessToken: string,
-  body: CreateDexBody
-): Promise<AdminResult> {
-  return apiLpPost<AdminResult>("/admin/dexes/create", body, accessToken);
-}
-
-export async function apiLpAdminCreateDexPool(
-  accessToken: string,
-  body: CreateDexPoolBody
-): Promise<AdminResult> {
-  return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
-}
-
 export async function apiLpAdminCreateProtocolFeeCollector(
   accessToken: string,
   body: CreateProtocolFeeCollectorBody
@@ -303,6 +260,124 @@ export async function apiLpAdminListVaultFeeBuffers(
 ): Promise<AdminContractListResult> {
   return apiLpGet<AdminContractListResult>(
     `/admin/vault-fee-buffer?chain=${chain}&limit=${limit}`,
+    accessToken
+  );
+}
+
+export type CreateDexBody = {
+  chain: ChainKey | string;
+  dex: string;
+  dex_router: string;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
+export type UpdateDexBody = {
+  chain: ChainKey | string;
+  dex: string;
+  dex_router: string;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
+export type CreateDexPoolBody = {
+  chain: ChainKey | string;
+  dex: string;
+
+  pool: string;
+  nfpm: string;
+  gauge: string;
+
+  token0: string;
+  token1: string;
+
+  pair?: string;
+  symbol?: string;
+
+  fee_bps: number;
+
+  adapter?: string | null;
+  reward_token?: string | null;
+  reward_swap_pool?: string | null;
+  status?: "ACTIVE" | "INACTIVE";
+};
+
+export type AdminDexItem = {
+  chain: string;
+  dex: string;
+  dex_router: string;
+  status: "ACTIVE" | "INACTIVE";
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminDexesResult = AdminResult & {
+  data?: AdminDexItem[];
+};
+
+export type AdminDexPoolItem = {
+  chain: string;
+  dex: string;
+  pool: string;
+  nfpm: string;
+  gauge: string;
+  token0: string;
+  token1: string;
+  pair?: string | null;
+  symbol?: string | null;
+  fee_bps: number;
+  fee_rate: string;
+  adapter?: string | null;
+  reward_token?: string | null;
+  reward_swap_pool?: string | null;
+  status: "ACTIVE" | "INACTIVE";
+  created_at?: number | string | null;
+  created_at_iso?: string | null;
+  updated_at?: number | string | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminDexPoolsResult = AdminResult & {
+  data?: AdminDexPoolItem[];
+};
+
+export async function apiLpAdminCreateDex(
+  accessToken: string,
+  body: CreateDexBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/dexes/create", body, accessToken);
+}
+
+export async function apiLpAdminUpdateDex(
+  accessToken: string,
+  body: UpdateDexBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/dexes/update", body, accessToken);
+}
+
+export async function apiLpAdminListDexes(
+  accessToken: string,
+  chain: string,
+  limit = 200
+): Promise<AdminDexesResult> {
+  return apiLpGet<AdminDexesResult>(`/admin/dexes?chain=${chain}&limit=${limit}`, accessToken);
+}
+
+export async function apiLpAdminCreateDexPool(
+  accessToken: string,
+  body: CreateDexPoolBody
+): Promise<AdminResult> {
+  return apiLpPost<AdminResult>("/admin/dexes/pools/create", body, accessToken);
+}
+
+export async function apiLpAdminListDexPools(
+  accessToken: string,
+  chain: string,
+  dex: string,
+  limit = 500
+): Promise<AdminDexPoolsResult> {
+  return apiLpGet<AdminDexPoolsResult>(
+    `/admin/dexes/pools?chain=${chain}&dex=${dex}&limit=${limit}`,
     accessToken
   );
 }

@@ -1,274 +1,224 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { DexPoolType, DexRegistryItem } from "../types";
-
-type Mode = "create" | "edit";
+import type { ChainOption, DexFormValues, DexRegistryItem } from "../types";
 
 type Props = {
   open: boolean;
-  mode: Mode;
-  chainLabel: string;
-
-  dex?: DexRegistryItem | null;
-
+  mode: "create" | "edit";
+  chainOptions: ChainOption[];
+  defaultChainKey: string;
+  dex: DexRegistryItem | null;
+  submitting?: boolean;
   onClose: () => void;
-  onSave: (payload: {
-    name: string;
-    key: string;
-    routerAddress: string;
-    quoterAddress?: string;
-    positionManagerAddress?: string;
-    poolTypes: DexPoolType[];
-    enabled: boolean;
-  }) => void;
+  onSave: (values: DexFormValues) => Promise<void>;
 };
 
-const POOL_TYPES: DexPoolType[] = ["STABLE", "VOLATILE", "CONCENTRATED", "WEIGHTED"];
+function prettifyDexKey(key: string) {
+  return key
+    .split("_")
+    .filter(Boolean)
+    .map((part) => {
+      const lower = part.toLowerCase();
+      if (lower === "v2" || lower === "v3") return lower.toUpperCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
 
-export default function DexDrawer({ open, mode, chainLabel, dex, onClose, onSave }: Props) {
-  const title = mode === "edit" ? `Edit ${dex?.name ?? "DEX"}` : "Add New DEX";
+export default function DexDrawer({
+  open,
+  mode,
+  chainOptions,
+  defaultChainKey,
+  dex,
+  submitting = false,
+  onClose,
+  onSave,
+}: Props) {
+  const [form, setForm] = useState<DexFormValues>({
+    chain: defaultChainKey,
+    key: "",
+    routerAddress: "",
+    enabled: true,
+  });
+  const [error, setError] = useState("");
 
-  const initial = useMemo(() => {
-    if (!dex) {
-      return {
-        name: "",
-        key: "",
-        routerAddress: "",
-        quoterAddress: "",
-        positionManagerAddress: "",
-        poolTypes: [] as DexPoolType[],
-        enabled: true,
-      };
+  useEffect(() => {
+    if (!open) return;
+
+    setError("");
+
+    if (dex) {
+      setForm({
+        chain: dex.chainKey,
+        key: dex.key,
+        routerAddress: dex.routerAddress,
+        enabled: dex.enabled,
+      });
+      return;
     }
-    return {
-      name: dex.name ?? "",
-      key: dex.key ?? "",
-      routerAddress: dex.routerAddress ?? "",
-      quoterAddress: dex.quoterAddress ?? "",
-      positionManagerAddress: dex.positionManagerAddress ?? "",
-      poolTypes: dex.poolTypes ?? [],
-      enabled: dex.enabled ?? true,
-    };
-  }, [dex]);
 
-  const [name, setName] = useState(initial.name);
-  const [key, setKey] = useState(initial.key);
-  const [routerAddress, setRouterAddress] = useState(initial.routerAddress);
-  const [quoterAddress, setQuoterAddress] = useState(initial.quoterAddress);
-  const [positionManagerAddress, setPositionManagerAddress] = useState(initial.positionManagerAddress);
-  const [poolTypes, setPoolTypes] = useState<DexPoolType[]>(initial.poolTypes);
-  const [enabled, setEnabled] = useState(initial.enabled);
-
-  useEffect(() => {
-    if (!open) return;
-    setName(initial.name);
-    setKey(initial.key);
-    setRouterAddress(initial.routerAddress);
-    setQuoterAddress(initial.quoterAddress);
-    setPositionManagerAddress(initial.positionManagerAddress);
-    setPoolTypes(initial.poolTypes);
-    setEnabled(initial.enabled);
-  }, [open, initial]);
-
-  useEffect(() => {
-    if (!open) return;
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, onClose]);
-
-  function togglePoolType(t: DexPoolType) {
-    setPoolTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
-  }
-
-  function submit() {
-    onSave({
-      name: name.trim(),
-      key: key.trim(),
-      routerAddress: routerAddress.trim(),
-      quoterAddress: quoterAddress.trim() || undefined,
-      positionManagerAddress: positionManagerAddress.trim() || undefined,
-      poolTypes,
-      enabled,
+    setForm({
+      chain: defaultChainKey || chainOptions[0]?.key || "",
+      key: "",
+      routerAddress: "",
+      enabled: true,
     });
+  }, [open, dex, defaultChainKey, chainOptions]);
+
+  const title = mode === "create" ? "Add DEX" : "Edit DEX";
+  const submitLabel = mode === "create" ? "Create DEX" : "Save changes";
+  const previewName = useMemo(() => prettifyDexKey(form.key), [form.key]);
+
+  if (!open) return null;
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+
+    try {
+      await onSave({
+        chain: form.chain.trim(),
+        key: form.key.trim().toLowerCase(),
+        routerAddress: form.routerAddress.trim(),
+        enabled: form.enabled,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to save DEX.");
+    }
   }
 
   return (
-    <>
-      <div
-        className={[
-          "fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm transition-opacity",
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none",
-        ].join(" ")}
-        onClick={onClose}
-      />
+    <div className="fixed inset-0 z-50">
+      <div className="absolute inset-0 bg-slate-950/70" onClick={onClose} />
 
-      <div
-        className={[
-          "fixed inset-y-0 right-0 z-[70] w-full max-w-md border-l border-slate-700 bg-slate-900 shadow-2xl flex flex-col h-full transition-transform",
-          open ? "translate-x-0" : "translate-x-full",
-        ].join(" ")}
-      >
-        <div className="flex items-center justify-between p-6 border-b border-slate-700 bg-slate-950/50">
-          <div>
-            <h3 className="text-xl font-bold text-white">{title}</h3>
-            <p className="text-sm text-slate-400 mt-1">Register a DEX router for {chainLabel}</p>
+      <div className="absolute right-0 top-0 h-full w-full max-w-xl border-l border-slate-800 bg-slate-900 shadow-2xl">
+        <form onSubmit={handleSubmit} className="flex h-full flex-col">
+          <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+            <div>
+              <h2 className="text-lg font-semibold text-white">{title}</h2>
+              <p className="text-sm text-slate-400">
+                {mode === "create"
+                  ? "Register a new DEX router for the selected chain."
+                  : "Update the router or status for this DEX."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:text-white hover:border-slate-500"
+            >
+              Close
+            </button>
           </div>
 
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-800 rounded-lg"
-            aria-label="Close"
-          >
-            ✕
-          </button>
-        </div>
+          <div className="flex-1 space-y-5 overflow-y-auto px-6 py-5">
+            {error ? (
+              <div className="rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            ) : null}
 
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="space-y-4">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-500" /> Basic Information
-            </h4>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                DEX Name <span className="text-red-400">*</span>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Chain
               </label>
-              <input
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Uniswap V3"
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none placeholder-slate-600"
-              />
+              <select
+                value={form.chain}
+                onChange={(e) => setForm((prev) => ({ ...prev, chain: e.target.value }))}
+                disabled={mode === "edit" || submitting}
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-cyan-500 disabled:opacity-60"
+              >
+                {chainOptions.map((chain) => (
+                  <option key={chain.key} value={chain.key}>
+                    {chain.name} ({chain.key})
+                  </option>
+                ))}
+              </select>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                DEX Key <span className="text-red-400">*</span>{" "}
-                <span className="ml-1 text-[10px] text-slate-500 font-normal uppercase">(Unique per chain)</span>
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                DEX key
               </label>
               <input
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="e.g. uniswap_v3"
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none placeholder-slate-600"
+                value={form.key}
+                onChange={(e) => setForm((prev) => ({ ...prev, key: e.target.value }))}
+                disabled={mode === "edit" || submitting}
+                placeholder="pancake_v3"
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-500 disabled:opacity-60"
               />
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-slate-800">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-blue-500" /> Contract Addresses
-            </h4>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Router Address <span className="text-red-400">*</span>
-              </label>
-              <input
-                value={routerAddress}
-                onChange={(e) => setRouterAddress(e.target.value)}
-                placeholder="0x..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none placeholder-slate-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Quoter Address <span className="text-xs text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                value={quoterAddress}
-                onChange={(e) => setQuoterAddress(e.target.value)}
-                placeholder="0x..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none placeholder-slate-600"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-1.5">
-                Position Manager <span className="text-xs text-slate-500 font-normal">(Optional)</span>
-              </label>
-              <input
-                value={positionManagerAddress}
-                onChange={(e) => setPositionManagerAddress(e.target.value)}
-                placeholder="0x..."
-                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white font-mono focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none placeholder-slate-600"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-4 pt-4 border-t border-slate-800">
-            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" /> Configuration
-            </h4>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Supported Pool Types</label>
-              <div className="grid grid-cols-2 gap-2">
-                {POOL_TYPES.map((t) => {
-                  const checked = poolTypes.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => togglePoolType(t)}
-                      className={[
-                        "flex items-center gap-2 p-2.5 rounded-lg border transition-colors text-left",
-                        checked
-                          ? "border-cyan-500/50 bg-cyan-900/10"
-                          : "border-slate-700 bg-slate-950/60 hover:border-cyan-500/30",
-                      ].join(" ")}
-                    >
-                      <span
-                        className={[
-                          "inline-flex items-center justify-center w-4 h-4 rounded border text-[10px]",
-                          checked ? "border-cyan-500 bg-cyan-500 text-slate-950" : "border-slate-600 text-slate-500",
-                        ].join(" ")}
-                      >
-                        {checked ? "✓" : ""}
-                      </span>
-                      <span className="text-sm text-slate-200">{t}</span>
-                    </button>
-                  );
-                })}
+              <div className="text-xs text-slate-500">
+                Display name preview: <span className="text-slate-300">{previewName || "-"}</span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 bg-slate-950 rounded-lg border border-slate-700">
-              <div>
-                <span className="block text-sm font-medium text-white">Enable DEX</span>
-                <span className="text-xs text-slate-500">Allow strategies to use this DEX immediately</span>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="sr-only peer" />
-                <div className="w-11 h-6 bg-slate-800 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full peer-checked:bg-cyan-500" />
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">
+                Router address
               </label>
+              <input
+                value={form.routerAddress}
+                onChange={(e) => setForm((prev) => ({ ...prev, routerAddress: e.target.value }))}
+                disabled={submitting}
+                placeholder="0x..."
+                className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-500 disabled:opacity-60"
+              />
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="text-sm font-medium text-white">Enabled</div>
+                  <div className="text-xs text-slate-500">
+                    Active records can be consumed by the admin and user flows.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, enabled: !prev.enabled }))}
+                  disabled={submitting}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-60 ${
+                    form.enabled ? "bg-cyan-500" : "bg-slate-700"
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                      form.enabled ? "translate-x-5" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-6 border-t border-slate-700 bg-slate-950/50 flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 rounded-lg border border-slate-600 bg-transparent px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            Cancel
-          </button>
+          <div className="flex items-center justify-end gap-3 border-t border-slate-800 px-6 py-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-slate-700 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:border-slate-500"
+            >
+              Cancel
+            </button>
 
-          <button
-            onClick={submit}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 transition-all"
-          >
-            ✓ Save DEX
-          </button>
-        </div>
+            <button
+              type="submit"
+              disabled={
+                submitting ||
+                !form.chain.trim() ||
+                !form.key.trim() ||
+                !form.routerAddress.trim()
+              }
+              className="rounded-lg bg-cyan-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-cyan-500 disabled:opacity-60"
+            >
+              {submitting ? "Saving..." : submitLabel}
+            </button>
+          </div>
+        </form>
       </div>
-    </>
+    </div>
   );
 }
