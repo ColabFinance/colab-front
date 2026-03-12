@@ -1,14 +1,17 @@
 import * as React from "react";
+import type { ContractTabKey } from "../types";
 
-type Props = React.SVGProps<SVGSVGElement> & { size?: number };
+type IconProps = React.SVGProps<SVGSVGElement> & {
+  size?: number;
+};
 
-function IconBase({ size = 18, ...props }: Props) {
+function IconBase({ size = 18, ...props }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" {...props} />
   );
 }
 
-export function PlusIcon(props: Props) {
+export function PlusIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -16,7 +19,7 @@ export function PlusIcon(props: Props) {
   );
 }
 
-export function AlertTriangleIcon(props: Props) {
+export function AlertTriangleIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -31,7 +34,7 @@ export function AlertTriangleIcon(props: Props) {
   );
 }
 
-export function CopyIcon(props: Props) {
+export function CopyIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -50,7 +53,7 @@ export function CopyIcon(props: Props) {
   );
 }
 
-export function PencilIcon(props: Props) {
+export function PencilIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -64,7 +67,7 @@ export function PencilIcon(props: Props) {
   );
 }
 
-export function RotateIcon(props: Props) {
+export function RotateIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -78,7 +81,7 @@ export function RotateIcon(props: Props) {
   );
 }
 
-export function ChevronRightIcon(props: Props) {
+export function ChevronRightIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M9 18l6-6-6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -86,7 +89,7 @@ export function ChevronRightIcon(props: Props) {
   );
 }
 
-export function RocketIcon(props: Props) {
+export function RocketIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -107,7 +110,7 @@ export function RocketIcon(props: Props) {
   );
 }
 
-export function LinkIcon(props: Props) {
+export function LinkIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -126,7 +129,7 @@ export function LinkIcon(props: Props) {
   );
 }
 
-export function XIcon(props: Props) {
+export function XIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M6 6l12 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -135,7 +138,7 @@ export function XIcon(props: Props) {
   );
 }
 
-export function CheckIcon(props: Props) {
+export function CheckIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path d="M20 6L9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
@@ -143,7 +146,7 @@ export function CheckIcon(props: Props) {
   );
 }
 
-export function InfoIcon(props: Props) {
+export function InfoIcon(props: IconProps) {
   return (
     <IconBase {...props}>
       <path
@@ -155,4 +158,162 @@ export function InfoIcon(props: Props) {
       <path d="M12 7h.01" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </IconBase>
   );
+}
+
+
+export function ChevronDownIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </IconBase>
+  );
+}
+
+
+export function ExternalLinkIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M14 5h5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path d="M10 14L19 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </IconBase>
+  );
+}
+
+export function ClockIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+      <path d="M12 7v5l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </IconBase>
+  );
+}
+
+export function WarningIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path
+        d="M12 4L21 20H3L12 4z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M12 9v4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="12" cy="16.5" r="1" fill="currentColor" />
+    </IconBase>
+  );
+}
+
+export function CheckCircleIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="2" />
+      <path d="M8 12l2.5 2.5L16 9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </IconBase>
+  );
+}
+
+export function FolderOpenIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path
+        d="M3 8a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v1H3V8z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M3 11h18l-2 7a2 2 0 0 1-2 1H6a2 2 0 0 1-2-1l-1-7z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+    </IconBase>
+  );
+}
+
+export function StrategyRegistryIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path
+        d="M5 19V9l2-2 2 2 2-2 2 2 2-2 2 2v10H5z"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M9 19v-5h6v5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" />
+    </IconBase>
+  );
+}
+
+export function VaultFactoryIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <path
+        d="M6 20V8l6-4 6 4v12"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinejoin="round"
+      />
+      <path d="M9 11h1M14 11h1M9 15h1M14 15h1" stroke="currentColor" strokeWidth="2" />
+    </IconBase>
+  );
+}
+
+export function ProtocolFeeCollectorIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <circle cx="12" cy="10" r="4" stroke="currentColor" strokeWidth="2" />
+      <path
+        d="M5 18c1.2-2.1 3.8-3 7-3s5.8.9 7 3"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+      <path d="M12 7.5v5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </IconBase>
+  );
+}
+
+export function VaultFeeBufferIcon(props: IconProps) {
+  return (
+    <IconBase {...props}>
+      <path
+        d="M6 8c0-2 2.7-3 6-3s6 1 6 3-2.7 3-6 3-6-1-6-3z"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path
+        d="M6 8v8c0 2 2.7 3 6 3s6-1 6-3V8"
+        stroke="currentColor"
+        strokeWidth="2"
+      />
+      <path d="M6 12c0 2 2.7 3 6 3s6-1 6-3" stroke="currentColor" strokeWidth="2" />
+    </IconBase>
+  );
+}
+
+export function ContractTabIcon({
+  contractKey,
+  size = 16,
+  ...props
+}: IconProps & { contractKey: ContractTabKey }) {
+  switch (contractKey) {
+    case "strategy-registry":
+      return <StrategyRegistryIcon size={size} {...props} />;
+    case "vault-factory":
+      return <VaultFactoryIcon size={size} {...props} />;
+    case "protocol-fee-collector":
+      return <ProtocolFeeCollectorIcon size={size} {...props} />;
+    case "vault-fee-buffer":
+      return <VaultFeeBufferIcon size={size} {...props} />;
+    default:
+      return null;
+  }
 }

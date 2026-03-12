@@ -13,8 +13,8 @@ import { useAuthToken } from "@/hooks/useAuthToken";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 
-import { createStrategyRegistryUseCase } from "@/core/application/admin/api/createStrategyRegistry.usecase";
-import { createVaultFactoryUseCase } from "@/core/application/admin/api/createVaultFactory.usecase";
+import { createStrategyRegistryUseCase } from "@/core/usecases/admin/contracts/createStrategyRegistry.usecase";
+import { createVaultFactoryUseCase } from "@/core/usecases/admin/contracts/createVaultFactory.usecase";
 import { listOwnersUseCase } from "@/core/application/admin/api/listOwners.usecase";
 import { listUsersUseCase } from "@/core/application/admin/api/listUsers.usecase";
 
@@ -32,8 +32,8 @@ import { listDexesUseCase } from "@/core/application/admin/api/listDexes.usecase
 import { createDexPoolUseCase } from "@/core/application/admin/api/createDexPool.usecase";
 import { listDexPoolsUseCase } from "@/core/application/admin/api/listDexPools.usecase";
 import { createDexUseCase } from "@/core/application/admin/api/createDex.usecase";
-import { createProtocolFeeCollectorUseCase } from "@/core/application/admin/api/createProtocolFeeCollector.usecase";
-import { createVaultFeeBufferUseCase } from "@/core/application/admin/api/createVaultFeeBuffer.usecase";
+import { createProtocolFeeCollectorUseCase } from "@/core/usecases/admin/contracts/createProtocolFeeCollector.usecase";
+import { createVaultFeeBufferUseCase } from "@/core/usecases/admin/contracts/createVaultFeeBuffer.usecase";
 import { setProtocolFeeCollectorTreasuryUseCase } from "@/core/application/admin/onchain/setProtocolFeeCollectorTreasury.usecase";
 import { setProtocolFeeCollectorFeeBpsUseCase } from "@/core/application/admin/onchain/setProtocolFeeCollectorFeeBps.usecase";
 import { allowProtocolFeeCollectorReporterUseCase } from "@/core/application/admin/onchain/allowProtocolFeeCollectorReporter.usecase";

@@ -3,7 +3,10 @@ import { apiLpGet, apiLpPost } from "@/core/infra/api/api-lp/client";
 export type AdminResult = {
   ok: boolean;
   message: string;
+  tx_hash?: string;
+  result?: unknown;
   data?: unknown;
+  detail?: unknown;
 };
 
 export type ChainKey = "base" | "bnb";
@@ -142,6 +145,39 @@ export type CreateVaultFeeBufferBody = {
   initial_owner: string;
 };
 
+export type AdminContractRecord = {
+  chain: string;
+  address: string;
+  status: string;
+  tx_hash?: string | null;
+
+  owner?: string | null;
+
+  treasury?: string | null;
+  protocol_fee_bps?: number | null;
+
+  strategy_registry?: string | null;
+  executor?: string | null;
+  fee_collector?: string | null;
+  default_cooldown_sec?: number | null;
+  default_max_slippage_bps?: number | null;
+  default_allow_swap?: boolean | null;
+
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminContractListPayload = {
+  active?: AdminContractRecord | null;
+  history?: AdminContractRecord[];
+};
+
+export type AdminContractListResult = AdminResult & {
+  result?: AdminContractListPayload;
+};
+
 export async function apiLpAdminCreateChain(
   accessToken: string,
   body: CreateChainBody
@@ -170,11 +206,33 @@ export async function apiLpAdminCreateStrategyRegistry(
   return apiLpPost<AdminResult>("/admin/strategy-registry/create", body, accessToken);
 }
 
+export async function apiLpAdminListStrategyRegistries(
+  accessToken: string,
+  chain: ChainKey,
+  limit = 50
+): Promise<AdminContractListResult> {
+  return apiLpGet<AdminContractListResult>(
+    `/admin/strategy-registry?chain=${chain}&limit=${limit}`,
+    accessToken
+  );
+}
+
 export async function apiLpAdminCreateVaultFactory(
   accessToken: string,
   body: CreateVaultFactoryBody
 ): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/vault-factory/create", body, accessToken);
+}
+
+export async function apiLpAdminListVaultFactories(
+  accessToken: string,
+  chain: ChainKey,
+  limit = 50
+): Promise<AdminContractListResult> {
+  return apiLpGet<AdminContractListResult>(
+    `/admin/vault-factory?chain=${chain}&limit=${limit}`,
+    accessToken
+  );
 }
 
 export async function apiLpAdminListOwners(accessToken: string): Promise<any[]> {
@@ -220,9 +278,31 @@ export async function apiLpAdminCreateProtocolFeeCollector(
   return apiLpPost<AdminResult>("/admin/protocol-fee-collector/create", body, accessToken);
 }
 
+export async function apiLpAdminListProtocolFeeCollectors(
+  accessToken: string,
+  chain: ChainKey,
+  limit = 50
+): Promise<AdminContractListResult> {
+  return apiLpGet<AdminContractListResult>(
+    `/admin/protocol-fee-collector?chain=${chain}&limit=${limit}`,
+    accessToken
+  );
+}
+
 export async function apiLpAdminCreateVaultFeeBuffer(
   accessToken: string,
   body: CreateVaultFeeBufferBody
 ): Promise<AdminResult> {
   return apiLpPost<AdminResult>("/admin/vault-fee-buffer/create", body, accessToken);
+}
+
+export async function apiLpAdminListVaultFeeBuffers(
+  accessToken: string,
+  chain: ChainKey,
+  limit = 50
+): Promise<AdminContractListResult> {
+  return apiLpGet<AdminContractListResult>(
+    `/admin/vault-fee-buffer?chain=${chain}&limit=${limit}`,
+    accessToken
+  );
 }
