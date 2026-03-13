@@ -727,3 +727,103 @@ export async function apiLpAdminSaveVaultFeeBufferDepositorState(
     accessToken
   );
 }
+
+export type AdminProtocolFeeDashboardTrackedToken = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  token_address: string;
+  label?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminProtocolFeeDashboardWithdrawal = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  tx_hash: string;
+  token_address: string;
+  token_symbol?: string | null;
+  amount_raw: string;
+  amount_label?: string | null;
+  destination: string;
+  status: "success" | "pending" | "failed";
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminProtocolFeeDashboardResult = AdminResult & {
+  data?: {
+    contract?: {
+      chain: string;
+      address: string;
+      status: string;
+      tx_hash?: string | null;
+      owner?: string | null;
+      treasury?: string | null;
+      protocol_fee_bps?: number | null;
+      created_at?: number | null;
+      created_at_iso?: string | null;
+      updated_at?: number | null;
+      updated_at_iso?: string | null;
+    } | null;
+    tracked_tokens: AdminProtocolFeeDashboardTrackedToken[];
+    withdrawals: AdminProtocolFeeDashboardWithdrawal[];
+  };
+};
+
+export type TrackProtocolFeeTokenBody = {
+  chain: string;
+  contract_address?: string | null;
+  token_address: string;
+  label?: string | null;
+};
+
+export type RecordProtocolFeeWithdrawalBody = {
+  chain: string;
+  contract_address?: string | null;
+  tx_hash: string;
+  token_address: string;
+  token_symbol?: string | null;
+  amount_raw: string;
+  amount_label?: string | null;
+  destination: string;
+  status: "success" | "pending" | "failed";
+};
+
+export async function apiLpAdminGetProtocolFeeDashboard(
+  accessToken: string,
+  chain: string
+): Promise<AdminProtocolFeeDashboardResult> {
+  return apiLpGet<AdminProtocolFeeDashboardResult>(
+    `/admin/protocol-fee-collector/dashboard?chain=${chain}`,
+    accessToken
+  );
+}
+
+export async function apiLpAdminTrackProtocolFeeToken(
+  accessToken: string,
+  body: TrackProtocolFeeTokenBody
+): Promise<AdminProtocolFeeDashboardResult> {
+  return apiLpPost<AdminProtocolFeeDashboardResult>(
+    "/admin/protocol-fee-collector/tracked-token",
+    body,
+    accessToken
+  );
+}
+
+export async function apiLpAdminRecordProtocolFeeWithdrawal(
+  accessToken: string,
+  body: RecordProtocolFeeWithdrawalBody
+): Promise<AdminProtocolFeeDashboardResult> {
+  return apiLpPost<AdminProtocolFeeDashboardResult>(
+    "/admin/protocol-fee-collector/withdrawal",
+    body,
+    accessToken
+  );
+}

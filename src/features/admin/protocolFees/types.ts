@@ -28,6 +28,12 @@ export type ProtocolFeeBalanceItem = {
   valueUsdLabel: string;
 
   updatedAtLabel: string;
+
+  decimals: number;
+  rawBalance: string;
+  exactBalance: string;
+  totalReportedRaw: string;
+  totalReportedLabel: string;
 };
 
 export type WithdrawStatus = "success" | "pending" | "failed";
@@ -43,6 +49,7 @@ export type ProtocolFeeWithdrawHistoryItem = {
   amountLabel: string;
 
   destinationShort: string;
+  destination: string;
 
   status: WithdrawStatus;
   timestampLabel: string;

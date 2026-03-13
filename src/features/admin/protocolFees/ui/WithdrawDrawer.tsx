@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AddressPill } from "@/presentation/components/AddressPill";
 import { Badge } from "@/presentation/components/Badge";
 import { Button } from "@/presentation/components/Button";
@@ -15,6 +15,8 @@ export function WithdrawDrawer({
   balances,
   selectedBalanceId,
   onSelectBalanceId,
+  onSubmit,
+  submitting = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -22,6 +24,8 @@ export function WithdrawDrawer({
   balances: ProtocolFeeBalanceItem[];
   selectedBalanceId: string;
   onSelectBalanceId: (id: string) => void;
+  onSubmit: (params: { balanceId: string; amount: string }) => Promise<void>;
+  submitting?: boolean;
 }) {
   const selected = useMemo(() => {
     return balances.find((b) => b.id === selectedBalanceId) ?? balances[0];
@@ -31,9 +35,17 @@ export function WithdrawDrawer({
   const [amount, setAmount] = useState<string>("");
   const [confirmText, setConfirmText] = useState<string>("");
 
+  useEffect(() => {
+    if (!open) {
+      setAssetMenuOpen(false);
+      setAmount("");
+      setConfirmText("");
+    }
+  }, [open]);
+
   const confirmOk = confirmText.trim().toUpperCase() === "CONFIRM";
   const amountOk = Number(amount) > 0;
-  const canSend = confirmOk && amountOk;
+  const canSend = confirmOk && amountOk && !!selected && !submitting;
 
   function closeAll() {
     setAssetMenuOpen(false);
@@ -153,13 +165,15 @@ export function WithdrawDrawer({
                   />
                   <button
                     type="button"
-                    onClick={() => setAmount(selected?.balanceLabel?.replaceAll(",", "") ?? "")}
+                    onClick={() => setAmount(selected?.exactBalance ?? "")}
                     className="rounded-md border border-cyan-500/20 bg-cyan-500/10 px-2 py-1 text-xs font-bold text-cyan-300 hover:bg-cyan-500/20 transition-colors"
                   >
                     MAX
                   </button>
                 </div>
-                <div className="mt-2 text-xs text-slate-500">≈ $0.00 USD</div>
+                <div className="mt-2 text-xs text-slate-500">
+                  {selected?.valueUsdLabel === "—" ? "No USD approximation" : `≈ ${selected?.valueUsdLabel}`}
+                </div>
               </div>
             </div>
 
@@ -179,14 +193,13 @@ export function WithdrawDrawer({
                       <AddressPill address={collector.treasuryAddress} />
                     </div>
                     <p className="mt-3 border-t border-slate-700 pt-3 text-[10px] text-slate-500">
-                      Funds will be sent to the configured treasury address. This address is managed by
-                      the Timelock controller.
+                      Funds will be sent to the currently configured treasury address.
                     </p>
                   </div>
 
                   <div className="ml-auto">
                     <Badge tone="green" className="text-[10px]">
-                      Verified
+                      Live
                     </Badge>
                   </div>
                 </div>
@@ -208,23 +221,25 @@ export function WithdrawDrawer({
 
           <div className="border-t border-slate-700 bg-slate-950 p-6">
             <div className="mb-4 flex items-center justify-between text-xs text-slate-400">
-              <span>Gas Estimate</span>
-              <span className="text-slate-200">~0.004 ETH ($12.50)</span>
+              <span>Execution</span>
+              <span className="text-slate-200">Wallet will estimate gas at signing time</span>
             </div>
 
             <Button
               variant="primary"
               className={cn("w-full justify-center", !canSend && "opacity-60")}
               disabled={!canSend}
-              onClick={() => {
-                // mock-only placeholder for now
-                // later: wire to onchain usecase / api
-                closeAll();
+              onClick={async () => {
+                if (!selected) return;
+                await onSubmit({
+                  balanceId: selected.id,
+                  amount,
+                });
                 setAmount("");
                 setConfirmText("");
               }}
             >
-              Send Transaction
+              {submitting ? "Submitting..." : "Send Transaction"}
             </Button>
           </div>
         </div>
