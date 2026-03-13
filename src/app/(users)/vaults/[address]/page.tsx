@@ -1,5 +1,11 @@
 import { VaultDetailsPage } from "@/features/user/vaultDetails/page";
 
-export default function Page({ params }: { params: { address: string } }) {
-  return <VaultDetailsPage address={params.address} />;
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ address: string }>;
+}) {
+  const { address } = await params;
+
+  return <VaultDetailsPage address={address} />;
 }

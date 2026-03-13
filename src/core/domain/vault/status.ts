@@ -1,9 +1,7 @@
-// src/domain/vault/status.ts
-
 export type PricesBlock = {
   tick: number;
-  p_t1_t0: number; // token1 per token0
-  p_t0_t1: number; // token0 per token1
+  p_t1_t0: number;
+  p_t0_t1: number;
 };
 
 export type PricesPanel = {
@@ -15,19 +13,27 @@ export type PricesPanel = {
 export type FeesUncollected = {
   token0: number;
   token1: number;
-  usd?: number; // opcional (você pode não ter ainda)
+  usd?: number | null;
 };
 
 export type HoldingsSide = {
   token0: number;
   token1: number;
-  usd?: number; // opcional
+  total_usd?: number | null;
 };
 
 export type HoldingsBlock = {
+  vault_idle: HoldingsSide;
+  in_position: HoldingsSide;
   totals: HoldingsSide;
-  vault_idle?: HoldingsSide;     // opcional (se o back ainda não envia)
-  in_position?: HoldingsSide;    // opcional
+  symbols: {
+    token0: string;
+    token1: string;
+  };
+  addresses: {
+    token0: string;
+    token1: string;
+  };
 };
 
 export type TokenMeta = {
@@ -36,35 +42,63 @@ export type TokenMeta = {
   decimals: number;
 };
 
+export type GaugeRewards = {
+  reward_token: string;
+  reward_symbol: string;
+  pending_raw: number;
+  pending_amount: number;
+  pending_usd_est?: number | null;
+};
+
+export type GaugeRewardBalances = {
+  token: string;
+  symbol: string;
+  decimals: number;
+  in_vault_raw: number;
+  in_vault: number;
+};
+
 export type VaultStatus = {
-  // identity / wiring
   vault: string;
-  pool: string;
+
+  owner: string;
+  executor: string;
   adapter: string;
-  nfpm: string | null;
-  gauge: string | null;
+  dex_router: string;
+  fee_collector: string;
+  strategy_id: number;
 
-  tick_spacing: string | null;
+  pool: string;
+  nfpm: string;
+  gauge: string;
 
-  // token meta
   token0: TokenMeta;
   token1: TokenMeta;
 
-  // prices + range
-  tick: number;
+  position_token_id: number;
+  liquidity: number;
   lower_tick: number;
   upper_tick: number;
-  range_side: "inside" | "below" | "above";
-  out_of_range: boolean;
+  tick_spacing: number;
 
+  tick: number;
+  sqrt_price_x96: number;
   prices: PricesPanel;
 
-  // fees + holdings
-  fees_uncollected: FeesUncollected;
-  holdings: HoldingsBlock;
+  out_of_range: boolean;
+  range_side: "inside" | "below" | "above";
 
-  // timestamps
+  holdings: HoldingsBlock;
+  fees_uncollected: FeesUncollected;
+
   last_rebalance_ts: number;
+
+  has_gauge: boolean;
+  staked: boolean;
+  position_location: "none" | "pool" | "gauge";
+
+  gauge_rewards: GaugeRewards;
+  gauge_reward_balances: GaugeRewardBalances;
 };
 
 export function isVaultStatus(x: any): x is VaultStatus {
@@ -72,13 +106,29 @@ export function isVaultStatus(x: any): x is VaultStatus {
     !!x &&
     typeof x === "object" &&
     typeof x.vault === "string" &&
+    typeof x.owner === "string" &&
+    typeof x.executor === "string" &&
+    typeof x.adapter === "string" &&
     typeof x.pool === "string" &&
+    typeof x.nfpm === "string" &&
+    typeof x.gauge === "string" &&
+    typeof x.strategy_id === "number" &&
+    typeof x.position_token_id === "number" &&
+    typeof x.liquidity === "number" &&
     typeof x.tick === "number" &&
     typeof x.lower_tick === "number" &&
     typeof x.upper_tick === "number" &&
+    typeof x.tick_spacing === "number" &&
+    typeof x.out_of_range === "boolean" &&
+    typeof x.range_side === "string" &&
     !!x.token0 &&
     typeof x.token0.symbol === "string" &&
     !!x.token1 &&
-    typeof x.token1.symbol === "string"
+    typeof x.token1.symbol === "string" &&
+    !!x.prices &&
+    !!x.holdings &&
+    !!x.fees_uncollected &&
+    !!x.gauge_rewards &&
+    !!x.gauge_reward_balances
   );
 }

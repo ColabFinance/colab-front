@@ -2,72 +2,147 @@
 
 import React from "react";
 import { Surface } from "@/presentation/components/Surface";
-import { VaultDetails, VaultRange, VaultTone } from "../types";
+import type { VaultStatus } from "@/core/domain/vault/status";
+import type { VaultDetails } from "@/core/domain/vault/types";
+import type { VaultFeeBufferBalances } from "@/core/domain/vault/feeBuffer";
+import type { VaultPerformanceData } from "../types";
 
-function usd(value: number, maxFractionDigits = 2) {
+type Props = {
+  status: VaultStatus | null;
+  details: VaultDetails | null;
+  performance: VaultPerformanceData | null;
+  feeBuffer: VaultFeeBufferBalances | null;
+  registry: Record<string, any>;
+  canManage: boolean;
+  onOpenConfig: () => void;
+};
+
+function usd(value?: number | null, fractionDigits = 2) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",
-    maximumFractionDigits: maxFractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value);
 }
 
-function num(value: number, maxFractionDigits = 8) {
+function num(value?: number | null, fractionDigits = 6) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
   return new Intl.NumberFormat("en-US", {
-    maximumFractionDigits: maxFractionDigits,
+    maximumFractionDigits: fractionDigits,
   }).format(value);
 }
 
-function shortAddress(value: string) {
+function percent(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+function ts(seconds?: number | null) {
+  if (!seconds) return "—";
+  return new Date(seconds * 1000).toLocaleString();
+}
+
+function msLabel(value?: number | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleString();
+}
+
+function shortAddress(value?: string | null) {
+  if (!value) return "—";
   return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }
 
-function toneClasses(tone?: VaultTone) {
-  if (tone === "green") return "text-green-300";
-  if (tone === "cyan") return "text-cyan-300";
-  if (tone === "blue") return "text-blue-300";
-  if (tone === "amber") return "text-amber-300";
-  if (tone === "red") return "text-red-300";
-  return "text-white";
-}
-
-function PositionBar({ range }: { range: VaultRange }) {
-  const currentPct = Math.min(Math.max((range.bandStartPct + range.bandEndPct) / 2, 0), 100);
-
-  return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-      <div className="relative h-16 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
-        <div className="absolute inset-x-6 top-1/2 h-2 -translate-y-1/2 rounded-full bg-slate-800" />
-        <div
-          className="absolute top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400"
-          style={{
-            left: `${range.bandStartPct}%`,
-            width: `${range.bandEndPct - range.bandStartPct}%`,
-          }}
-        />
-        <div
-          className="absolute top-1/2 -translate-y-1/2"
-          style={{ left: `${currentPct}%` }}
-        >
-          <div className="relative -translate-x-1/2">
-            <div className="h-4 w-4 rounded-full border-4 border-slate-900 bg-white" />
-            <div className="absolute left-1/2 top-6 -translate-x-1/2 whitespace-nowrap rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium text-white">
-              {usd(range.currentPrice, 4)}
-            </div>
-          </div>
+export function OverviewTab({
+  status,
+  details,
+  performance,
+  feeBuffer,
+  registry,
+  canManage,
+  onOpenConfig,
+}: Props) {
+  if (!status || !details) {
+    return (
+      <Surface variant="panel" className="p-6">
+        <div className="text-lg font-semibold text-white">Vault data unavailable</div>
+        <div className="mt-2 text-sm text-slate-400">
+          Status and details are required to render the live overview.
         </div>
-      </div>
-    </div>
-  );
-}
+      </Surface>
+    );
+  }
 
-export function OverviewTab({ data }: { data: VaultDetails }) {
-  const rangeStatus = data.range.outOfRange ? "Out of Range" : "Inside Range";
+  const performanceCurrent = performance?.current_value || {};
+  const performanceProfit = performance?.profit || {};
+  const performanceAnnual = performanceProfit.annualized || {};
+
+  const kpis = [
+    {
+      label: "Total Value",
+      value: usd(performanceCurrent.total_usd ?? status.holdings.totals.total_usd),
+      meta: "Current live value",
+      tone: "text-blue-300",
+    },
+    {
+      label: "In Position",
+      value: usd(
+        performanceCurrent.in_position_usd ?? status.holdings.in_position.total_usd,
+      ),
+      meta: "Active liquidity",
+      tone: "text-cyan-300",
+    },
+    {
+      label: "Vault Idle",
+      value: usd(
+        performanceCurrent.vault_idle_usd ?? status.holdings.vault_idle.total_usd,
+      ),
+      meta: "Idle inside vault",
+      tone: "text-white",
+    },
+    {
+      label: "Uncollected Fees",
+      value: usd(
+        performanceCurrent.fees_uncollected_usd ?? status.fees_uncollected.usd,
+        4,
+      ),
+      meta: "Pool fee estimate",
+      tone: "text-green-300",
+    },
+    {
+      label: "Pending Rewards",
+      value: usd(
+        performanceCurrent.rewards_pending_usd ??
+          status.gauge_rewards.pending_usd_est,
+        4,
+      ),
+      meta: status.has_gauge ? "Gauge reward estimate" : "No gauge",
+      tone: "text-amber-300",
+    },
+    {
+      label: "APR Annualized",
+      value: percent(performanceAnnual.apr),
+      meta: "Modified Dietz",
+      tone: "text-green-300",
+    },
+    {
+      label: "Range Status",
+      value: status.out_of_range ? "Out of Range" : "Inside Range",
+      meta: `Side: ${status.range_side}`,
+      tone: status.out_of_range ? "text-red-300" : "text-green-300",
+    },
+    {
+      label: "Last Rebalance",
+      value: ts(status.last_rebalance_ts),
+      meta: `Position #${status.position_token_id || 0}`,
+      tone: "text-white",
+    },
+  ];
 
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {data.overviewKpis.map((item) => (
+        {kpis.map((item) => (
           <Surface
             key={item.label}
             variant="panel"
@@ -76,255 +151,333 @@ export function OverviewTab({ data }: { data: VaultDetails }) {
             <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               {item.label}
             </div>
-            <div className={`mt-2 text-2xl font-semibold ${toneClasses(item.tone)}`}>
+            <div className={`mt-2 text-2xl font-semibold ${item.tone}`}>
               {item.value}
             </div>
-            {item.meta ? <div className="mt-1 text-xs text-slate-500">{item.meta}</div> : null}
+            <div className="mt-1 text-xs text-slate-500">{item.meta}</div>
           </Surface>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="space-y-6 lg:col-span-2">
-          <Surface variant="panel" className="border border-slate-800 bg-slate-900">
-            <div className="border-b border-slate-800 px-5 py-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-                Current Range / Position
-              </h3>
-            </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <Surface variant="panel" className="border border-slate-800 bg-slate-900">
+          <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
+              Pool Overview
+            </h3>
 
-            <div className="space-y-5 px-5 py-5">
-              <PositionBar range={data.range} />
+            {canManage ? (
+              <button
+                type="button"
+                onClick={onOpenConfig}
+                className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700"
+              >
+                Manage
+              </button>
+            ) : null}
+          </div>
+
+          <div className="space-y-6 px-5 py-5">
+            <section className="space-y-5">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Current range and position
+              </div>
+
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+                <div className="relative h-16 overflow-hidden rounded-lg border border-slate-800 bg-slate-900">
+                  <div className="absolute inset-x-6 top-1/2 h-2 -translate-y-1/2 rounded-full bg-slate-800" />
+                  <div className="absolute left-[12%] right-[12%] top-1/2 h-2 -translate-y-1/2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-400" />
+                  <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
+                    <div className="relative">
+                      <div className="h-4 w-4 rounded-full border-4 border-slate-900 bg-white" />
+                      <div className="absolute left-1/2 top-6 -translate-x-1/2 whitespace-nowrap rounded border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium text-white">
+                        {usd(status.prices.current.p_t1_t0, 6)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                  <div className="text-xs text-slate-500">Lower Price</div>
-                  <div className="mt-1 text-sm font-medium text-slate-200">
-                    {usd(data.range.lowerPrice, 8)}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
-                  <div className="text-xs text-cyan-300">Current Price</div>
-                  <div className="mt-1 text-base font-semibold text-white">
-                    {usd(data.range.currentPrice, 4)}
-                  </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                  <div className="text-xs text-slate-500">Upper Price</div>
-                  <div className="mt-1 text-sm font-medium text-slate-200">
-                    {usd(data.range.upperPrice, 4)}
-                  </div>
-                </div>
+                <ValueCard
+                  label="Lower Price"
+                  value={usd(status.prices.lower.p_t1_t0, 8)}
+                />
+                <ValueCard
+                  label="Current Price"
+                  value={usd(status.prices.current.p_t1_t0, 6)}
+                  highlight
+                />
+                <ValueCard
+                  label="Upper Price"
+                  value={usd(status.prices.upper.p_t1_t0, 6)}
+                />
               </div>
 
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                  <Row label="Current Tick" value={num(data.range.currentTick, 0)} />
-                  <Row label="Lower Tick" value={num(data.range.lowerTick, 0)} />
-                  <Row label="Upper Tick" value={num(data.range.upperTick, 0)} />
-                  <Row label="Last Rebalance" value={data.range.lastRebalanceLabel} />
-                </div>
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <InfoList
+                  items={[
+                    ["Current Tick", String(status.tick)],
+                    ["Lower Tick", String(status.lower_tick)],
+                    ["Upper Tick", String(status.upper_tick)],
+                    ["Tick Spacing", String(status.tick_spacing)],
+                    ["Pool", shortAddress(status.pool)],
+                    ["NFPM", shortAddress(status.nfpm)],
+                  ]}
+                />
 
-                <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                  <Row label="Range Status" value={rangeStatus} highlight={!data.range.outOfRange} />
-                  <Row label="Range Side" value={data.range.rangeSide} />
-                  <Row label="Position Location" value={data.range.positionLocation} />
-                  <Row label="Staked" value={data.range.staked ? "Yes" : "No"} />
-                </div>
+                <InfoList
+                  items={[
+                    ["Out of Range", status.out_of_range ? "Yes" : "No"],
+                    ["Range Side", status.range_side],
+                    ["Staked", status.staked ? "Yes" : "No"],
+                    ["Position Location", status.position_location],
+                    ["Gauge", shortAddress(status.gauge)],
+                    ["Last Rebalance", ts(status.last_rebalance_ts)],
+                  ]}
+                />
               </div>
-            </div>
-          </Surface>
+            </section>
 
-          <Surface variant="panel" className="border border-slate-800 bg-slate-900">
-            <div className="border-b border-slate-800 px-5 py-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-                Holdings Composition
-              </h3>
-            </div>
+            <div className="h-px bg-slate-800" />
 
-            <div className="space-y-5 px-5 py-5">
-              <HoldingBlock
-                title="Vault Idle"
-                totalUsd={data.holdings.vaultIdle.totalUsd}
-                token0Label={data.token0.symbol}
-                token0Value={data.holdings.vaultIdle.token0Amount}
-                token1Label={data.token1.symbol}
-                token1Value={data.holdings.vaultIdle.token1Amount}
-              />
-
-              <HoldingBlock
-                title="In Position"
-                totalUsd={data.holdings.inPosition.totalUsd}
-                token0Label={data.token0.symbol}
-                token0Value={data.holdings.inPosition.token0Amount}
-                token1Label={data.token1.symbol}
-                token1Value={data.holdings.inPosition.token1Amount}
-              />
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                <div className="flex items-end justify-between">
-                  <div className="text-sm font-semibold text-white">Total Holdings</div>
-                  <div className="text-lg font-semibold text-white">
-                    {usd(data.holdings.totals.totalUsd)}
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
-                  <Row
-                    label={`Total ${data.token0.symbol}`}
-                    value={num(data.holdings.totals.token0Amount, 8)}
-                  />
-                  <Row
-                    label={`Total ${data.token1.symbol}`}
-                    value={num(data.holdings.totals.token1Amount, 6)}
-                  />
-                </div>
+            <section className="space-y-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Holdings snapshot
               </div>
-            </div>
-          </Surface>
-        </div>
 
-        <div className="space-y-6">
-          <Surface variant="panel" className="border border-slate-800 bg-slate-900">
-            <div className="border-b border-slate-800 px-5 py-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-                Fees & Rewards
-              </h3>
-            </div>
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+                <HoldingSnapshotCard
+                  title="Vault Idle"
+                  totalUsd={status.holdings.vault_idle.total_usd}
+                  token0Label={status.token0.symbol}
+                  token0Value={status.holdings.vault_idle.token0}
+                  token1Label={status.token1.symbol}
+                  token1Value={status.holdings.vault_idle.token1}
+                />
 
+                <HoldingSnapshotCard
+                  title="In Position"
+                  totalUsd={status.holdings.in_position.total_usd}
+                  token0Label={status.token0.symbol}
+                  token0Value={status.holdings.in_position.token0}
+                  token1Label={status.token1.symbol}
+                  token1Value={status.holdings.in_position.token1}
+                  tone="cyan"
+                />
+
+                <HoldingSnapshotCard
+                  title="Total Holdings"
+                  totalUsd={status.holdings.totals.total_usd}
+                  token0Label={status.token0.symbol}
+                  token0Value={status.holdings.totals.token0}
+                  token1Label={status.token1.symbol}
+                  token1Value={status.holdings.totals.token1}
+                />
+              </div>
+            </section>
+
+            <div className="h-px bg-slate-800" />
+
+            <section className="space-y-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Fees and rewards
+              </div>
+
+              <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <TokenAmountCard
+                  symbol={status.token0.symbol}
+                  label={`${status.token0.symbol} Uncollected`}
+                  value={num(status.fees_uncollected.token0)}
+                  meta="Pending pool fees"
+                />
+                <TokenAmountCard
+                  symbol={status.token1.symbol}
+                  label={`${status.token1.symbol} Uncollected`}
+                  value={num(status.fees_uncollected.token1)}
+                  meta="Pending pool fees"
+                />
+                <TokenAmountCard
+                  symbol={status.gauge_rewards.reward_symbol}
+                  label="Pending Reward"
+                  value={num(status.gauge_rewards.pending_amount)}
+                  meta={usd(status.gauge_rewards.pending_usd_est, 4)}
+                  tone="cyan"
+                />
+                <TokenAmountCard
+                  symbol={status.gauge_reward_balances.symbol}
+                  label="Reward In Vault"
+                  value={num(status.gauge_reward_balances.in_vault)}
+                  meta="Current reward token balance"
+                />
+              </div>
+            </section>
+
+            <div className="h-px bg-slate-800" />
+
+            <section className="space-y-4">
+              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Contract and configuration
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                <InfoList
+                  items={[
+                    ["Owner", shortAddress(details.owner)],
+                    ["Executor", shortAddress(details.executor)],
+                    ["Adapter", shortAddress(details.adapter)],
+                    ["DEX Router", shortAddress(details.dexRouter)],
+                    ["Fee Collector", shortAddress(details.feeCollector)],
+                    ["Strategy ID", String(details.strategyId)],
+                    ["Registry Version", String(registry.config?.version || "—")],
+                  ]}
+                />
+
+                <InfoList
+                  items={[
+                    ["Automation Enabled", details.automationEnabled ? "Yes" : "No"],
+                    ["Cooldown (sec)", String(details.cooldownSec)],
+                    ["Max Slippage (bps)", String(details.maxSlippageBps)],
+                    ["Allow Swap", details.allowSwap ? "Yes" : "No"],
+                    ["Daily Harvest", details.dailyHarvestEnabled ? "Enabled" : "Disabled"],
+                    ["Daily Harvest Cooldown", String(details.dailyHarvestCooldownSec || 0)],
+                    ["Compound", details.compoundEnabled ? "Enabled" : "Disabled"],
+                    ["Compound Cooldown", String(details.compoundCooldownSec || 0)],
+                    ["Reward Swap", details.rewardSwap.enabled ? "Enabled" : "Disabled"],
+                    ["Reward tokenIn", shortAddress(details.rewardSwap.tokenIn)],
+                    ["Reward tokenOut", shortAddress(details.rewardSwap.tokenOut)],
+                    ["Reward fee", String(details.rewardSwap.fee)],
+                  ]}
+                />
+              </div>
+            </section>
+          </div>
+        </Surface>
+
+        <Surface variant="panel" className="border border-slate-800 bg-slate-900">
+          <div className="border-b border-slate-800 px-5 py-4">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
+              Fee Buffer
+            </h3>
+          </div>
+
+          {feeBuffer ? (
             <div className="space-y-3 px-5 py-5">
-              <TokenAmountCard
-                symbol={data.token0.symbol}
-                label={`${data.token0.symbol} Uncollected`}
-                value={num(data.feesRewards.uncollectedToken0, 8)}
-                meta="Pending fees"
-              />
-              <TokenAmountCard
-                symbol={data.token1.symbol}
-                label={`${data.token1.symbol} Uncollected`}
-                value={num(data.feesRewards.uncollectedToken1, 6)}
-                meta="Pending fees"
-              />
-              <TokenAmountCard
-                symbol={data.feesRewards.rewardSymbol}
-                label="Pending Reward"
-                value={`${num(data.feesRewards.pendingRewardAmount, 8)} ${data.feesRewards.rewardSymbol}`}
-                meta={usd(data.feesRewards.pendingRewardUsd, 4)}
-                tone="cyan"
-              />
-
-              <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4">
-                <Row
-                  label="Uncollected Fees (USD)"
-                  value={usd(data.feesRewards.uncollectedUsd, 4)}
-                />
-                <div className="mt-2" />
-                <Row
-                  label="Reward Balance In Vault"
-                  value={`${num(data.feesRewards.inVaultRewardAmount, 8)} ${data.feesRewards.rewardSymbol}`}
-                />
-              </div>
-            </div>
-          </Surface>
-
-          <Surface variant="panel" className="border border-slate-800 bg-slate-900">
-            <div className="border-b border-slate-800 px-5 py-4">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-                Configuration
-              </h3>
-            </div>
-
-            <div className="space-y-2 px-5 py-5">
-              <Row label="Owner" value={shortAddress(data.configuration.ownerAddress)} mono />
-              <Row label="Executor" value={shortAddress(data.configuration.executorAddress)} mono />
-              <Row label="Adapter" value={shortAddress(data.configuration.adapterAddress)} mono />
-              <Row label="DEX Router" value={shortAddress(data.configuration.dexRouterAddress)} mono />
-              <Row label="Fee Collector" value={shortAddress(data.configuration.feeCollectorAddress)} mono />
-              <Row label="Pool" value={shortAddress(data.configuration.poolAddress)} mono />
-              <Row label="NFPM" value={shortAddress(data.configuration.nfpmAddress)} mono />
-              <Row
-                label="Gauge"
-                value={data.configuration.gaugeAddress ? shortAddress(data.configuration.gaugeAddress) : "—"}
-                mono
-              />
+              <Row label="Fee Buffer Address" value={shortAddress(feeBuffer.feeBufferAddress)} />
+              <Row label="Fetched At" value={msLabel(feeBuffer.fetchedAtMs)} />
               <div className="my-3 h-px bg-slate-800" />
-              <Row label="Strategy ID" value={String(data.configuration.strategyId)} mono />
-              <Row label="Version" value={data.configuration.version} mono />
-              <Row
-                label="Status"
-                value={data.configuration.isActive ? "Active" : "Inactive"}
-                highlight={data.configuration.isActive}
+
+              <FeeBufferTokenCard
+                symbol={feeBuffer.token0.symbol}
+                address={feeBuffer.token0.address}
+                formatted={feeBuffer.token0.formatted}
               />
+
+              <FeeBufferTokenCard
+                symbol={feeBuffer.token1.symbol}
+                address={feeBuffer.token1.address}
+                formatted={feeBuffer.token1.formatted}
+              />
+
+              {feeBuffer.reward ? (
+                <FeeBufferTokenCard
+                  symbol={feeBuffer.reward.symbol}
+                  address={feeBuffer.reward.address}
+                  formatted={feeBuffer.reward.formatted}
+                  tone="cyan"
+                />
+              ) : null}
             </div>
-          </Surface>
-        </div>
+          ) : (
+            <div className="px-5 py-5 text-sm text-slate-400">
+              Fee buffer data unavailable for this vault.
+            </div>
+          )}
+        </Surface>
       </div>
     </div>
   );
 }
 
-function Row({
+function ValueCard({
   label,
   value,
-  mono = false,
   highlight = false,
 }: {
   label: string;
   value: string;
-  mono?: boolean;
   highlight?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <span className="text-xs text-slate-500">{label}</span>
-      <span
-        className={[
-          "text-sm",
-          mono ? "font-mono" : "font-medium",
-          highlight ? "text-green-300" : "text-slate-200",
-        ].join(" ")}
-      >
-        {value}
-      </span>
+    <div
+      className={`rounded-xl border p-4 ${
+        highlight
+          ? "border-cyan-500/20 bg-cyan-500/5"
+          : "border-slate-800 bg-slate-950/60"
+      }`}
+    >
+      <div className={`text-xs ${highlight ? "text-cyan-300" : "text-slate-500"}`}>
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-medium text-white">{value}</div>
     </div>
   );
 }
 
-function HoldingBlock({
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-center justify-between gap-4">
+      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-right text-sm font-medium text-slate-200">{value}</span>
+    </div>
+  );
+}
+
+function InfoList({ items }: { items: Array<[string, string]> }) {
+  return (
+    <div className="space-y-2 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+      {items.map(([label, value]) => (
+        <Row key={label} label={label} value={value} />
+      ))}
+    </div>
+  );
+}
+
+function HoldingSnapshotCard({
   title,
   totalUsd,
   token0Label,
   token0Value,
   token1Label,
   token1Value,
+  tone = "slate",
 }: {
   title: string;
-  totalUsd: number;
+  totalUsd?: number | null;
   token0Label: string;
-  token0Value: number;
+  token0Value?: number | null;
   token1Label: string;
-  token1Value: number;
+  token1Value?: number | null;
+  tone?: "slate" | "cyan";
 }) {
+  const palette =
+    tone === "cyan"
+      ? "border-cyan-500/20 bg-cyan-500/5"
+      : "border-slate-800 bg-slate-950/60";
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-end justify-between">
-        <div className="text-sm font-medium text-slate-300">{title}</div>
-        <div className="text-sm font-mono text-white">{usd(totalUsd)}</div>
+    <div className={`rounded-xl border p-4 ${palette}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div className="text-sm font-semibold text-white">{title}</div>
+        <div className="text-right">
+          <div className="text-lg font-semibold text-white">{usd(totalUsd)}</div>
+          <div className="text-[11px] text-slate-500">USD value</div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 rounded-xl border border-slate-800 bg-slate-950/70 p-4 md:grid-cols-2">
-        <TokenAmountCard
-          symbol={token0Label}
-          label={`${token0Label} Amount`}
-          value={num(token0Value, 8)}
-        />
-        <TokenAmountCard
-          symbol={token1Label}
-          label={`${token1Label} Amount`}
-          value={num(token1Value, 6)}
-        />
+      <div className="mt-4 space-y-2">
+        <Row label={token0Label} value={num(token0Value)} />
+        <Row label={token1Label} value={num(token1Value)} />
       </div>
     </div>
   );
@@ -341,12 +494,12 @@ function TokenAmountCard({
   label: string;
   value: string;
   meta?: string;
-  tone?: VaultTone;
+  tone?: "slate" | "cyan";
 }) {
   const palette =
     tone === "cyan"
       ? "border-cyan-500/20 bg-cyan-500/5 text-cyan-300"
-      : "border-slate-800 bg-slate-900 text-slate-200";
+      : "border-slate-800 bg-slate-950/60 text-slate-200";
 
   return (
     <div className={`flex items-center justify-between rounded-xl border p-3 ${palette}`}>
@@ -361,6 +514,39 @@ function TokenAmountCard({
       </div>
 
       <div className="text-right text-sm font-mono text-white">{value}</div>
+    </div>
+  );
+}
+
+function FeeBufferTokenCard({
+  symbol,
+  address,
+  formatted,
+  tone = "slate",
+}: {
+  symbol: string;
+  address: string;
+  formatted: string;
+  tone?: "slate" | "cyan";
+}) {
+  const palette =
+    tone === "cyan"
+      ? "border-cyan-500/20 bg-cyan-500/5"
+      : "border-slate-800 bg-slate-950/60";
+
+  return (
+    <div className={`rounded-xl border p-4 ${palette}`}>
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm font-medium text-white">{symbol}</div>
+          <div className="mt-1 text-xs text-slate-500">{shortAddress(address)}</div>
+        </div>
+
+        <div className="text-right">
+          <div className="text-sm font-mono text-white">{formatted}</div>
+          <div className="mt-1 text-[11px] text-slate-500">Available in buffer</div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,39 +1,107 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Surface } from "@/presentation/components/Surface";
-import { PerformanceSummaryCard, VaultEpisode, VaultTone } from "../types";
+import type { VaultPerformanceData, VaultPerformanceEpisode } from "../types";
 import { DrawerShell } from "./DrawerShell";
 
-function toneClasses(tone?: VaultTone) {
-  if (tone === "green") return "text-green-300";
-  if (tone === "cyan") return "text-cyan-300";
-  if (tone === "blue") return "text-blue-300";
-  if (tone === "amber") return "text-amber-300";
-  if (tone === "red") return "text-red-300";
-  return "text-white";
-}
-
 type Props = {
-  summary: PerformanceSummaryCard[];
-  episodes: VaultEpisode[];
-  selectedEpisode: VaultEpisode | null;
-  onOpenEpisode: (id: string) => void;
-  onCloseEpisode: () => void;
+  performance: VaultPerformanceData | null;
 };
 
-export function PerformanceTab({
-  summary,
-  episodes,
-  selectedEpisode,
-  onOpenEpisode,
-  onCloseEpisode,
-}: Props) {
-  const [showExecutionLog, setShowExecutionLog] = useState(false);
+function usd(value?: number | null, fractionDigits = 2) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+}
 
-  useEffect(() => {
-    setShowExecutionLog(false);
-  }, [selectedEpisode?.id]);
+function percent(value?: number | null) {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  return `${(value * 100).toFixed(2)}%`;
+}
+
+function dateLabel(value?: string | null, ms?: number | null) {
+  if (value) return value;
+  if (!ms) return "—";
+  return new Date(ms).toLocaleString();
+}
+
+function metricValue(metrics: Record<string, any> | null | undefined, key: string) {
+  if (!metrics || metrics[key] === undefined || metrics[key] === null) return "—";
+  const value = metrics[key];
+  if (typeof value === "number") return String(value);
+  return JSON.stringify(value);
+}
+
+export function PerformanceTab({ performance }: Props) {
+  const [selectedEpisode, setSelectedEpisode] = useState<VaultPerformanceEpisode | null>(null);
+
+  const summary = useMemo(() => {
+    const cashflows = performance?.cashflows_totals || {};
+    const current = performance?.current_value || {};
+    const profit = performance?.profit || {};
+    const annual = profit.annualized || {};
+    const gas = performance?.gas_costs || {};
+
+    return [
+      {
+        label: "Deposited",
+        value: usd(cashflows.deposited_usd),
+        meta: "User deposits",
+      },
+      {
+        label: "Withdrawn",
+        value: usd(cashflows.withdrawn_usd),
+        meta: "User withdrawals",
+      },
+      {
+        label: "Net Contributed",
+        value: usd(cashflows.net_contributed_usd),
+        meta: "withdrawn - deposited",
+      },
+      {
+        label: "Current Value",
+        value: usd(current.total_usd),
+        meta: current.source || "unknown",
+      },
+      {
+        label: "Profit",
+        value: usd(profit.profit_usd),
+        meta: percent(profit.profit_pct),
+      },
+      {
+        label: "Profit Net Gas",
+        value: usd(profit.profit_net_gas_usd),
+        meta: percent(profit.profit_net_gas_pct),
+      },
+      {
+        label: "APR",
+        value: percent(annual.apr),
+        meta: annual.days ? `${annual.days.toFixed(2)} days` : "—",
+      },
+      {
+        label: "APY",
+        value: percent(annual.apy_daily_compound),
+        meta: `${gas.tx_count || 0} gas-tracked txs`,
+      },
+    ];
+  }, [performance]);
+
+  if (!performance) {
+    return (
+      <Surface variant="panel" className="p-6">
+        <div className="text-lg font-semibold text-white">Performance unavailable</div>
+        <div className="mt-2 text-sm text-slate-400">
+          No performance payload was returned for this vault.
+        </div>
+      </Surface>
+    );
+  }
+
+  const episodes = performance.episodes?.items || [];
 
   return (
     <div className="space-y-6">
@@ -47,86 +115,83 @@ export function PerformanceTab({
             <div className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
               {item.label}
             </div>
-            <div className={`mt-2 text-2xl font-semibold ${toneClasses(item.tone)}`}>
-              {item.value}
-            </div>
-            {item.meta ? <div className="mt-1 text-xs text-slate-500">{item.meta}</div> : null}
+            <div className="mt-2 text-2xl font-semibold text-white">{item.value}</div>
+            <div className="mt-1 text-xs text-slate-500">{item.meta}</div>
           </Surface>
         ))}
       </div>
 
-      <Surface variant="panel" className="border border-slate-800 bg-slate-900">
-        <div className="flex items-center justify-between border-b border-slate-800 px-5 py-4">
-          <div>
-            <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-              Episodes
-            </h3>
-            <p className="mt-1 text-xs text-slate-500">
-              Position lifecycle windows with fees, APR and close reasons.
-            </p>
-          </div>
+      <Surface variant="panel" className="border border-slate-800 bg-slate-900 overflow-hidden">
+        <div className="border-b border-slate-800 px-5 py-4">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
+            Episodes
+          </h3>
         </div>
 
-        <div className="overflow-x-auto">
+        <div className="h-[calc(100vh-23rem)] min-h-[360px] max-h-[72vh] overflow-auto">
           <table className="min-w-[1100px] w-full text-sm">
-            <thead className="bg-slate-950/70 text-left text-xs uppercase tracking-wide text-slate-500">
+            <thead className="sticky top-0 z-10 bg-slate-950 text-left text-xs uppercase tracking-wide text-slate-500">
               <tr>
-                <th className="px-5 py-3">Episode ID</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3">Open Time</th>
                 <th className="px-5 py-3">Close Time</th>
                 <th className="px-5 py-3">Open Price</th>
                 <th className="px-5 py-3">Close Price</th>
-                <th className="px-5 py-3">Range</th>
+                <th className="px-5 py-3">Pa</th>
+                <th className="px-5 py-3">Pb</th>
                 <th className="px-5 py-3">Pool Type</th>
-                <th className="px-5 py-3">Fees</th>
-                <th className="px-5 py-3">APR</th>
-                <th className="px-5 py-3">Total Value</th>
+                <th className="px-5 py-3">Mode</th>
+                <th className="px-5 py-3">Totals USD</th>
+                <th className="px-5 py-3">Fees This Episode</th>
                 <th className="px-5 py-3">Close Reason</th>
                 <th className="px-5 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {episodes.map((episode) => (
-                <tr
-                  key={episode.id}
-                  className="border-t border-slate-800 text-slate-300 transition hover:bg-slate-950/40"
-                >
-                  <td className="px-5 py-4 font-mono text-xs text-slate-300">
-                    {episode.id}
-                  </td>
-                  <td className="px-5 py-4">
-                    <span
-                      className={`rounded-full border px-2 py-1 text-[11px] font-medium ${
-                        episode.status === "OPEN"
-                          ? "border-cyan-500/20 bg-cyan-500/10 text-cyan-300"
-                          : "border-slate-700 bg-slate-800 text-slate-200"
-                      }`}
-                    >
-                      {episode.status}
-                    </span>
-                  </td>
-                  <td className="px-5 py-4">{episode.openTimeLabel}</td>
-                  <td className="px-5 py-4">{episode.closeTimeLabel ?? "—"}</td>
-                  <td className="px-5 py-4 font-mono">{episode.openPrice}</td>
-                  <td className="px-5 py-4 font-mono">{episode.closePrice ?? "—"}</td>
-                  <td className="px-5 py-4 text-xs">{episode.rangeLabel}</td>
-                  <td className="px-5 py-4">{episode.poolType}</td>
-                  <td className="px-5 py-4">{episode.feesUsd}</td>
-                  <td className="px-5 py-4">{episode.aprAnnualized}</td>
-                  <td className="px-5 py-4">{episode.totalValueUsd}</td>
-                  <td className="px-5 py-4">{episode.closeReason ?? "—"}</td>
-                  <td className="px-5 py-4">
-                    <button
-                      type="button"
-                      onClick={() => onOpenEpisode(episode.id)}
-                      className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700"
-                    >
-                      Details
-                    </button>
+              {episodes.length === 0 ? (
+                <tr>
+                  <td colSpan={13} className="px-5 py-12 text-center text-slate-500">
+                    No episodes returned.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                episodes.map((episode, index) => (
+                  <tr
+                    key={episode.id || `${episode.open_time}-${index}`}
+                    className="border-t border-slate-800 text-slate-300 transition hover:bg-slate-950/40"
+                  >
+                    <td className="px-5 py-4">
+                      <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-200">
+                        {episode.status}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">{dateLabel(episode.open_time_iso, episode.open_time)}</td>
+                    <td className="px-5 py-4">{dateLabel(episode.close_time_iso, episode.close_time)}</td>
+                    <td className="px-5 py-4">{episode.open_price ?? "—"}</td>
+                    <td className="px-5 py-4">{episode.close_price ?? "—"}</td>
+                    <td className="px-5 py-4">{episode.Pa ?? "—"}</td>
+                    <td className="px-5 py-4">{episode.Pb ?? "—"}</td>
+                    <td className="px-5 py-4">{episode.pool_type || "—"}</td>
+                    <td className="px-5 py-4">{episode.mode_on_open || "—"}</td>
+                    <td className="px-5 py-4">{metricValue(episode.metrics, "totals_usd")}</td>
+                    <td className="px-5 py-4">
+                      {metricValue(episode.metrics, "fees_this_episode_usd")}
+                    </td>
+                    <td className="px-5 py-4">
+                      {metricValue(episode.metrics, "close_reason")}
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedEpisode(episode)}
+                        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700"
+                      >
+                        Details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -134,14 +199,14 @@ export function PerformanceTab({
 
       <DrawerShell
         open={Boolean(selectedEpisode)}
-        onClose={onCloseEpisode}
+        onClose={() => setSelectedEpisode(null)}
         title="Episode details"
-        subtitle={selectedEpisode ? selectedEpisode.id : undefined}
+        subtitle={selectedEpisode?.id || "Episode"}
         footer={
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={onCloseEpisode}
+              onClick={() => setSelectedEpisode(null)}
               className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700"
             >
               Close
@@ -153,73 +218,24 @@ export function PerformanceTab({
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Metric label="Status" value={selectedEpisode.status} />
-              <Metric label="Pool Type" value={selectedEpisode.poolType} />
-              <Metric label="Mode on Open" value={selectedEpisode.modeOnOpen} />
-              <Metric label="Majority on Open" value={selectedEpisode.majorityOnOpen} />
-              <Metric label="Open Time" value={selectedEpisode.openTimeLabel} />
-              <Metric label="Close Time" value={selectedEpisode.closeTimeLabel ?? "—"} />
-              <Metric label="Open Price" value={selectedEpisode.openPrice} mono />
-              <Metric label="Close Price" value={selectedEpisode.closePrice ?? "—"} mono />
-              <Metric label="Range" value={selectedEpisode.rangeLabel} />
-              <Metric label="Close Reason" value={selectedEpisode.closeReason ?? "—"} />
-              <Metric label="Fees" value={selectedEpisode.feesUsd} />
-              <Metric label="APR Annualized" value={selectedEpisode.aprAnnualized} />
-              <Metric label="Total Value" value={selectedEpisode.totalValueUsd} />
-              <Metric label="Candles" value={String(selectedEpisode.candleCount)} mono />
-              <Metric
-                label="Out of Range Candles"
-                value={String(selectedEpisode.outOfRangeCandles)}
-                mono
-              />
+              <Metric label="Open Time" value={dateLabel(selectedEpisode.open_time_iso, selectedEpisode.open_time)} />
+              <Metric label="Close Time" value={dateLabel(selectedEpisode.close_time_iso, selectedEpisode.close_time)} />
+              <Metric label="Open Price" value={String(selectedEpisode.open_price ?? "—")} />
+              <Metric label="Close Price" value={String(selectedEpisode.close_price ?? "—")} />
+              <Metric label="Pa" value={String(selectedEpisode.Pa ?? "—")} />
+              <Metric label="Pb" value={String(selectedEpisode.Pb ?? "—")} />
+              <Metric label="Pool Type" value={selectedEpisode.pool_type || "—"} />
+              <Metric label="Mode On Open" value={selectedEpisode.mode_on_open || "—"} />
+              <Metric label="Majority On Open" value={selectedEpisode.majority_on_open || "—"} />
+              <Metric label="Last Event Bar" value={String(selectedEpisode.last_event_bar ?? "—")} />
+              <Metric label="Close Reason" value={metricValue(selectedEpisode.metrics, "close_reason")} />
             </div>
 
-            <div className="rounded-xl border border-slate-800 bg-slate-950/60">
-              <button
-                type="button"
-                onClick={() => setShowExecutionLog((current) => !current)}
-                className="flex w-full items-center justify-between px-4 py-4 text-left text-sm font-semibold text-white"
-              >
-                <span>Technical execution timeline</span>
-                <span className="text-xs text-slate-500">
-                  {showExecutionLog ? "Hide" : "Show"}
-                </span>
-              </button>
-
-              {showExecutionLog ? (
-                <div className="space-y-3 border-t border-slate-800 px-4 py-4">
-                  {selectedEpisode.executionSteps.map((step) => (
-                    <div
-                      key={step.id}
-                      className="rounded-xl border border-slate-800 bg-slate-900/70 p-4"
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <div className="text-sm font-medium text-white">
-                            {step.phase} · {step.step}
-                          </div>
-                          <div className="mt-1 text-xs text-slate-500">
-                            {step.tsLabel} · attempt {step.attempt}
-                          </div>
-                        </div>
-
-                        {step.gasLabel ? (
-                          <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] text-slate-300">
-                            {step.gasLabel}
-                          </span>
-                        ) : null}
-                      </div>
-
-                      <p className="mt-3 text-sm text-slate-300">{step.summary}</p>
-
-                      {step.txHash ? (
-                        <div className="mt-3 rounded-lg border border-slate-800 bg-slate-950/70 px-3 py-2 text-xs font-mono text-slate-300">
-                          {step.txHash}
-                        </div>
-                      ) : null}
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+              <div className="text-sm font-semibold text-white">Metrics</div>
+              <pre className="mt-4 overflow-x-auto rounded-lg border border-slate-800 bg-slate-900 p-4 text-xs text-slate-300">
+                {JSON.stringify(selectedEpisode.metrics || {}, null, 2)}
+              </pre>
             </div>
           </div>
         ) : null}
@@ -228,21 +244,11 @@ export function PerformanceTab({
   );
 }
 
-function Metric({
-  label,
-  value,
-  mono = false,
-}: {
-  label: string;
-  value: string;
-  mono?: boolean;
-}) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
       <div className="text-xs uppercase tracking-wide text-slate-500">{label}</div>
-      <div className={`mt-2 text-sm text-slate-200 ${mono ? "font-mono" : "font-medium"}`}>
-        {value}
-      </div>
+      <div className="mt-2 text-sm font-medium text-slate-200">{value}</div>
     </div>
   );
 }

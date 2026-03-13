@@ -9,7 +9,7 @@ export type RewardSwapDetails = {
 export type VaultDetails = {
   address: string;
   dex?: string;
-  
+
   owner: string;
   executor: string;
   adapter: string;
@@ -35,8 +35,8 @@ export type VaultDetails = {
 
   rewardSwap: RewardSwapDetails;
 
-  positionTokenId: string; // big number -> string
-  lastRebalanceTs: number; // unix seconds
+  positionTokenId: string;
+  lastRebalanceTs: number;
 };
 
 export type TxRunResponse = {

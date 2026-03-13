@@ -1,19 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Surface } from "@/presentation/components/Surface";
-import { VaultEvent, VaultEventType } from "../types";
+import type { VaultUserEvent } from "@/core/domain/vault/events";
 import { DrawerShell } from "./DrawerShell";
 
-type EventTypeFilter = "all" | VaultEventType;
-
 type Props = {
-  events: VaultEvent[];
-  selectedEvent: VaultEvent | null;
-  onOpenEvent: (id: string) => void;
-  onCloseEvent: () => void;
-  eventTypeFilter: EventTypeFilter;
-  setEventTypeFilter: (next: EventTypeFilter) => void;
+  events: VaultUserEvent[];
+  eventTypeFilter: "all" | "deposit" | "withdraw";
+  setEventTypeFilter: (next: "all" | "deposit" | "withdraw") => void;
   eventSearch: string;
   setEventSearch: (next: string) => void;
   eventTokenFilter: string;
@@ -25,11 +20,12 @@ type Props = {
   availableEventTokens: string[];
 };
 
+function shortHash(value: string) {
+  return `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
 export function EventsTab({
   events,
-  selectedEvent,
-  onOpenEvent,
-  onCloseEvent,
   eventTypeFilter,
   setEventTypeFilter,
   eventSearch,
@@ -42,6 +38,8 @@ export function EventsTab({
   setEventToDate,
   availableEventTokens,
 }: Props) {
+  const [selectedEvent, setSelectedEvent] = useState<VaultUserEvent | null>(null);
+
   return (
     <div className="space-y-6">
       <Surface variant="panel" className="border border-slate-800 bg-slate-900 p-5">
@@ -50,15 +48,14 @@ export function EventsTab({
             <label className="text-xs uppercase tracking-wide text-slate-500">Event type</label>
             <select
               value={eventTypeFilter}
-              onChange={(event) => setEventTypeFilter(event.target.value as EventTypeFilter)}
+              onChange={(event) =>
+                setEventTypeFilter(event.target.value as "all" | "deposit" | "withdraw")
+              }
               className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-slate-200 outline-none transition focus:border-cyan-500"
             >
               <option value="all">All</option>
               <option value="deposit">Deposit</option>
               <option value="withdraw">Withdraw</option>
-              <option value="claim">Claim</option>
-              <option value="rebalance">Rebalance</option>
-              <option value="collect">Collect</option>
             </select>
           </div>
 
@@ -113,7 +110,7 @@ export function EventsTab({
       <Surface variant="panel" className="border border-slate-800 bg-slate-900">
         <div className="border-b border-slate-800 px-5 py-4">
           <h3 className="text-sm font-semibold uppercase tracking-wide text-white">
-            Event feed
+            User event feed
           </h3>
         </div>
 
@@ -124,7 +121,6 @@ export function EventsTab({
                 <th className="px-5 py-3">Type</th>
                 <th className="px-5 py-3">Timestamp</th>
                 <th className="px-5 py-3">Tx Hash</th>
-                <th className="px-5 py-3">Block</th>
                 <th className="px-5 py-3">Owner</th>
                 <th className="px-5 py-3">Token</th>
                 <th className="px-5 py-3">Amount</th>
@@ -135,7 +131,7 @@ export function EventsTab({
             <tbody>
               {events.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-5 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-5 py-12 text-center text-slate-500">
                     No events match the current filters.
                   </td>
                 </tr>
@@ -147,19 +143,22 @@ export function EventsTab({
                   >
                     <td className="px-5 py-4">
                       <span className="rounded-full border border-slate-700 bg-slate-800 px-2 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-200">
-                        {event.type}
+                        {event.event_type}
                       </span>
                     </td>
-                    <td className="px-5 py-4">{event.timestampLabel}</td>
-                    <td className="px-5 py-4 font-mono text-xs">{shortHash(event.txHash)}</td>
-                    <td className="px-5 py-4">{event.blockNumber}</td>
-                    <td className="px-5 py-4 font-mono text-xs">{shortHash(event.owner)}</td>
-                    <td className="px-5 py-4">{event.tokenSymbol ?? "—"}</td>
-                    <td className="px-5 py-4">{event.amountHuman ?? "—"}</td>
+                    <td className="px-5 py-4">{event.ts_iso}</td>
+                    <td className="px-5 py-4 font-mono text-xs">{shortHash(event.tx_hash)}</td>
+                    <td className="px-5 py-4 font-mono text-xs">
+                      {event.owner ? shortHash(event.owner) : "—"}
+                    </td>
+                    <td className="px-5 py-4">
+                      {event.token || event.transfers?.[0]?.symbol || "—"}
+                    </td>
+                    <td className="px-5 py-4">{event.amount_human || "—"}</td>
                     <td className="px-5 py-4">
                       <button
                         type="button"
-                        onClick={() => onOpenEvent(event.id)}
+                        onClick={() => setSelectedEvent(event)}
                         className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700"
                       >
                         Details
@@ -175,14 +174,14 @@ export function EventsTab({
 
       <DrawerShell
         open={Boolean(selectedEvent)}
-        onClose={onCloseEvent}
+        onClose={() => setSelectedEvent(null)}
         title="Event details"
-        subtitle={selectedEvent ? `${selectedEvent.type} • ${selectedEvent.timestampLabel}` : undefined}
+        subtitle={selectedEvent ? `${selectedEvent.event_type} • ${selectedEvent.ts_iso}` : undefined}
         footer={
           <div className="flex justify-end">
             <button
               type="button"
-              onClick={onCloseEvent}
+              onClick={() => setSelectedEvent(null)}
               className="rounded-lg border border-slate-700 bg-slate-800 px-4 py-2.5 text-sm font-medium text-slate-200 transition hover:border-slate-600 hover:bg-slate-700"
             >
               Close
@@ -193,14 +192,14 @@ export function EventsTab({
         {selectedEvent ? (
           <div className="space-y-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Metric label="Type" value={selectedEvent.type} />
-              <Metric label="Timestamp" value={selectedEvent.timestampLabel} />
-              <Metric label="Block" value={String(selectedEvent.blockNumber)} mono />
-              <Metric label="Owner" value={selectedEvent.owner} mono />
-              <Metric label="Vault" value={selectedEvent.vaultAddress} mono />
-              <Metric label="Token" value={selectedEvent.tokenSymbol ?? "—"} />
-              <Metric label="Amount" value={selectedEvent.amountHuman ?? "—"} />
-              <Metric label="Tx Hash" value={selectedEvent.txHash} mono />
+              <Metric label="Type" value={selectedEvent.event_type} />
+              <Metric label="Timestamp" value={selectedEvent.ts_iso} />
+              <Metric label="Vault" value={selectedEvent.vault} mono />
+              <Metric label="Owner" value={selectedEvent.owner || "—"} mono />
+              <Metric label="Token" value={selectedEvent.token || "—"} />
+              <Metric label="Amount" value={selectedEvent.amount_human || "—"} />
+              <Metric label="Tx Hash" value={selectedEvent.tx_hash} mono />
+              <Metric label="Block" value={String(selectedEvent.block_number || "—")} />
             </div>
 
             <div className="rounded-xl border border-slate-800 bg-slate-950/60">
@@ -219,20 +218,28 @@ export function EventsTab({
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedEvent.transfers.map((transfer, index) => (
-                      <tr key={`${transfer.tokenAddress}-${index}`} className="border-t border-slate-800">
-                        <td className="px-4 py-3">{transfer.tokenSymbol}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                          {transfer.from}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                          {transfer.to}
-                        </td>
-                        <td className="px-4 py-3 font-mono text-xs text-slate-300">
-                          {transfer.amountRaw}
+                    {(selectedEvent.transfers || []).length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="px-4 py-8 text-center text-slate-500">
+                          No transfer details saved for this event.
                         </td>
                       </tr>
-                    ))}
+                    ) : (
+                      selectedEvent.transfers?.map((transfer, index) => (
+                        <tr key={`${transfer.token}-${index}`} className="border-t border-slate-800">
+                          <td className="px-4 py-3">{transfer.symbol || transfer.token}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                            {transfer.from}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                            {transfer.to}
+                          </td>
+                          <td className="px-4 py-3 font-mono text-xs text-slate-300">
+                            {transfer.amount_raw}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -261,8 +268,4 @@ function Metric({
       </div>
     </div>
   );
-}
-
-function shortHash(value: string) {
-  return `${value.slice(0, 6)}...${value.slice(-4)}`;
 }

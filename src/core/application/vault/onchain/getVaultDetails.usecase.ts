@@ -1,10 +1,18 @@
 import { getClientVaultContract } from "@/core/infra/evm/contracts/clientVault";
 import { VaultDetails } from "@/core/domain/vault/types";
 
+async function safeRead<T>(fn: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await fn();
+  } catch {
+    return fallback;
+  }
+}
+
 export async function getVaultDetails(vaultAddress: string): Promise<VaultDetails> {
   const v = await getClientVaultContract({ vaultAddress });
+  const vaultAny = v as any;
 
-  // parallel reads
   const [
     owner,
     executor,
@@ -16,7 +24,13 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
     automationConfig,
     positionTokenIdBn,
     lastRebalanceTsBn,
-    rewardSwapCfg
+    rewardSwapCfg,
+    dailyHarvestEnabled,
+    dailyHarvestCooldownSecBn,
+    lastDailyHarvestTsBn,
+    compoundEnabled,
+    compoundCooldownSecBn,
+    lastCompoundTsBn,
   ] = await Promise.all([
     v.owner(),
     v.executor(),
@@ -29,6 +43,12 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
     v.positionTokenId(),
     v.lastRebalanceTs(),
     v.rewardSwap(),
+    safeRead(() => vaultAny.dailyHarvestEnabled(), false),
+    safeRead(() => vaultAny.dailyHarvestCooldownSec(), 0),
+    safeRead(() => vaultAny.lastDailyHarvestTs(), 0),
+    safeRead(() => vaultAny.compoundEnabled(), false),
+    safeRead(() => vaultAny.compoundCooldownSec(), 0),
+    safeRead(() => vaultAny.lastCompoundTs(), 0),
   ]);
 
   const token0 = tokenPair?.[0] ?? tokenPair?.token0 ?? "";
@@ -64,6 +84,14 @@ export async function getVaultDetails(vaultAddress: string): Promise<VaultDetail
     cooldownSec: cooldown,
     maxSlippageBps: slippage,
     allowSwap: Boolean(swapAllowed),
+
+    dailyHarvestEnabled: Boolean(dailyHarvestEnabled),
+    dailyHarvestCooldownSec: Number(dailyHarvestCooldownSecBn ?? 0),
+    lastDailyHarvestTs: Number(lastDailyHarvestTsBn ?? 0),
+
+    compoundEnabled: Boolean(compoundEnabled),
+    compoundCooldownSec: Number(compoundCooldownSecBn ?? 0),
+    lastCompoundTs: Number(lastCompoundTsBn ?? 0),
 
     positionTokenId: positionTokenIdBn?.toString?.() ?? String(positionTokenIdBn),
     lastRebalanceTs: Number(lastRebalanceTsBn),

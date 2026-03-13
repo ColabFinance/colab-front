@@ -35,7 +35,7 @@ import { usePrivy } from "@privy-io/react-auth";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { setDailyHarvestConfigOnchain } from "@/core/application/vault/onchain/setDailyHarvestConfig.usecase";
 import { updateDailyHarvestConfigUseCase } from "@/core/application/vault/api/updateDailyHarvestConfig.usecase";
-import { setCompoundConfigOnchain } from "@/core/application/vault/onchain/etCompoundConfig.usecase";
+import { setCompoundConfigOnchain } from "@/core/application/vault/onchain/setCompoundConfig.usecase";
 import { updateCompoundConfigUseCase } from "@/core/application/vault/api/updateCompoundConfig.usecase";
 import { setRewardSwapConfigOnchain } from "@/core/application/vault/onchain/setRewardSwapConfig.usecase";
 import { updateRewardSwapConfigUseCase } from "@/core/application/vault/api/updateRewardSwapConfig.usecase";

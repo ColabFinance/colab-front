@@ -1,11 +1,13 @@
 "use client";
 
 import React from "react";
+import { Surface } from "@/presentation/components/Surface";
 import { useVaultDetails } from "./hooks";
 import { ActionDrawers } from "./ui/ActionDrawers";
 import { EventsTab } from "./ui/EventsTab";
 import { OverviewTab } from "./ui/OverviewTab";
 import { PerformanceTab } from "./ui/PerformanceTab";
+import { VaultConfigDrawer } from "./ui/VaultConfigDrawer";
 import { VaultHeaderCard } from "./ui/VaultHeaderCard";
 import { VaultTabs } from "./ui/VaultTabs";
 
@@ -13,35 +15,46 @@ export function VaultDetailsPage({ address }: { address: string }) {
   const {
     tab,
     setTab,
+
+    loading,
+    refreshing,
+    error,
+
     data,
-    breadcrumbLabel,
+    status,
+    details,
+    feeBuffer,
+    registry,
+    header,
     canManage,
 
-    actionDrawer,
+    drawer,
     openDrawer,
     closeDrawer,
 
+    configOpen,
+    openConfig,
+    closeConfig,
+
+    depositAssets,
+    selectedDepositAsset,
+    depositAssetAddress,
+    setDepositAssetAddress,
     depositAmount,
     setDepositAmount,
-    depositAssetSymbol,
-    setDepositAssetSymbol,
-    selectedDepositAsset,
-    setMaxDeposit,
 
-    withdrawAmount,
-    setWithdrawAmount,
-    withdrawAssetSymbol,
-    setWithdrawAssetSymbol,
-    selectedWithdrawAsset,
-    setMaxWithdraw,
+    actionFeedback,
+    submitDeposit,
+    submitWithdrawAll,
 
-    selectedEpisode,
-    openEpisode,
-    closeEpisode,
-
-    selectedEvent,
-    openEvent,
-    closeEvent,
+    configForm,
+    updateConfigField,
+    configFeedback,
+    saveAutomationToggle,
+    saveAutomationConfig,
+    saveDailyHarvestConfig,
+    saveCompoundConfig,
+    saveRewardSwapConfig,
 
     eventTypeFilter,
     setEventTypeFilter,
@@ -55,6 +68,8 @@ export function VaultDetailsPage({ address }: { address: string }) {
     setEventToDate,
     availableEventTokens,
     filteredEvents,
+
+    refresh,
   } = useVaultDetails(address);
 
   return (
@@ -63,38 +78,58 @@ export function VaultDetailsPage({ address }: { address: string }) {
         <ol className="flex items-center gap-2">
           <li className="cursor-pointer transition-colors hover:text-cyan-300">Vaults</li>
           <li className="text-slate-600">/</li>
-          <li className="text-white">{breadcrumbLabel}</li>
+          <li className="text-white">{header.title}</li>
         </ol>
       </nav>
 
       <VaultHeaderCard
-        data={data}
+        header={header}
         canManage={canManage}
+        refreshing={refreshing}
+        onRefresh={refresh}
+        onOpenConfig={openConfig}
         onDeposit={() => openDrawer("deposit")}
         onWithdraw={() => openDrawer("withdraw")}
-        onClaim={() => openDrawer("claim")}
+        onCompoundBuffer={() => openDrawer("compoundBuffer")}
       />
 
       <VaultTabs value={tab} onChange={setTab} />
 
-      {tab === "overview" && <OverviewTab data={data} />}
+      {loading ? (
+        <Surface variant="panel" className="p-6">
+          <div className="text-lg font-semibold text-white">Loading vault...</div>
+          <div className="mt-2 text-sm text-slate-400">
+            Fetching live onchain status, pool details, fee buffer and event history.
+          </div>
+        </Surface>
+      ) : null}
 
-      {tab === "performance" && (
-        <PerformanceTab
-          summary={data.performanceSummary}
-          episodes={data.episodes}
-          selectedEpisode={selectedEpisode}
-          onOpenEpisode={openEpisode}
-          onCloseEpisode={closeEpisode}
+      {!loading && error ? (
+        <Surface variant="panel" className="border border-red-500/20 bg-red-500/5 p-6">
+          <div className="text-lg font-semibold text-red-300">Failed to load vault</div>
+          <div className="mt-2 text-sm text-red-200">{error}</div>
+        </Surface>
+      ) : null}
+
+      {!loading && !error && tab === "overview" ? (
+        <OverviewTab
+          status={status}
+          details={details}
+          performance={data.performance}
+          feeBuffer={feeBuffer}
+          registry={registry}
+          canManage={canManage}
+          onOpenConfig={openConfig}
         />
-      )}
+      ) : null}
 
-      {tab === "events" && (
+      {!loading && !error && tab === "performance" ? (
+        <PerformanceTab performance={data.performance} />
+      ) : null}
+
+      {!loading && !error && tab === "events" ? (
         <EventsTab
           events={filteredEvents}
-          selectedEvent={selectedEvent}
-          onOpenEvent={openEvent}
-          onCloseEvent={closeEvent}
           eventTypeFilter={eventTypeFilter}
           setEventTypeFilter={setEventTypeFilter}
           eventSearch={eventSearch}
@@ -107,29 +142,41 @@ export function VaultDetailsPage({ address }: { address: string }) {
           setEventToDate={setEventToDate}
           availableEventTokens={availableEventTokens}
         />
-      )}
+      ) : null}
 
       <ActionDrawers
-        openDrawer={actionDrawer}
+        openDrawer={drawer}
         onClose={closeDrawer}
-        vaultName={data.header.pairLabel}
-        vaultAddress={data.header.address}
-        viewerWallet={data.viewer.walletAddress}
-        depositAssets={data.depositAssets}
-        selectedDepositAssetSymbol={depositAssetSymbol}
-        onChangeDepositAssetSymbol={setDepositAssetSymbol}
+        canManage={canManage}
+        header={header}
+        status={status}
+        feeBuffer={feeBuffer}
+        depositAssets={depositAssets}
         selectedDepositAsset={selectedDepositAsset}
+        depositAssetAddress={depositAssetAddress}
+        onChangeDepositAssetAddress={setDepositAssetAddress}
         depositAmount={depositAmount}
         onChangeDepositAmount={setDepositAmount}
-        onMaxDeposit={setMaxDeposit}
-        withdrawAssets={data.withdrawAssets}
-        selectedWithdrawAssetSymbol={withdrawAssetSymbol}
-        onChangeWithdrawAssetSymbol={setWithdrawAssetSymbol}
-        selectedWithdrawAsset={selectedWithdrawAsset}
-        withdrawAmount={withdrawAmount}
-        onChangeWithdrawAmount={setWithdrawAmount}
-        onMaxWithdraw={setMaxWithdraw}
-        claim={data.claim}
+        onSubmitDeposit={submitDeposit}
+        onSubmitWithdrawAll={submitWithdrawAll}
+        feedback={actionFeedback}
+      />
+
+      <VaultConfigDrawer
+        open={configOpen}
+        onClose={closeConfig}
+        canManage={canManage}
+        header={header}
+        status={status}
+        details={details}
+        form={configForm}
+        onChangeField={updateConfigField}
+        feedback={configFeedback}
+        onSaveAutomationToggle={saveAutomationToggle}
+        onSaveAutomationConfig={saveAutomationConfig}
+        onSaveDailyHarvestConfig={saveDailyHarvestConfig}
+        onSaveCompoundConfig={saveCompoundConfig}
+        onSaveRewardSwapConfig={saveRewardSwapConfig}
       />
     </div>
   );
