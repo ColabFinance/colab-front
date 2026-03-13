@@ -1,72 +1,445 @@
 import { VaultDetails } from "./types";
 
 export const MOCK_VAULT_DETAILS: VaultDetails = {
-  address: "0x88e6...2158",
-  chainName: "Ethereum",
-  dexName: "Uniswap V3",
-
-  token0: { symbol: "USDC", name: "USD Coin" },
-  token1: { symbol: "ETH", name: "Ethereum" },
-
-  feeTierLabel: "0.05%",
-  poolAddress: "0x8ad5...92c4",
-
-  status: "ACTIVE",
-  updatedAtLabel: "Updated 2m ago",
-
-  kpis: {
-    tvlUsd: 14205892,
-    tvlChange24hPct: 2.4,
-
-    apyPct: 18.42,
-    aprPct: 16.8,
-
-    profitToDateUsd: 1240505,
-    profitToDatePct: 12.5,
-
-    uncollectedFeesUsd: 4290.5,
-    uncollectedFees24hUsd: 842.1,
-
-    utilizationPct: 94.2,
+  viewer: {
+    connected: true,
+    walletAddress: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
   },
 
-  composition: {
-    totalUsd: 14205892,
+  ownerAddress: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
 
-    inPositionUsd: 13495597,
-    inPositionPct: 95,
-    inPositionToken0Amount: 6747798.5,
-    inPositionToken1Amount: 3598.42,
-
-    idleUsd: 710295,
-    idlePct: 5,
-    idleToken0Amount: 355147.5,
-    idleToken1Amount: 189.39,
+  header: {
+    name: "a little of money",
+    pairLabel: "WETH-USDC 0.25%",
+    address: "0x5eC935aFF0F80BaC6c9A9e34043F3c3eabf46C7F",
+    poolAddress: "0x72AB388E2E2F6FaceF59E3C3FA2C4E29011c2D38",
+    chainName: "Base",
+    dexName: "Pancake V3",
+    feeTierLabel: "0.25%",
+    status: "ACTIVE",
+    updatedAtLabel: "Updated 2m ago",
+    subtitle:
+      "Public vault view with full transparency. Deposit, withdraw and claim are owner-only actions.",
+    badges: [
+      { label: "base", tone: "blue" },
+      { label: "pancake_v3", tone: "cyan" },
+      { label: "weth/usdc", tone: "slate" },
+      { label: "has gauge", tone: "green" },
+    ],
   },
 
-  range: {
-    lastRebalanceLabel: "4h ago",
-    inRange: true,
-    minPrice: 1650,
-    currentPrice: 1875.42,
-    maxPrice: 2100,
-
-    // highlight band only for visuals
-    bandStartPct: 30,
-    bandEndPct: 80,
+  token0: {
+    symbol: "WETH",
+    name: "Wrapped Ether",
+    address: "0x4200000000000000000000000000000000000006",
+    decimals: 18,
   },
 
-  feeBuffer: [
-    { symbol: "USDC", label: "USDC", amount: 4290.5, note: "Pending Collect", tone: "cyan" },
-    { symbol: "ETH", label: "ETH", amount: 2.14, note: "Pending Collect", tone: "blue" },
-    { symbol: "RWD", label: "Reward", amount: 142.5, note: "Auto-Compounding", tone: "purple" },
+  token1: {
+    symbol: "USDC",
+    name: "USD Coin",
+    address: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+    decimals: 6,
+  },
+
+  overviewKpis: [
+    {
+      label: "Total Value",
+      value: "$5,487.23",
+      meta: "Current vault total",
+      tone: "blue",
+    },
+    {
+      label: "In Position",
+      value: "$5,441.93",
+      meta: "Active liquidity",
+      tone: "cyan",
+    },
+    {
+      label: "Vault Idle",
+      value: "$45.30",
+      meta: "Idle inside vault",
+      tone: "slate",
+    },
+    {
+      label: "Uncollected Fees",
+      value: "$0.15",
+      meta: "Pending fees",
+      tone: "green",
+    },
+    {
+      label: "Pending Rewards",
+      value: "$0.06",
+      meta: "Gauge estimate",
+      tone: "amber",
+    },
+    {
+      label: "APR Annualized",
+      value: "44.14%",
+      meta: "Latest episode",
+      tone: "green",
+    },
+    {
+      label: "Range Status",
+      value: "Inside Range",
+      meta: "Position is active",
+      tone: "green",
+    },
+    {
+      label: "Last Rebalance",
+      value: "4h ago",
+      meta: "2026-03-13 16:03 UTC",
+      tone: "slate",
+    },
   ],
 
-  health: {
-    adapterStatus: "OPERATIONAL",
-    poolConnection: "SYNCED",
-    readLatencyMs: 42,
-    allowlistCheck: "PASSED",
-    feeBufferHealth: "OPTIMAL",
+  range: {
+    currentPrice: 2104.2619442637233,
+    lowerPrice: 9.999052971391773e-13,
+    upperPrice: 2190.572172058083,
+    currentTick: -199803,
+    lowerTick: -552649,
+    upperTick: -199401,
+    outOfRange: false,
+    rangeSide: "inside",
+    positionLocation: "gauge",
+    staked: true,
+    hasGauge: true,
+    bandStartPct: 12,
+    bandEndPct: 92,
+    lastRebalanceLabel: "2026-03-13 16:03 UTC",
+  },
+
+  holdings: {
+    vaultIdle: {
+      token0Amount: 0.000000000000000193,
+      token1Amount: 45.302849,
+      totalUsd: 45.30284900000041,
+    },
+    inPosition: {
+      token0Amount: 0.05043405257825498,
+      token1Amount: 5335.803674,
+      totalUsd: 5441.930131535418,
+    },
+    totals: {
+      token0Amount: 0.05043405257825517,
+      token1Amount: 5381.1065229999995,
+      totalUsd: 5487.2329805354175,
+    },
+  },
+
+  feesRewards: {
+    uncollectedToken0: 0.000036904813068113,
+    uncollectedToken1: 0.076276,
+    uncollectedUsd: 0.15393339369939674,
+    rewardSymbol: "CAKE",
+    pendingRewardAmount: 0.0395179185954368,
+    pendingRewardUsd: 0.055704600532367386,
+    inVaultRewardAmount: 0.3014291545361804,
+  },
+
+  configuration: {
+    ownerAddress: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+    executorAddress: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+    adapterAddress: "0xafe3F0e1852804Fe32affB2275b33eBc4B18Da0C",
+    dexRouterAddress: "0x1b81D678ffb9C0263b24A97847620C99d213eB14",
+    feeCollectorAddress: "0x36D53a6bd36b52c0a2B88616F71d61695655ECa4",
+    poolAddress: "0x72AB388E2E2F6FaceF59E3C3FA2C4E29011c2D38",
+    nfpmAddress: "0x46A15B0b27311cedF172AB29E4f4766fbE7F4364",
+    gaugeAddress: "0xC6A2Db661D5a5690172d8eB0a7DEA2d3008665A3",
+    strategyId: 3,
+    version: "v1",
+    isActive: true,
+  },
+
+  performanceSummary: [
+    {
+      label: "Current Total Value",
+      value: "$5,487.23",
+      meta: "Live vault snapshot",
+      tone: "blue",
+    },
+    {
+      label: "Current In Position",
+      value: "$5,441.93",
+      meta: "Active liquidity",
+      tone: "cyan",
+    },
+    {
+      label: "Current Idle Value",
+      value: "$45.30",
+      meta: "Idle inside vault",
+      tone: "slate",
+    },
+    {
+      label: "Latest Episode Fees",
+      value: "$0.37",
+      meta: "fees_this_episode_usd",
+      tone: "green",
+    },
+    {
+      label: "Latest Rewards",
+      value: "$0.08",
+      meta: "gauge_rewards_st_usd",
+      tone: "amber",
+    },
+    {
+      label: "APR Annualized",
+      value: "44.14%",
+      meta: "APR_annualy_pct",
+      tone: "green",
+    },
+    {
+      label: "Latest Close Reason",
+      value: "cross_min",
+      meta: "Previous closed episode",
+      tone: "red",
+    },
+    {
+      label: "Episode Duration",
+      value: "90 candles",
+      meta: "81 in formula",
+      tone: "slate",
+    },
+  ],
+
+  episodes: [
+    {
+      id: "ep_All money zero risky strategy_1773417779999",
+      status: "OPEN",
+      openTimeLabel: "2026-03-13 16:03 UTC",
+      closeTimeLabel: "—",
+      openPrice: "$2,126.8973",
+      closePrice: "—",
+      rangeLabel: "Pa 0.000000000001 • Pb 2,190.7042",
+      poolType: "high_vol",
+      modeOnOpen: "trend_down",
+      majorityOnOpen: "token1",
+      closeReason: "—",
+      feesUsd: "$0.00",
+      aprAnnualized: "—",
+      totalValueUsd: "$5,488.86",
+      candleCount: 0,
+      outOfRangeCandles: 0,
+      executionSteps: [
+        {
+          id: "open-pre-calc",
+          tsLabel: "2026-03-13 16:03:04 UTC",
+          phase: "pre_calc",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          summary: "Valuation snapshot collected before open.",
+        },
+        {
+          id: "open-calc-tokens",
+          tsLabel: "2026-03-13 16:03:04 UTC",
+          phase: "calc_tokens",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          summary: "Target liquidity and required token mix calculated.",
+        },
+        {
+          id: "open-calc-swap",
+          tsLabel: "2026-03-13 16:03:04 UTC",
+          phase: "calc_swap",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          summary: "Swap path prepared from WETH to USDC.",
+        },
+        {
+          id: "open-swap-call",
+          tsLabel: "2026-03-13 16:03:13 UTC",
+          phase: "swap_call",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          txHash:
+            "0x89eed482854c168153482b99301e3b96f78697d909f90a90b7d780f38a580732",
+          gasLabel: "1,596,936 gas • 0.00001085 ETH",
+          summary: "Swap broadcasted successfully and receipt confirmed.",
+        },
+        {
+          id: "open-done",
+          tsLabel: "2026-03-13 16:03:13 UTC",
+          phase: "all_steps_done",
+          step: "SYSTEM",
+          attempt: 1,
+          summary: "Episode sent and marked as OPEN.",
+        },
+      ],
+    },
+    {
+      id: "ep_All money zero risky strategy_1773412319999",
+      status: "CLOSED",
+      openTimeLabel: "2026-03-13 14:32 UTC",
+      closeTimeLabel: "2026-03-13 16:03 UTC",
+      openPrice: "$2,200.8916",
+      closePrice: "$2,126.2884",
+      rangeLabel: "Pa 2,134.8648 • Pb 8,737.5396",
+      poolType: "high_vol",
+      modeOnOpen: "trend_up",
+      majorityOnOpen: "token2",
+      closeReason: "cross_min",
+      feesUsd: "$0.37",
+      aprAnnualized: "44.14%",
+      totalValueUsd: "$5,488.86",
+      candleCount: 90,
+      outOfRangeCandles: 9,
+      executionSteps: [
+        {
+          id: "closed-pre-calc",
+          tsLabel: "2026-03-13 14:32:04 UTC",
+          phase: "pre_calc",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          summary: "Valuation snapshot collected before position open.",
+        },
+        {
+          id: "closed-calc-tokens",
+          tsLabel: "2026-03-13 14:32:04 UTC",
+          phase: "calc_tokens",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          summary: "Liquidity target and token requirements resolved.",
+        },
+        {
+          id: "closed-calc-swap",
+          tsLabel: "2026-03-13 14:32:04 UTC",
+          phase: "calc_swap",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          summary: "Swap path prepared from USDC into WETH.",
+        },
+        {
+          id: "closed-swap-call",
+          tsLabel: "2026-03-13 14:32:09 UTC",
+          phase: "swap_call",
+          step: "BATCH_REQUEST",
+          attempt: 1,
+          txHash:
+            "0x0d4980614d93a3ff4132fd1bfbd17b88a9320d5b75fc691a80650c99c958d6e6",
+          gasLabel: "1,526,634 gas • 0.00001099 ETH",
+          summary: "Swap broadcasted successfully and receipt confirmed.",
+        },
+        {
+          id: "closed-done",
+          tsLabel: "2026-03-13 16:03:15 UTC",
+          phase: "all_steps_done",
+          step: "SYSTEM",
+          attempt: 1,
+          summary: "Episode closed and metrics persisted.",
+        },
+      ],
+    },
+  ],
+
+  events: [
+    {
+      id: "evt-1",
+      type: "deposit",
+      txHash:
+        "0x22a77c00fa582590f502add2abfa510793ab83647d66421a526a6b2c6a00c817",
+      blockNumber: 41513036,
+      owner: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+      tokenSymbol: "WETH",
+      amountHuman: "0.01",
+      tsIso: "2026-01-30T23:23:43.311155Z",
+      timestampLabel: "2026-01-30 23:23 UTC",
+      vaultAddress: "0x43Ac18956dd25B218598b9b06f935D5155f7e434",
+      transfers: [
+        {
+          tokenSymbol: "WETH",
+          tokenAddress: "0x4200000000000000000000000000000000000006",
+          from: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+          to: "0x43Ac18956dd25B218598b9b06f935D5155f7e434",
+          amountRaw: "10000000000000000",
+        },
+      ],
+    },
+    {
+      id: "evt-2",
+      type: "deposit",
+      txHash:
+        "0xfdff4bed2310a423c433d99e18eb7bf293c571dfebbecf9afc88c9d642f7eeda",
+      blockNumber: 41513050,
+      owner: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+      tokenSymbol: "USDC",
+      amountHuman: "70",
+      tsIso: "2026-01-30T23:24:11.616773Z",
+      timestampLabel: "2026-01-30 23:24 UTC",
+      vaultAddress: "0x43Ac18956dd25B218598b9b06f935D5155f7e434",
+      transfers: [
+        {
+          tokenSymbol: "USDC",
+          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          from: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+          to: "0x43Ac18956dd25B218598b9b06f935D5155f7e434",
+          amountRaw: "70000000",
+        },
+      ],
+    },
+    {
+      id: "evt-3",
+      type: "withdraw",
+      txHash:
+        "0xe48b791ebb4ed26491cb5613c27dd3aed1c9aeee860cb81890a91cb942a7748a",
+      blockNumber: 41521836,
+      owner: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+      tokenSymbol: "USDC",
+      amountHuman: "3784.999999",
+      tsIso: "2026-01-31T04:17:01.869107Z",
+      timestampLabel: "2026-01-31 04:17 UTC",
+      vaultAddress: "0xd77CDc8044a23D0CBA69D238e43391A7130BeeD2",
+      transfers: [
+        {
+          tokenSymbol: "USDC",
+          tokenAddress: "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+          from: "0xd77CDc8044a23D0CBA69D238e43391A7130BeeD2",
+          to: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
+          amountRaw: "3784999999",
+        },
+      ],
+    },
+  ],
+
+  depositAssets: [
+    {
+      symbol: "USDC",
+      label: "USDC",
+      balanceLabel: "1,420.50 USDC",
+      maxAmount: "1420.50",
+      usdLabel: "~$1,420.50",
+    },
+    {
+      symbol: "WETH",
+      label: "WETH",
+      balanceLabel: "0.2500 WETH",
+      maxAmount: "0.25",
+      usdLabel: "~$526.07",
+    },
+  ],
+
+  withdrawAssets: [
+    {
+      symbol: "USDC",
+      label: "USDC",
+      balanceLabel: "45.302849 USDC available",
+      maxAmount: "45.302849",
+      usdLabel: "~$45.30",
+    },
+    {
+      symbol: "WETH",
+      label: "WETH",
+      balanceLabel: "0.05043405 WETH available",
+      maxAmount: "0.05043405",
+      usdLabel: "~$106.13",
+    },
+  ],
+
+  claim: {
+    rewardSymbol: "CAKE",
+    pendingAmountLabel: "0.03951792 CAKE",
+    pendingUsdLabel: "~$0.06",
+    inVaultAmountLabel: "0.30142915 CAKE already in vault",
+    destinationWallet: "0x5EFA25558E5D625155D14531a2D2713998bd247B",
   },
 };

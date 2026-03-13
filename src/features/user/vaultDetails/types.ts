@@ -1,90 +1,196 @@
-export type VaultTabKey = "overview" | "performance" | "events" | "position";
+export type VaultTabKey = "overview" | "performance" | "events";
+export type VaultDrawerKey = "deposit" | "withdraw" | "claim" | null;
 
 export type VaultStatus = "ACTIVE" | "PAUSED" | "ERROR";
+export type VaultTone = "slate" | "cyan" | "blue" | "green" | "amber" | "red";
 
 export type TokenInfo = {
   symbol: string;
   name: string;
+  address: string;
+  decimals: number;
 };
 
-export type VaultKpis = {
-  tvlUsd: number;
-  tvlChange24hPct: number;
-
-  apyPct: number;
-  aprPct: number;
-
-  profitToDateUsd: number;
-  profitToDatePct: number;
-
-  uncollectedFeesUsd: number;
-  uncollectedFees24hUsd: number;
-
-  utilizationPct: number;
+export type ViewerInfo = {
+  connected: boolean;
+  walletAddress: string;
 };
 
-export type VaultComposition = {
+export type HeaderStatBadge = {
+  label: string;
+  tone?: VaultTone;
+};
+
+export type VaultHeaderData = {
+  name: string;
+  pairLabel: string;
+  address: string;
+  poolAddress: string;
+  chainName: string;
+  dexName: string;
+  feeTierLabel: string;
+  status: VaultStatus;
+  updatedAtLabel: string;
+  subtitle: string;
+  badges: HeaderStatBadge[];
+};
+
+export type OverviewKpi = {
+  label: string;
+  value: string;
+  meta?: string;
+  tone?: VaultTone;
+};
+
+export type HoldingBucket = {
+  token0Amount: number;
+  token1Amount: number;
   totalUsd: number;
-
-  inPositionUsd: number;
-  inPositionPct: number;
-  inPositionToken0Amount: number;
-  inPositionToken1Amount: number;
-
-  idleUsd: number;
-  idlePct: number;
-  idleToken0Amount: number;
-  idleToken1Amount: number;
 };
 
 export type VaultRange = {
-  lastRebalanceLabel: string;
-  inRange: boolean;
-
-  minPrice: number;
   currentPrice: number;
-  maxPrice: number;
-
-  // purely visual band (like the highlighted range in your html mock)
-  bandStartPct: number; // 0..100
-  bandEndPct: number; // 0..100
+  lowerPrice: number;
+  upperPrice: number;
+  currentTick: number;
+  lowerTick: number;
+  upperTick: number;
+  outOfRange: boolean;
+  rangeSide: string;
+  positionLocation: string;
+  staked: boolean;
+  hasGauge: boolean;
+  bandStartPct: number;
+  bandEndPct: number;
+  lastRebalanceLabel: string;
 };
 
-export type FeeBufferItem = {
+export type FeesRewardsData = {
+  uncollectedToken0: number;
+  uncollectedToken1: number;
+  uncollectedUsd: number;
+  rewardSymbol: string;
+  pendingRewardAmount: number;
+  pendingRewardUsd: number;
+  inVaultRewardAmount: number;
+};
+
+export type VaultConfiguration = {
+  ownerAddress: string;
+  executorAddress: string;
+  adapterAddress: string;
+  dexRouterAddress: string;
+  feeCollectorAddress: string;
+  poolAddress: string;
+  nfpmAddress: string;
+  gaugeAddress?: string;
+  strategyId: number;
+  version: string;
+  isActive: boolean;
+};
+
+export type PerformanceSummaryCard = {
+  label: string;
+  value: string;
+  meta?: string;
+  tone?: VaultTone;
+};
+
+export type EpisodeExecutionStep = {
+  id: string;
+  tsLabel: string;
+  phase: string;
+  step: string;
+  attempt: number;
+  txHash?: string;
+  gasLabel?: string;
+  summary: string;
+};
+
+export type VaultEpisode = {
+  id: string;
+  status: "OPEN" | "CLOSED";
+  openTimeLabel: string;
+  closeTimeLabel?: string;
+  openPrice: string;
+  closePrice?: string;
+  rangeLabel: string;
+  poolType: string;
+  modeOnOpen: string;
+  majorityOnOpen: string;
+  closeReason?: string;
+  feesUsd: string;
+  aprAnnualized: string;
+  totalValueUsd: string;
+  candleCount: number;
+  outOfRangeCandles: number;
+  executionSteps: EpisodeExecutionStep[];
+};
+
+export type VaultEventType =
+  | "deposit"
+  | "withdraw"
+  | "claim"
+  | "rebalance"
+  | "collect";
+
+export type VaultEventTransfer = {
+  tokenSymbol: string;
+  tokenAddress: string;
+  from: string;
+  to: string;
+  amountRaw: string;
+};
+
+export type VaultEvent = {
+  id: string;
+  type: VaultEventType;
+  txHash: string;
+  blockNumber: number;
+  owner: string;
+  tokenSymbol?: string;
+  amountHuman?: string;
+  tsIso: string;
+  timestampLabel: string;
+  vaultAddress: string;
+  transfers: VaultEventTransfer[];
+};
+
+export type DrawerAssetOption = {
   symbol: string;
   label: string;
-  amount: number;
-  note: string;
-  tone?: "slate" | "cyan" | "blue" | "green" | "amber" | "red" | "purple";
+  balanceLabel: string;
+  maxAmount: string;
+  usdLabel?: string;
 };
 
-export type SystemHealth = {
-  adapterStatus: "OPERATIONAL" | "DEGRADED" | "DOWN";
-  poolConnection: "SYNCED" | "LAGGING" | "DISCONNECTED";
-  readLatencyMs: number;
-
-  allowlistCheck: "PASSED" | "FAILED";
-  feeBufferHealth: "OPTIMAL" | "WARN" | "BAD";
+export type ClaimSummary = {
+  rewardSymbol: string;
+  pendingAmountLabel: string;
+  pendingUsdLabel: string;
+  inVaultAmountLabel: string;
+  destinationWallet: string;
 };
 
 export type VaultDetails = {
-  address: string;
-
-  chainName: string;
-  dexName: string;
-
+  viewer: ViewerInfo;
+  ownerAddress: string;
+  header: VaultHeaderData;
   token0: TokenInfo;
   token1: TokenInfo;
-
-  feeTierLabel: string;
-  poolAddress: string;
-
-  status: VaultStatus;
-  updatedAtLabel: string;
-
-  kpis: VaultKpis;
-  composition: VaultComposition;
+  overviewKpis: OverviewKpi[];
   range: VaultRange;
-  feeBuffer: FeeBufferItem[];
-  health: SystemHealth;
+  holdings: {
+    vaultIdle: HoldingBucket;
+    inPosition: HoldingBucket;
+    totals: HoldingBucket;
+  };
+  feesRewards: FeesRewardsData;
+  configuration: VaultConfiguration;
+  performanceSummary: PerformanceSummaryCard[];
+  episodes: VaultEpisode[];
+  events: VaultEvent[];
+  depositAssets: DrawerAssetOption[];
+  withdrawAssets: DrawerAssetOption[];
+  claim: ClaimSummary;
 };
