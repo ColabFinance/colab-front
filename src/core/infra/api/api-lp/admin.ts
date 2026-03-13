@@ -447,3 +447,283 @@ export async function apiLpAdminListAdapters(
 ): Promise<AdminAdaptersResult> {
   return apiLpGet<AdminAdaptersResult>(`/admin/adapters?chain=${chain}`, accessToken);
 }
+
+export type AdminOnchainContractRef = {
+  chain: string;
+  address: string;
+  status: string;
+  tx_hash?: string | null;
+  owner?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminOnchainStrategyAllowlistRecord = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  entry_type: "router" | "adapter";
+  address: string;
+  label: string;
+  adapter_type?: string | null;
+  desired_allowed: boolean;
+  tx_hash?: string | null;
+  updated_by?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminOnchainVaultFactoryConfigRecord = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  executor: string;
+  fee_collector: string;
+  default_cooldown_sec: number;
+  default_max_slippage_bps: number;
+  default_allow_swap: boolean;
+  tx_hash?: string | null;
+  updated_by?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminOnchainProtocolFeeCollectorConfigRecord = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  treasury: string;
+  protocol_fee_bps: number;
+  tx_hash?: string | null;
+  updated_by?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminOnchainProtocolFeeReporterRecord = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  reporter: string;
+  desired_allowed: boolean;
+  tx_hash?: string | null;
+  updated_by?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminOnchainVaultFeeBufferDepositorRecord = {
+  id?: string;
+  chain: string;
+  contract_address: string;
+  depositor: string;
+  label?: string | null;
+  desired_allowed: boolean;
+  tx_hash?: string | null;
+  updated_by?: string | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
+};
+
+export type AdminOnchainStrategyRegistryStateResult = AdminResult & {
+  data?: {
+    contract?: AdminOnchainContractRef | null;
+    routers: AdminOnchainStrategyAllowlistRecord[];
+    adapters: AdminOnchainStrategyAllowlistRecord[];
+  };
+};
+
+export type AdminOnchainVaultFactoryStateResult = AdminResult & {
+  data?: {
+    contract?: AdminOnchainContractRef | null;
+    saved_config?: AdminOnchainVaultFactoryConfigRecord | null;
+  };
+};
+
+export type AdminOnchainProtocolFeeCollectorStateResult = AdminResult & {
+  data?: {
+    contract?: AdminOnchainContractRef | null;
+    saved_config?: AdminOnchainProtocolFeeCollectorConfigRecord | null;
+    reporters: AdminOnchainProtocolFeeReporterRecord[];
+  };
+};
+
+export type AdminOnchainVaultFeeBufferStateResult = AdminResult & {
+  data?: {
+    contract?: AdminOnchainContractRef | null;
+    depositors: AdminOnchainVaultFeeBufferDepositorRecord[];
+  };
+};
+
+export type SaveStrategyRouterStateBody = {
+  chain: string;
+  contract_address?: string | null;
+  address: string;
+  name: string;
+  allowed: boolean;
+  tx_hash?: string | null;
+};
+
+export type SaveStrategyAdapterStateBody = {
+  chain: string;
+  contract_address?: string | null;
+  address: string;
+  label: string;
+  adapter_type?: string | null;
+  allowed: boolean;
+  tx_hash?: string | null;
+};
+
+export type SaveVaultFactoryStateBody = {
+  chain: string;
+  contract_address?: string | null;
+  executor: string;
+  fee_collector: string;
+  default_cooldown_sec: number;
+  default_max_slippage_bps: number;
+  default_allow_swap: boolean;
+  tx_hash?: string | null;
+};
+
+export type SaveProtocolFeeCollectorStateBody = {
+  chain: string;
+  contract_address?: string | null;
+  treasury: string;
+  protocol_fee_bps: number;
+  tx_hash?: string | null;
+};
+
+export type SaveProtocolFeeReporterStateBody = {
+  chain: string;
+  contract_address?: string | null;
+  reporter: string;
+  allowed: boolean;
+  tx_hash?: string | null;
+};
+
+export type SaveVaultFeeBufferDepositorStateBody = {
+  chain: string;
+  contract_address?: string | null;
+  depositor: string;
+  label?: string | null;
+  allowed: boolean;
+  tx_hash?: string | null;
+};
+
+export async function apiLpAdminListOnchainStrategyRegistryState(
+  accessToken: string,
+  chain: string
+): Promise<AdminOnchainStrategyRegistryStateResult> {
+  return apiLpGet<AdminOnchainStrategyRegistryStateResult>(
+    `/admin/onchain-config/strategy-registry?chain=${chain}`,
+    accessToken
+  );
+}
+
+export async function apiLpAdminSaveStrategyRouterState(
+  accessToken: string,
+  body: SaveStrategyRouterStateBody
+): Promise<AdminOnchainStrategyRegistryStateResult> {
+  return apiLpPost<AdminOnchainStrategyRegistryStateResult>(
+    "/admin/onchain-config/strategy-registry/router",
+    body,
+    accessToken
+  );
+}
+
+export async function apiLpAdminSaveStrategyAdapterState(
+  accessToken: string,
+  body: SaveStrategyAdapterStateBody
+): Promise<AdminOnchainStrategyRegistryStateResult> {
+  return apiLpPost<AdminOnchainStrategyRegistryStateResult>(
+    "/admin/onchain-config/strategy-registry/adapter",
+    body,
+    accessToken
+  );
+}
+
+export async function apiLpAdminListOnchainVaultFactoryState(
+  accessToken: string,
+  chain: string
+): Promise<AdminOnchainVaultFactoryStateResult> {
+  return apiLpGet<AdminOnchainVaultFactoryStateResult>(
+    `/admin/onchain-config/vault-factory?chain=${chain}`,
+    accessToken
+  );
+}
+
+export async function apiLpAdminSaveVaultFactoryState(
+  accessToken: string,
+  body: SaveVaultFactoryStateBody
+): Promise<AdminOnchainVaultFactoryStateResult> {
+  return apiLpPost<AdminOnchainVaultFactoryStateResult>(
+    "/admin/onchain-config/vault-factory",
+    body,
+    accessToken
+  );
+}
+
+export async function apiLpAdminListOnchainProtocolFeeCollectorState(
+  accessToken: string,
+  chain: string
+): Promise<AdminOnchainProtocolFeeCollectorStateResult> {
+  return apiLpGet<AdminOnchainProtocolFeeCollectorStateResult>(
+    `/admin/onchain-config/protocol-fee-collector?chain=${chain}`,
+    accessToken
+  );
+}
+
+export async function apiLpAdminSaveProtocolFeeCollectorState(
+  accessToken: string,
+  body: SaveProtocolFeeCollectorStateBody
+): Promise<AdminOnchainProtocolFeeCollectorStateResult> {
+  return apiLpPost<AdminOnchainProtocolFeeCollectorStateResult>(
+    "/admin/onchain-config/protocol-fee-collector",
+    body,
+    accessToken
+  );
+}
+
+export async function apiLpAdminSaveProtocolFeeReporterState(
+  accessToken: string,
+  body: SaveProtocolFeeReporterStateBody
+): Promise<AdminOnchainProtocolFeeCollectorStateResult> {
+  return apiLpPost<AdminOnchainProtocolFeeCollectorStateResult>(
+    "/admin/onchain-config/protocol-fee-collector/reporter",
+    body,
+    accessToken
+  );
+}
+
+export async function apiLpAdminListOnchainVaultFeeBufferState(
+  accessToken: string,
+  chain: string
+): Promise<AdminOnchainVaultFeeBufferStateResult> {
+  return apiLpGet<AdminOnchainVaultFeeBufferStateResult>(
+    `/admin/onchain-config/vault-fee-buffer?chain=${chain}`,
+    accessToken
+  );
+}
+
+export async function apiLpAdminSaveVaultFeeBufferDepositorState(
+  accessToken: string,
+  body: SaveVaultFeeBufferDepositorStateBody
+): Promise<AdminOnchainVaultFeeBufferStateResult> {
+  return apiLpPost<AdminOnchainVaultFeeBufferStateResult>(
+    "/admin/onchain-config/vault-fee-buffer/depositor",
+    body,
+    accessToken
+  );
+}

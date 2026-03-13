@@ -7,6 +7,7 @@ export type OnchainTabId =
 export type ChainOption = {
   chainId: number;
   name: string;
+  key: string;
 };
 
 export type AllowlistStatus = "active" | "disabled";
@@ -16,6 +17,10 @@ export type RouterAllowlistItem = {
   name: string;
   address: string;
   status: AllowlistStatus;
+  desiredAllowed: boolean;
+  onchainAllowed: boolean;
+  updatedAtLabel?: string;
+  txHash?: string | null;
 };
 
 export type AdapterAllowlistItem = {
@@ -24,23 +29,25 @@ export type AdapterAllowlistItem = {
   adapterType: string;
   address: string;
   status: AllowlistStatus;
+  desiredAllowed: boolean;
+  onchainAllowed: boolean;
+  updatedAtLabel?: string;
+  txHash?: string | null;
 };
 
 export type VaultFactoryConfig = {
   contractAddress: string;
-  timelockAddress: string;
-
+  ownerAddress: string;
   executorAddress: string;
   feeCollectorAddress: string;
-
   cooldownSec: number;
-  slippageBps: number;
-  feeBps: number;
-  compoundEnabled: boolean;
+  maxSlippageBps: number;
+  allowSwap: boolean;
 };
 
 export type ProtocolFeeCollectorConfig = {
   contractAddress: string;
+  ownerAddress: string;
   treasuryAddress: string;
   feeBps: number;
 };
@@ -48,6 +55,8 @@ export type ProtocolFeeCollectorConfig = {
 export type ReporterItem = {
   id: string;
   address: string;
+  desiredAllowed: boolean;
+  onchainAllowed: boolean;
   addedAtLabel: string;
 };
 
@@ -55,6 +64,9 @@ export type DepositorItem = {
   id: string;
   address: string;
   label: string;
+  desiredAllowed: boolean;
+  onchainAllowed: boolean;
+  addedAtLabel: string;
 };
 
 export type PendingTx = {

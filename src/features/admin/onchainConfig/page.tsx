@@ -33,7 +33,6 @@ export default function OnchainConfigPage() {
 
   return (
     <div className="space-y-6">
-      {/* Page Header Row */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -81,22 +80,36 @@ export default function OnchainConfigPage() {
 
           <div className="text-right">
             <div className="font-medium text-slate-400 text-[10px] md:text-xs">
-              Timelock Controller
+              {uc.activeContractLabel}
             </div>
-            <AddressPill address={uc.vaultFactory.timelockAddress} withCopy={true} className="mt-1" />
+            {uc.activeContractAddress ? (
+              <AddressPill address={uc.activeContractAddress} withCopy={true} className="mt-1" />
+            ) : (
+              <div className="mt-1 text-xs text-slate-500">No active contract record</div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
+      {uc.error && (
+        <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {uc.error}
+        </div>
+      )}
+
+      {uc.loading && (
+        <div className="rounded-lg border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-slate-300">
+          Loading current chain configuration...
+        </div>
+      )}
+
       <Tabs active={uc.activeTab} onChange={uc.setActiveTab} />
 
-      {/* Tab Content */}
       {uc.activeTab === "strategyRegistry" && (
         <div className="space-y-6">
           <AllowlistTable
             title="Routers Allowlist"
-            description="Authorized DEX routers for strategy execution."
+            description="Admin snapshots cross-checked with the StrategyRegistry contract."
             secondaryAction={{ label: "Bulk Paste", onClick: uc.bulkPasteRouters }}
             primaryAction={{
               label: "Add Router",
@@ -116,9 +129,20 @@ export default function OnchainConfigPage() {
                 cell: (r: any) => <AddressCell address={r.address} />,
               },
               {
-                header: "Status",
+                header: "Saved",
                 className: "text-center",
-                cell: (r: any) => <StatusBadge status={r.status} />,
+                cell: (r: any) => (
+                  <div className="flex justify-center">
+                    <Badge tone={r.desiredAllowed ? "blue" : "slate"} className="text-[10px]">
+                      {r.desiredAllowed ? "Allowed" : "Revoked"}
+                    </Badge>
+                  </div>
+                ),
+              },
+              {
+                header: "On-chain",
+                className: "text-center",
+                cell: (r: any) => <StatusBadge status={r.onchainAllowed ? "active" : "disabled"} />,
               },
               {
                 header: "Actions",
@@ -129,14 +153,14 @@ export default function OnchainConfigPage() {
                     className="text-red-300 hover:text-red-200 text-xs font-medium hover:underline"
                     onClick={() => uc.removeRouter(r.id)}
                   >
-                    Remove
+                    Revoke
                   </button>
                 ),
               },
             ]}
             rows={uc.routers}
             rowKey={(r: any) => r.id}
-            emptyLabel="No routers found."
+            emptyLabel="No routers saved for the active StrategyRegistry."
           />
 
           <Surface variant="panel" className="bg-slate-900 border border-slate-700">
@@ -156,14 +180,14 @@ export default function OnchainConfigPage() {
                 />
               </div>
               <div className="text-[11px] text-slate-500 mt-2">
-                Tip: Use “Bulk Paste” to add many addresses quickly.
+                Bulk paste still requires one wallet confirmation per address because the contract has no batch method.
               </div>
             </SurfaceBody>
           </Surface>
 
           <AllowlistTable
             title="Adapters Allowlist"
-            description="Whitelisted logic adapters for Vault interactions."
+            description="Saved adapter entries cross-checked with the StrategyRegistry contract."
             secondaryAction={{ label: "Bulk Paste", onClick: uc.bulkPasteAdapters }}
             primaryAction={{
               label: "Add Adapter",
@@ -188,9 +212,20 @@ export default function OnchainConfigPage() {
                 cell: (a: any) => <AddressCell address={a.address} />,
               },
               {
-                header: "Status",
+                header: "Saved",
                 className: "text-center",
-                cell: (a: any) => <StatusBadge status={a.status} />,
+                cell: (a: any) => (
+                  <div className="flex justify-center">
+                    <Badge tone={a.desiredAllowed ? "blue" : "slate"} className="text-[10px]">
+                      {a.desiredAllowed ? "Allowed" : "Revoked"}
+                    </Badge>
+                  </div>
+                ),
+              },
+              {
+                header: "On-chain",
+                className: "text-center",
+                cell: (a: any) => <StatusBadge status={a.onchainAllowed ? "active" : "disabled"} />,
               },
               {
                 header: "Actions",
@@ -201,14 +236,14 @@ export default function OnchainConfigPage() {
                     className="text-red-300 hover:text-red-200 text-xs font-medium hover:underline"
                     onClick={() => uc.removeAdapter(a.id)}
                   >
-                    Remove
+                    Revoke
                   </button>
                 ),
               },
             ]}
             rows={uc.adapters}
             rowKey={(a: any) => a.id}
-            emptyLabel="No adapters found."
+            emptyLabel="No adapters saved for the active StrategyRegistry."
           />
 
           <Surface variant="panel" className="bg-slate-900 border border-slate-700">
@@ -223,7 +258,7 @@ export default function OnchainConfigPage() {
                 <input
                   value={newAdapterType}
                   onChange={(e) => setNewAdapterType(e.target.value)}
-                  placeholder="Type (e.g. Swap/Mint)"
+                  placeholder="Type (e.g. PancakeV3)"
                   className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-cyan-500"
                 />
                 <input
@@ -242,8 +277,9 @@ export default function OnchainConfigPage() {
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
           <Surface variant="panel" className="bg-slate-900 border border-slate-700">
             <SurfaceBody>
-              <div className="text-lg font-semibold text-white mb-6">
-                Factory Configuration
+              <div className="text-lg font-semibold text-white mb-2">Factory Configuration</div>
+              <div className="text-xs text-slate-500 mb-6">
+                Last saved admin snapshot: {uc.vaultFactorySavedAtLabel || "—"}
               </div>
 
               <div className="space-y-8">
@@ -268,7 +304,7 @@ export default function OnchainConfigPage() {
                   />
 
                   <ConfigFieldRow
-                    label="FeeCollector Address"
+                    label="Fee Collector Address"
                     currentValue={
                       <span className="font-mono text-sm text-slate-300">
                         {uc.vaultFactory.feeCollectorAddress}
@@ -303,48 +339,35 @@ export default function OnchainConfigPage() {
                     />
 
                     <MiniNumberRow
-                      label="Slippage (Bps)"
-                      current={uc.vaultFactory.slippageBps}
-                      draft={uc.vaultFactoryDraft.slippageBps}
-                      onDraft={(v) => uc.setVaultFactoryDraft((p) => ({ ...p, slippageBps: v }))}
-                    />
-
-                    <MiniNumberRow
-                      label="Fee (Bps)"
-                      current={uc.vaultFactory.feeBps}
-                      draft={uc.vaultFactoryDraft.feeBps}
-                      onDraft={(v) => uc.setVaultFactoryDraft((p) => ({ ...p, feeBps: v }))}
+                      label="Max Slippage (Bps)"
+                      current={uc.vaultFactory.maxSlippageBps}
+                      draft={uc.vaultFactoryDraft.maxSlippageBps}
+                      onDraft={(v) => uc.setVaultFactoryDraft((p) => ({ ...p, maxSlippageBps: v }))}
                     />
 
                     <div className="space-y-2">
-                      <div className="text-sm text-slate-400">Compound Enabled</div>
+                      <div className="text-sm text-slate-400">Default Allow Swap</div>
                       <div className="flex items-center gap-3 h-[40px]">
-                        <Badge tone={uc.vaultFactory.compoundEnabled ? "green" : "slate"} className="text-[10px]">
-                          {uc.vaultFactory.compoundEnabled ? "TRUE" : "FALSE"}
+                        <Badge tone={uc.vaultFactory.allowSwap ? "green" : "slate"} className="text-[10px]">
+                          {uc.vaultFactory.allowSwap ? "TRUE" : "FALSE"}
                         </Badge>
 
                         <span className="text-slate-600">→</span>
 
                         <Toggle
                           value={
-                            typeof uc.vaultFactoryDraft.compoundEnabled === "boolean"
-                              ? uc.vaultFactoryDraft.compoundEnabled
-                              : uc.vaultFactory.compoundEnabled
+                            typeof uc.vaultFactoryDraft.allowSwap === "boolean"
+                              ? uc.vaultFactoryDraft.allowSwap
+                              : uc.vaultFactory.allowSwap
                           }
-                          onChange={(v) =>
-                            uc.setVaultFactoryDraft((p) => ({ ...p, compoundEnabled: v }))
-                          }
+                          onChange={(v) => uc.setVaultFactoryDraft((p) => ({ ...p, allowSwap: v }))}
                         />
                       </div>
                     </div>
                   </div>
 
                   <div className="mt-8 flex justify-end">
-                    <Button
-                      variant="primary"
-                      className="text-sm"
-                      onClick={uc.requestApplyVaultFactory}
-                    >
+                    <Button variant="primary" className="text-sm" onClick={uc.requestApplyVaultFactory}>
                       Apply Changes
                     </Button>
                   </div>
@@ -359,7 +382,10 @@ export default function OnchainConfigPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Surface variant="panel" className="bg-slate-900 border border-slate-700">
             <SurfaceBody>
-              <div className="text-lg font-semibold text-white mb-4">Protocol Fees</div>
+              <div className="text-lg font-semibold text-white mb-2">Protocol Fees</div>
+              <div className="text-xs text-slate-500 mb-4">
+                Last saved admin snapshot: {uc.protocolFeeSavedAtLabel || "—"}
+              </div>
 
               <div className="space-y-6">
                 <ConfigFieldRow
@@ -383,7 +409,7 @@ export default function OnchainConfigPage() {
 
                 <ConfigFieldRow
                   label="Protocol Fee (Bps)"
-                  currentLabel="Current (0-10000)"
+                  currentLabel="Current On-chain Value"
                   currentValue={
                     <span className="font-mono text-sm text-slate-300">
                       {uc.protocolFee.feeBps}{" "}
@@ -396,7 +422,7 @@ export default function OnchainConfigPage() {
                     <input
                       type="number"
                       min={0}
-                      max={10000}
+                      max={5000}
                       value={typeof uc.protocolFeeDraft.feeBps === "number" ? uc.protocolFeeDraft.feeBps : ""}
                       onChange={(e) =>
                         uc.setProtocolFeeDraft((p) => ({
@@ -419,22 +445,18 @@ export default function OnchainConfigPage() {
             </SurfaceBody>
           </Surface>
 
-          <ReportersList
-            items={uc.reporters}
-            onAdd={uc.addReporter}
-            onRemove={uc.removeReporter}
-          />
+          <ReportersList items={uc.reporters} onAdd={uc.addReporter} onRemove={uc.removeReporter} />
         </div>
       )}
 
       {uc.activeTab === "vaultFeeBuffer" && (
-        <Surface variant="panel" className="bg-slate-900 border border-slate-700 max-w-4xl">
+        <Surface variant="panel" className="bg-slate-900 border border-slate-700 max-w-5xl">
           <SurfaceBody>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
               <div>
                 <div className="text-lg font-semibold text-white">Depositors Allowlist</div>
                 <div className="text-sm text-slate-400">
-                  Addresses permitted to deposit directly into the Fee Buffer.
+                  Saved depositor entries cross-checked with the active VaultFeeBuffer contract.
                 </div>
               </div>
 
@@ -472,6 +494,8 @@ export default function OnchainConfigPage() {
                     <tr>
                       <th className="px-6 py-3 border-b border-slate-700">Address</th>
                       <th className="px-6 py-3 border-b border-slate-700">Label</th>
+                      <th className="px-6 py-3 border-b border-slate-700 text-center">Saved</th>
+                      <th className="px-6 py-3 border-b border-slate-700 text-center">On-chain</th>
                       <th className="px-6 py-3 border-b border-slate-700 text-right">Actions</th>
                     </tr>
                   </thead>
@@ -482,6 +506,16 @@ export default function OnchainConfigPage() {
                           <AddressPill address={d.address} />
                         </td>
                         <td className="px-6 py-3 text-sm text-slate-400">{d.label}</td>
+                        <td className="px-6 py-3 text-center">
+                          <Badge tone={d.desiredAllowed ? "blue" : "slate"} className="text-[10px]">
+                            {d.desiredAllowed ? "Allowed" : "Revoked"}
+                          </Badge>
+                        </td>
+                        <td className="px-6 py-3 text-center">
+                          <Badge tone={d.onchainAllowed ? "green" : "red"} className="text-[10px]">
+                            {d.onchainAllowed ? "Allowed" : "Revoked"}
+                          </Badge>
+                        </td>
                         <td className="px-6 py-3 text-right">
                           <button
                             type="button"
@@ -495,8 +529,8 @@ export default function OnchainConfigPage() {
                     ))}
                     {uc.depositors.length === 0 && (
                       <tr>
-                        <td colSpan={3} className="px-6 py-6 text-sm text-slate-400">
-                          No depositors
+                        <td colSpan={5} className="px-6 py-6 text-sm text-slate-400">
+                          No depositors saved for the active VaultFeeBuffer.
                         </td>
                       </tr>
                     )}
@@ -508,7 +542,6 @@ export default function OnchainConfigPage() {
         </Surface>
       )}
 
-      {/* Confirm Modal */}
       <ConfirmTxModal
         open={uc.confirmOpen}
         tx={uc.pendingTx}
@@ -517,7 +550,7 @@ export default function OnchainConfigPage() {
       />
 
       <div className="pt-8 pb-4 text-center text-xs text-slate-600">
-        &copy; Protocol Admin Dashboard. All actions are recorded on-chain.
+        &copy; Protocol Admin Dashboard. All actions are recorded on-chain and mirrored in admin storage.
       </div>
     </div>
   );

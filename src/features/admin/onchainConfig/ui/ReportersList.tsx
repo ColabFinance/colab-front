@@ -6,6 +6,7 @@ import { Button } from "@/presentation/components/Button";
 import { Surface, SurfaceHeader, SurfaceBody } from "@/presentation/components/Surface";
 import { ReporterItem } from "../types";
 import { AddressPill } from "@/presentation/components/AddressPill";
+import { Badge } from "@/presentation/components/Badge";
 
 export function ReportersList({
   title = "Authorized Reporters",
@@ -26,7 +27,7 @@ export function ReportersList({
 
   return (
     <Surface variant="panel" className={cn("bg-slate-900 border border-slate-700", className)}>
-      <SurfaceHeader className="flex items-center justify-between gap-3">
+      <SurfaceHeader className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div className="text-lg font-semibold text-white">{title}</div>
 
         <div className="flex items-center gap-2">
@@ -65,8 +66,20 @@ export function ReportersList({
                   <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 grid place-items-center text-xs text-slate-400 font-mono">
                     {idx + 1}
                   </div>
-                  <div className="space-y-1">
+
+                  <div className="space-y-2">
                     <AddressPill address={r.address} className="bg-slate-900/60" />
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone={r.desiredAllowed ? "blue" : "slate"} className="text-[10px]">
+                        {r.desiredAllowed ? "Saved Allowed" : "Saved Revoked"}
+                      </Badge>
+
+                      <Badge tone={r.onchainAllowed ? "green" : "red"} className="text-[10px]">
+                        {r.onchainAllowed ? "On-chain Allowed" : "On-chain Revoked"}
+                      </Badge>
+                    </div>
+
                     <div className="text-[10px] text-slate-500">{r.addedAtLabel}</div>
                   </div>
                 </div>
@@ -75,7 +88,7 @@ export function ReportersList({
                   type="button"
                   onClick={() => onRemove(r.id)}
                   className="text-slate-500 hover:text-red-400 transition-colors"
-                  title="Remove"
+                  title="Revoke"
                 >
                   🗑
                 </button>

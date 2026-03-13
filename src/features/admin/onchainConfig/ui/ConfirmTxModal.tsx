@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/shared/utils/cn";
 import { PendingTx } from "../types";
 import { Button } from "@/presentation/components/Button";
@@ -18,6 +18,10 @@ export function ConfirmTxModal({
   onExecute: () => void;
 }) {
   const [typed, setTyped] = useState("");
+
+  useEffect(() => {
+    if (!open) setTyped("");
+  }, [open, tx?.contractAddress, tx?.functionLabel]);
 
   const canExecute = useMemo(() => typed.trim().toUpperCase() === "CONFIRM", [typed]);
 
