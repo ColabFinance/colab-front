@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CHAINS, DEXES, MOCK_VAULTS } from "./mock";
+import { useEffect, useMemo, useState } from "react";
+import { useOwnerAddress } from "@/hooks/useOwnerAddress";
+import type { VaultExploreApiItem } from "@/core/infra/api/api-lp/vaultExplore";
 import {
   VaultExploreItem,
   VaultGaugeFilter,
@@ -9,7 +10,10 @@ import {
   VaultRangeStatus,
   VaultSort,
   VaultsExploreView,
+  ChainOption,
+  DexOption,
 } from "./types";
+import { listVaultsExploreUseCase } from "@/core/usecases/user/vaults/listVaultsExplore.usecase";
 
 export type VaultsExploreFilters = {
   chainId: string | "all";
@@ -23,14 +27,99 @@ export type VaultsExploreFilters = {
   view: VaultsExploreView;
 };
 
+const CHAIN_LABELS: Record<string, string> = {
+  base: "Base",
+  ethereum: "Ethereum",
+  polygon: "Polygon",
+  arbitrum: "Arbitrum",
+  optimism: "Optimism",
+  bnb: "BNB Chain",
+};
+
+const DEX_LABELS: Record<string, string> = {
+  uniswap_v3: "Uniswap V3",
+  pancakeswap_v3: "PancakeSwap V3",
+  pancake_v3: "PancakeSwap V3",
+  aerodrome: "Aerodrome",
+  curve: "Curve",
+  quickswap: "QuickSwap",
+  velodrome: "Velodrome",
+};
+
+function buildChainName(chainId: string) {
+  return CHAIN_LABELS[chainId] ?? chainId;
+}
+
+function buildDexName(dexId: string) {
+  return DEX_LABELS[dexId] ?? dexId;
+}
+
+function formatFeeTierLabel(feeBps?: string | null) {
+  if (!feeBps) return null;
+
+  const parsed = Number(feeBps);
+  if (!Number.isFinite(parsed) || parsed <= 0) return null;
+
+  const text = (parsed / 10_000).toFixed(2).replace(/\.?0+$/, "");
+  return `${text}%`;
+}
+
+function buildDisplayName(item: VaultExploreApiItem) {
+  if (item.name?.trim()) return item.name.trim();
+
+  const token0 = item.token0_symbol?.trim() || "TOKEN0";
+  const token1 = item.token1_symbol?.trim() || "TOKEN1";
+  const fee = formatFeeTierLabel(item.fee_bps);
+
+  return fee ? `${token0}-${token1} ${fee}` : `${token0}-${token1}`;
+}
+
+function toUiItem(item: VaultExploreApiItem): VaultExploreItem {
+  return {
+    id: item.id || item.alias || item.address,
+    name: buildDisplayName(item),
+    address: item.address,
+
+    token0Symbol: item.token0_symbol || "T0",
+    token1Symbol: item.token1_symbol || "T1",
+    feeTierLabel: formatFeeTierLabel(item.fee_bps),
+
+    pairType: item.pair_type || "volatile",
+
+    chainId: item.chain,
+    chainName: buildChainName(item.chain),
+
+    dexId: item.dex,
+    dexName: buildDexName(item.dex),
+
+    tvlUsd: item.tvl_usd ?? null,
+    tvlChange24hPct: item.tvl_change_24h_pct ?? null,
+
+    apyPct: item.apy_pct ?? null,
+    aprPct: item.apr_pct ?? null,
+
+    status: item.status ?? (item.is_active ? "active" : "paused"),
+    rangeStatus: item.range_status ?? null,
+
+    hasGauge: Boolean(item.has_gauge),
+    isMine: Boolean(item.is_mine),
+    myPositionUsd: item.my_position_usd ?? null,
+
+    favorited: false,
+  };
+}
+
 function sortItems(items: VaultExploreItem[], sort: VaultSort) {
   const arr = [...items];
 
+  const num = (value: number | null | undefined, fallback: number) =>
+    typeof value === "number" ? value : fallback;
+
   arr.sort((a, b) => {
-    if (sort === "tvl_desc") return b.tvlUsd - a.tvlUsd;
-    if (sort === "tvl_asc") return a.tvlUsd - b.tvlUsd;
-    if (sort === "apy_desc") return b.apyPct - a.apyPct;
-    if (sort === "apy_asc") return a.apyPct - b.apyPct;
+    if (sort === "tvl_desc") return num(b.tvlUsd, -1) - num(a.tvlUsd, -1);
+    if (sort === "tvl_asc") return num(a.tvlUsd, Number.MAX_SAFE_INTEGER) - num(b.tvlUsd, Number.MAX_SAFE_INTEGER);
+    if (sort === "apy_desc") return num(b.apyPct, -1) - num(a.apyPct, -1);
+    if (sort === "apy_asc") return num(a.apyPct, Number.MAX_SAFE_INTEGER) - num(b.apyPct, Number.MAX_SAFE_INTEGER);
     return 0;
   });
 
@@ -38,12 +127,17 @@ function sortItems(items: VaultExploreItem[], sort: VaultSort) {
 }
 
 export function useVaultsExplore() {
-  const [data, setData] = useState<VaultExploreItem[]>(MOCK_VAULTS);
+  const { ownerAddr } = useOwnerAddress();
+  const ownerAddressKey = ownerAddr || "";
+
+  const [data, setData] = useState<VaultExploreItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<VaultsExploreFilters>({
     chainId: "all",
     dexId: "all",
-    status: "active",
+    status: "all",
     ownership: "all",
     gaugeFilter: "all",
     rangeStatus: "all",
@@ -54,6 +148,41 @@ export function useVaultsExplore() {
 
   const [page, setPage] = useState(1);
   const pageSize = 8;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function load() {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const res = await listVaultsExploreUseCase({
+          owner: ownerAddressKey || undefined,
+          limit: 500,
+        });
+
+        if (cancelled) return;
+
+        const items = Array.isArray(res.data) ? res.data.map(toUiItem) : [];
+        setData(items);
+      } catch (err) {
+        if (cancelled) return;
+        setData([]);
+        setError(err instanceof Error ? err.message : "Failed to load vaults");
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerAddressKey]);
 
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
@@ -70,7 +199,7 @@ export function useVaultsExplore() {
       if (!q) return true;
 
       const hay =
-        `${v.name} ${v.address} ${v.token0Symbol} ${v.token1Symbol} ${v.chainName} ${v.dexName} ${v.feeTierLabel}`.toLowerCase();
+        `${v.name} ${v.address} ${v.token0Symbol} ${v.token1Symbol} ${v.chainName} ${v.dexName} ${v.feeTierLabel ?? ""}`.toLowerCase();
 
       return hay.includes(q);
     });
@@ -98,8 +227,21 @@ export function useVaultsExplore() {
     return { from, to, total };
   }, [page, total, totalPages]);
 
-  const chainOptions = useMemo(() => CHAINS, []);
-  const dexOptions = useMemo(() => DEXES, []);
+  const chainOptions = useMemo<ChainOption[]>(() => {
+    const unique = Array.from(new Set(data.map((v) => v.chainId))).filter(Boolean);
+    return [
+      { id: "all", name: "All Chains" },
+      ...unique.map((id) => ({ id, name: buildChainName(id) })),
+    ];
+  }, [data]);
+
+  const dexOptions = useMemo<DexOption[]>(() => {
+    const unique = Array.from(new Set(data.map((v) => v.dexId))).filter(Boolean);
+    return [
+      { id: "all", name: "All DEXs" },
+      ...unique.map((id) => ({ id, name: buildDexName(id) })),
+    ];
+  }, [data]);
 
   const overview = useMemo(() => {
     return {
@@ -109,7 +251,7 @@ export function useVaultsExplore() {
       chains: new Set(data.map((v) => v.chainId)).size,
       dexes: new Set(data.map((v) => v.dexId)).size,
       inRange: data.filter((v) => v.rangeStatus === "inside").length,
-      outOfRange: data.filter((v) => v.rangeStatus !== "inside").length,
+      outOfRange: data.filter((v) => v.rangeStatus === "below" || v.rangeStatus === "above").length,
     };
   }, [data]);
 
@@ -124,7 +266,7 @@ export function useVaultsExplore() {
     setFilters({
       chainId: "all",
       dexId: "all",
-      status: "active",
+      status: "all",
       ownership: "all",
       gaugeFilter: "all",
       rangeStatus: "all",
@@ -149,6 +291,9 @@ export function useVaultsExplore() {
   }
 
   return {
+    loading,
+    error,
+
     filters,
     setFilters: updateFilters,
     resetFilters,

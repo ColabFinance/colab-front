@@ -6,7 +6,9 @@ import { VaultExploreItem } from "../types";
 import { ExternalLinkIcon, StarIcon } from "./icons";
 import { TokenPairAvatar } from "./TokenPairAvatar";
 
-function formatUsd(n: number) {
+function formatUsd(n?: number | null) {
+  if (n == null) return "—";
+
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -31,13 +33,18 @@ function rangeClasses(rangeStatus: VaultExploreItem["rangeStatus"]) {
     return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
   }
 
-  return "bg-red-500/10 text-red-400 border border-red-500/20";
+  if (rangeStatus === "below" || rangeStatus === "above") {
+    return "bg-red-500/10 text-red-400 border border-red-500/20";
+  }
+
+  return "bg-slate-800 text-slate-400 border border-slate-700";
 }
 
 function rangeLabel(rangeStatus: VaultExploreItem["rangeStatus"]) {
   if (rangeStatus === "inside") return "In Range";
   if (rangeStatus === "below") return "Below Range";
-  return "Above Range";
+  if (rangeStatus === "above") return "Above Range";
+  return "Range TBD";
 }
 
 function shortAddress(address: string) {
@@ -130,7 +137,9 @@ export function VaultsExploreGrid({
 
               <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
                 <div className="text-[10px] text-slate-500 uppercase tracking-wide">APY</div>
-                <div className="mt-1 text-sm font-bold text-green-400">{v.apyPct.toFixed(2)}%</div>
+                <div className="mt-1 text-sm font-bold text-green-400">
+                  {v.apyPct == null ? "—" : `${v.apyPct.toFixed(2)}%`}
+                </div>
               </div>
             </div>
 

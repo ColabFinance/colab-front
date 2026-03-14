@@ -6,7 +6,9 @@ import { VaultExploreItem } from "../types";
 import { CopyIcon, ExternalLinkIcon, StarIcon } from "./icons";
 import { TokenPairAvatar } from "./TokenPairAvatar";
 
-function formatUsd(n: number) {
+function formatUsd(n?: number | null) {
+  if (n == null) return "—";
+
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -14,7 +16,8 @@ function formatUsd(n: number) {
   return `$${n.toFixed(2)}`;
 }
 
-function formatPct(n: number) {
+function formatPct(n?: number | null) {
+  if (n == null) return "—";
   const sign = n > 0 ? "+" : n < 0 ? "" : "";
   return `${sign}${n.toFixed(1)}%`;
 }
@@ -41,13 +44,18 @@ function rangeClasses(rangeStatus: VaultExploreItem["rangeStatus"]) {
     return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
   }
 
-  return "bg-red-500/10 text-red-400 border border-red-500/20";
+  if (rangeStatus === "below" || rangeStatus === "above") {
+    return "bg-red-500/10 text-red-400 border border-red-500/20";
+  }
+
+  return "bg-slate-800 text-slate-400 border border-slate-700";
 }
 
 function rangeLabel(rangeStatus: VaultExploreItem["rangeStatus"]) {
   if (rangeStatus === "inside") return "In Range";
   if (rangeStatus === "below") return "Below Range";
-  return "Above Range";
+  if (rangeStatus === "above") return "Above Range";
+  return "Range TBD";
 }
 
 export function VaultsExploreTable({
@@ -94,7 +102,9 @@ export function VaultsExploreTable({
         <tbody className="divide-y divide-slate-700/50 bg-slate-900">
           {items.map((v) => {
             const changeTone =
-              v.tvlChange24hPct > 0
+              v.tvlChange24hPct == null
+                ? "text-slate-500"
+                : v.tvlChange24hPct > 0
                 ? "text-green-400"
                 : v.tvlChange24hPct < 0
                 ? "text-red-400"
@@ -173,7 +183,8 @@ export function VaultsExploreTable({
                 <td className="px-6 py-4 text-right">
                   <div className="text-sm font-mono text-white">{formatUsd(v.tvlUsd)}</div>
                   <div className={cn("text-[10px] font-medium", changeTone)}>
-                    {formatPct(v.tvlChange24hPct)} <span className="text-slate-600">(24h)</span>
+                    {formatPct(v.tvlChange24hPct)}{" "}
+                    <span className="text-slate-600">(24h)</span>
                   </div>
                 </td>
 
@@ -181,11 +192,15 @@ export function VaultsExploreTable({
                   <div className="flex flex-col items-end gap-0.5">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] text-slate-500 uppercase tracking-wide">APY</span>
-                      <span className="text-sm font-bold text-green-400">{v.apyPct.toFixed(2)}%</span>
+                      <span className="text-sm font-bold text-green-400">
+                        {v.apyPct == null ? "—" : `${v.apyPct.toFixed(2)}%`}
+                      </span>
                     </div>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] text-slate-600 uppercase tracking-wide">APR</span>
-                      <span className="text-xs font-medium text-slate-400">{v.aprPct.toFixed(1)}%</span>
+                      <span className="text-xs font-medium text-slate-400">
+                        {v.aprPct == null ? "—" : `${v.aprPct.toFixed(1)}%`}
+                      </span>
                     </div>
                   </div>
                 </td>

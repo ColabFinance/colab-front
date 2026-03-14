@@ -22,6 +22,7 @@ function buildExplorerUrl(chainId: string, address: string) {
     polygon: "https://polygonscan.com/address",
     arbitrum: "https://arbiscan.io/address",
     optimism: "https://optimistic.etherscan.io/address",
+    bnb: "https://bscscan.com/address",
   };
 
   return `${baseByChain[chainId] ?? baseByChain.ethereum}/${clean}`;
@@ -31,6 +32,8 @@ export default function VaultsExplorePage() {
   const router = useRouter();
 
   const {
+    loading,
+    error,
     filters,
     setFilters,
     resetFilters,
@@ -77,6 +80,12 @@ export default function VaultsExplorePage() {
         </div>
       </div>
 
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+          {error}
+        </div>
+      )}
+
       <div className="bg-slate-900 border border-slate-700 rounded-xl p-4">
         <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -116,7 +125,11 @@ export default function VaultsExplorePage() {
           dexOptions={dexOptions}
         />
 
-        {filters.view === "grid" ? (
+        {loading ? (
+          <div className="flex-1 grid place-items-center p-10 text-sm text-slate-400">
+            Loading vaults...
+          </div>
+        ) : filters.view === "grid" ? (
           <VaultsExploreGrid
             items={pageItems}
             onToggleFavorite={toggleFavoriteLocal}
@@ -132,12 +145,14 @@ export default function VaultsExplorePage() {
           />
         )}
 
-        <VaultsExplorePagination
-          rangeLabel={rangeLabel}
-          page={page}
-          totalPages={totalPages}
-          setPage={setPage}
-        />
+        {!loading && (
+          <VaultsExplorePagination
+            rangeLabel={rangeLabel}
+            page={page}
+            totalPages={totalPages}
+            setPage={setPage}
+          />
+        )}
       </div>
     </div>
   );

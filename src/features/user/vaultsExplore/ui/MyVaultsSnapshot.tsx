@@ -5,7 +5,9 @@ import { VaultExploreItem } from "../types";
 import { ArrowRightIcon, PiggyBankIcon } from "./icons";
 import { TokenPairAvatar } from "./TokenPairAvatar";
 
-function formatUsd(n: number) {
+function formatUsd(n?: number | null) {
+  if (n == null) return "—";
+
   const abs = Math.abs(n);
   if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
   if (abs >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
@@ -82,14 +84,14 @@ export function MyVaultsSnapshot({
                 <div>
                   <div className="text-slate-500 text-[10px] mb-1">Value</div>
                   <div className="text-white font-mono">
-                    {formatUsd(vault.myPositionUsd ?? 0)}
+                    {formatUsd(vault.myPositionUsd ?? null)}
                   </div>
                 </div>
 
                 <div>
                   <div className="text-slate-500 text-[10px] mb-1">APY</div>
                   <div className="text-green-400 font-bold">
-                    {vault.apyPct.toFixed(1)}%
+                    {vault.apyPct == null ? "—" : `${vault.apyPct.toFixed(1)}%`}
                   </div>
                 </div>
               </div>

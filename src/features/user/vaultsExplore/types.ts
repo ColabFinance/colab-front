@@ -30,7 +30,7 @@ export type VaultExploreItem = {
 
   token0Symbol: string;
   token1Symbol: string;
-  feeTierLabel: string;
+  feeTierLabel: string | null;
 
   pairType: VaultPairType;
 
@@ -40,18 +40,18 @@ export type VaultExploreItem = {
   dexId: string;
   dexName: string;
 
-  tvlUsd: number;
-  tvlChange24hPct: number;
+  tvlUsd: number | null;
+  tvlChange24hPct: number | null;
 
-  apyPct: number;
-  aprPct: number;
+  apyPct: number | null;
+  aprPct: number | null;
 
   status: VaultStatus;
-  rangeStatus: VaultRangeStatus;
+  rangeStatus: VaultRangeStatus | null;
 
   hasGauge: boolean;
   isMine: boolean;
-  myPositionUsd?: number;
+  myPositionUsd?: number | null;
 
   favorited: boolean;
 };
