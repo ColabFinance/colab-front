@@ -1,5 +1,6 @@
 export type VaultPairType = "stable" | "volatile";
 export type VaultStatus = "active" | "paused" | "deprecated";
+export type VaultRangeStatus = "inside" | "below" | "above";
 
 export type VaultSort =
   | "tvl_desc"
@@ -8,6 +9,8 @@ export type VaultSort =
   | "apy_asc";
 
 export type VaultsExploreView = "list" | "grid";
+export type VaultOwnershipFilter = "all" | "my";
+export type VaultGaugeFilter = "all" | "has_gauge" | "no_gauge";
 
 export type ChainOption = {
   id: string;
@@ -44,5 +47,11 @@ export type VaultExploreItem = {
   aprPct: number;
 
   status: VaultStatus;
+  rangeStatus: VaultRangeStatus;
+
+  hasGauge: boolean;
+  isMine: boolean;
+  myPositionUsd?: number;
+
   favorited: boolean;
 };

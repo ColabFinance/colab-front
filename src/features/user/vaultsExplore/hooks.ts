@@ -2,13 +2,22 @@
 
 import { useMemo, useState } from "react";
 import { CHAINS, DEXES, MOCK_VAULTS } from "./mock";
-import { VaultExploreItem, VaultSort, VaultsExploreView } from "./types";
+import {
+  VaultExploreItem,
+  VaultGaugeFilter,
+  VaultOwnershipFilter,
+  VaultRangeStatus,
+  VaultSort,
+  VaultsExploreView,
+} from "./types";
 
 export type VaultsExploreFilters = {
   chainId: string | "all";
   dexId: string | "all";
-  pairType: "all" | "stable" | "volatile";
   status: "all" | "active" | "paused" | "deprecated";
+  ownership: VaultOwnershipFilter;
+  gaugeFilter: VaultGaugeFilter;
+  rangeStatus: "all" | VaultRangeStatus;
   query: string;
   sort: VaultSort;
   view: VaultsExploreView;
@@ -16,6 +25,7 @@ export type VaultsExploreFilters = {
 
 function sortItems(items: VaultExploreItem[], sort: VaultSort) {
   const arr = [...items];
+
   arr.sort((a, b) => {
     if (sort === "tvl_desc") return b.tvlUsd - a.tvlUsd;
     if (sort === "tvl_asc") return a.tvlUsd - b.tvlUsd;
@@ -23,24 +33,27 @@ function sortItems(items: VaultExploreItem[], sort: VaultSort) {
     if (sort === "apy_asc") return a.apyPct - b.apyPct;
     return 0;
   });
+
   return arr;
 }
 
 export function useVaultsExplore() {
+  const [data, setData] = useState<VaultExploreItem[]>(MOCK_VAULTS);
+
   const [filters, setFilters] = useState<VaultsExploreFilters>({
     chainId: "all",
     dexId: "all",
-    pairType: "all",
     status: "active",
+    ownership: "all",
+    gaugeFilter: "all",
+    rangeStatus: "all",
     query: "",
     sort: "tvl_desc",
     view: "list",
   });
 
   const [page, setPage] = useState(1);
-  const pageSize = 10;
-
-  const data = useMemo(() => MOCK_VAULTS, []);
+  const pageSize = 8;
 
   const filtered = useMemo(() => {
     const q = filters.query.trim().toLowerCase();
@@ -48,13 +61,17 @@ export function useVaultsExplore() {
     return data.filter((v) => {
       if (filters.chainId !== "all" && v.chainId !== filters.chainId) return false;
       if (filters.dexId !== "all" && v.dexId !== filters.dexId) return false;
-
-      if (filters.pairType !== "all" && v.pairType !== filters.pairType) return false;
       if (filters.status !== "all" && v.status !== filters.status) return false;
+      if (filters.ownership === "my" && !v.isMine) return false;
+      if (filters.gaugeFilter === "has_gauge" && !v.hasGauge) return false;
+      if (filters.gaugeFilter === "no_gauge" && v.hasGauge) return false;
+      if (filters.rangeStatus !== "all" && v.rangeStatus !== filters.rangeStatus) return false;
 
       if (!q) return true;
 
-      const hay = `${v.name} ${v.address} ${v.token0Symbol} ${v.token1Symbol} ${v.chainName} ${v.dexName}`.toLowerCase();
+      const hay =
+        `${v.name} ${v.address} ${v.token0Symbol} ${v.token1Symbol} ${v.chainName} ${v.dexName} ${v.feeTierLabel}`.toLowerCase();
+
       return hay.includes(q);
     });
   }, [data, filters]);
@@ -73,21 +90,44 @@ export function useVaultsExplore() {
 
   const rangeLabel = useMemo(() => {
     if (total === 0) return { from: 0, to: 0, total: 0 };
+
     const safePage = Math.min(Math.max(1, page), totalPages);
     const from = (safePage - 1) * pageSize + 1;
     const to = Math.min(total, safePage * pageSize);
+
     return { from, to, total };
-  }, [page, pageSize, total, totalPages]);
+  }, [page, total, totalPages]);
 
   const chainOptions = useMemo(() => CHAINS, []);
   const dexOptions = useMemo(() => DEXES, []);
+
+  const overview = useMemo(() => {
+    return {
+      totalVaults: data.length,
+      activeVaults: data.filter((v) => v.status === "active").length,
+      myVaults: data.filter((v) => v.isMine).length,
+      chains: new Set(data.map((v) => v.chainId)).size,
+      dexes: new Set(data.map((v) => v.dexId)).size,
+      inRange: data.filter((v) => v.rangeStatus === "inside").length,
+      outOfRange: data.filter((v) => v.rangeStatus !== "inside").length,
+    };
+  }, [data]);
+
+  const myVaultsSnapshot = useMemo(() => {
+    return [...data]
+      .filter((v) => v.isMine)
+      .sort((a, b) => (b.myPositionUsd ?? 0) - (a.myPositionUsd ?? 0))
+      .slice(0, 3);
+  }, [data]);
 
   function resetFilters() {
     setFilters({
       chainId: "all",
       dexId: "all",
-      pairType: "all",
       status: "active",
+      ownership: "all",
+      gaugeFilter: "all",
+      rangeStatus: "all",
       query: "",
       sort: "tvl_desc",
       view: "list",
@@ -101,8 +141,11 @@ export function useVaultsExplore() {
   }
 
   function toggleFavoriteLocal(id: string) {
-    // mock-only placeholder; real update later via API
-    void id;
+    setData((cur) =>
+      cur.map((item) =>
+        item.id === id ? { ...item, favorited: !item.favorited } : item
+      )
+    );
   }
 
   return {
@@ -124,6 +167,9 @@ export function useVaultsExplore() {
     totalPages,
     pageItems,
     rangeLabel,
+
+    overview,
+    myVaultsSnapshot,
 
     toggleFavoriteLocal,
   };
