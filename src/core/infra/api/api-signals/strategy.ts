@@ -120,13 +120,44 @@ export async function apiSignalsStrategyExists(
   return apiSignalsGet(`/strategies/exists?${qs}`, accessToken);
 }
 
-export async function apiSignalsListStrategies(
-  accessToken: string,
-  query: StrategyListQuery
-): Promise<{ ok: boolean; data?: StrategyParamsRecord[]; message?: string }> {
-  let qs = `chain=${encodeURIComponent(query.chain)}&owner=${encodeURIComponent(query.owner)}`;
-  if (query.status) qs += `&status=${encodeURIComponent(query.status)}`;
-  return apiSignalsGet(`/strategies/list?${qs}`, accessToken);
+export type StrategyListApiRecord = {
+  id?: string;
+  name: string;
+  symbol: string;
+  status: string;
+  description?: string;
+  indicator_set_id?: string;
+  chain?: string;
+  owner?: string;
+  strategy_id?: number;
+  adapter?: string | null;
+  dex_router?: string | null;
+  token0?: string | null;
+  token1?: string | null;
+  tx_hash?: string | null;
+  stream_key?: string | null;
+  dex?: string | null;
+  alias?: string | null;
+  created_at?: number;
+  created_at_iso?: string;
+  updated_at?: number;
+  updated_at_iso?: string;
+};
+
+export async function apiSignalsListStrategies(params: {
+  accessToken: string;
+  query: {
+    chain: string;
+    owner: string;
+    status?: string;
+  };
+}): Promise<{ ok: boolean; data?: StrategyListApiRecord[]; message?: string }> {
+  const qs =
+    `chain=${encodeURIComponent(params.query.chain)}` +
+    `&owner=${encodeURIComponent(params.query.owner)}` +
+    (params.query.status ? `&status=${encodeURIComponent(params.query.status)}` : "");
+
+  return apiSignalsGet(`/strategies/list?${qs}`, params.accessToken);
 }
 
 export async function apiSignalsSetStrategyStatus(
