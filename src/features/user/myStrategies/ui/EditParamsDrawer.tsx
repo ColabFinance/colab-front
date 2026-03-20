@@ -6,6 +6,9 @@ import type { EditParamsDraft, MyStrategyRow } from "../types";
 
 export function EditParamsDrawer({
   open,
+  loading = false,
+  saving = false,
+  errorMessage = "",
   onClose,
   selected,
   draft,
@@ -13,6 +16,9 @@ export function EditParamsDrawer({
   onSave,
 }: {
   open: boolean;
+  loading?: boolean;
+  saving?: boolean;
+  errorMessage?: string;
   onClose: () => void;
   selected: MyStrategyRow | null;
   draft: EditParamsDraft | null;
@@ -40,11 +46,11 @@ export function EditParamsDrawer({
         tiersJson: JSON.stringify(parsed, null, 2),
       });
     } catch {
-      // keep current invalid json untouched
+      // keep as is
     }
   }
 
-  if (!open || !selected || !draft) return null;
+  if (!open || !selected) return null;
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm">
@@ -69,256 +75,281 @@ export function EditParamsDrawer({
           </button>
         </div>
 
-        <div className="p-6 space-y-8">
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-              Identity
-            </h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">Status</label>
-                <select
-                  value={draft.status}
-                  onChange={(e) =>
-                    onDraft({
-                      ...draft,
-                      status: e.target.value as "ACTIVE" | "INACTIVE",
-                    })
-                  }
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                >
-                  <option value="ACTIVE">ACTIVE</option>
-                  <option value="INACTIVE">INACTIVE</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">
-                  Indicator Set ID (cfg_hash)
-                </label>
-                <input
-                  type="text"
-                  value={draft.indicatorSetId}
-                  readOnly
-                  className="w-full bg-slate-800/30 border border-slate-700/30 rounded-lg px-4 py-2.5 text-slate-500 font-mono text-sm cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">Symbol</label>
-                <input
-                  type="text"
-                  value={draft.symbol}
-                  onChange={(e) => onDraft({ ...draft, symbol: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white font-mono uppercase focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
+        {loading || !draft ? (
+          <div className="p-6">
+            <div className="rounded-xl border border-slate-700/60 bg-slate-800/30 px-4 py-6 text-sm text-slate-400">
+              Loading strategy params...
             </div>
           </div>
+        ) : (
+          <>
+            <div className="p-6 space-y-8">
+              {errorMessage ? (
+                <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                  {errorMessage}
+                </div>
+              ) : null}
 
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-              Indicator Set
-            </h3>
-
-            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">Source</label>
-                <input
-                  type="text"
-                  value={draft.indicatorSource}
-                  onChange={(e) => onDraft({ ...draft, indicatorSource: e.target.value })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Identity
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Status</label>
+                    <select
+                      value={draft.status}
+                      onChange={(e) =>
+                        onDraft({
+                          ...draft,
+                          status: e.target.value as "ACTIVE" | "INACTIVE",
+                        })
+                      }
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    >
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="INACTIVE">INACTIVE</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">
+                      Indicator Set ID (cfg_hash)
+                    </label>
+                    <input
+                      type="text"
+                      value={draft.indicatorSetId}
+                      readOnly
+                      className="w-full bg-slate-800/30 border border-slate-700/30 rounded-lg px-4 py-2.5 text-slate-500 font-mono text-sm cursor-not-allowed"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Symbol</label>
+                    <input
+                      type="text"
+                      value={draft.symbol}
+                      onChange={(e) => onDraft({ ...draft, symbol: e.target.value.toUpperCase() })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white font-mono uppercase focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">EMA Fast</label>
-                <input
-                  type="number"
-                  value={draft.emaFast}
-                  onChange={(e) => onDraft({ ...draft, emaFast: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Indicator Set
+                </h3>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Source</label>
+                    <input
+                      type="text"
+                      value={draft.indicatorSource}
+                      onChange={(e) => onDraft({ ...draft, indicatorSource: e.target.value })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">EMA Fast</label>
+                    <input
+                      type="number"
+                      value={draft.emaFast}
+                      onChange={(e) => onDraft({ ...draft, emaFast: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">EMA Slow</label>
+                    <input
+                      type="number"
+                      value={draft.emaSlow}
+                      onChange={(e) => onDraft({ ...draft, emaSlow: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">ATR Window</label>
+                    <input
+                      type="number"
+                      value={draft.atrWindow}
+                      onChange={(e) => onDraft({ ...draft, atrWindow: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">EMA Slow</label>
-                <input
-                  type="number"
-                  value={draft.emaSlow}
-                  onChange={(e) => onDraft({ ...draft, emaSlow: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Core Parameters
+                </h3>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">ATR Window</label>
-                <input
-                  type="number"
-                  value={draft.atrWindow}
-                  onChange={(e) => onDraft({ ...draft, atrWindow: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
-            </div>
-          </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Skew Low %</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={draft.skewLowPct}
+                      onChange={(e) => onDraft({ ...draft, skewLowPct: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
 
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-              Core Parameters
-            </h3>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Skew High %</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={draft.skewHighPct}
+                      onChange={(e) => onDraft({ ...draft, skewHighPct: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">Skew Low %</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={draft.skewLowPct}
-                  onChange={(e) => onDraft({ ...draft, skewLowPct: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">EPS</label>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      value={draft.eps}
+                      onChange={(e) => onDraft({ ...draft, eps: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">Skew High %</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={draft.skewHighPct}
-                  onChange={(e) => onDraft({ ...draft, skewHighPct: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Cooloff Bars</label>
+                    <input
+                      type="number"
+                      value={draft.cooloffBars}
+                      onChange={(e) => onDraft({ ...draft, cooloffBars: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">EPS</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  value={draft.eps}
-                  onChange={(e) => onDraft({ ...draft, eps: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Breakout Confirm Bars</label>
+                    <input
+                      type="number"
+                      value={draft.breakoutConfirmBars}
+                      onChange={(e) => onDraft({ ...draft, breakoutConfirmBars: Number(e.target.value) })}
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    />
+                  </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">Cooloff Bars</label>
-                <input
-                  type="number"
-                  value={draft.cooloffBars}
-                  onChange={(e) => onDraft({ ...draft, cooloffBars: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">
-                  Breakout Confirm Bars
-                </label>
-                <input
-                  type="number"
-                  value={draft.breakoutConfirmBars}
-                  onChange={(e) =>
-                    onDraft({ ...draft, breakoutConfirmBars: Number(e.target.value) })
-                  }
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-2">
-                  Inrange Resize Mode
-                </label>
-                <select
-                  value={draft.inrangeResizeMode}
-                  onChange={(e) =>
-                    onDraft({
-                      ...draft,
-                      inrangeResizeMode: e.target.value as "skew_swap" | "preserve",
-                    })
-                  }
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
-                >
-                  <option value="skew_swap">skew_swap</option>
-                  <option value="preserve">preserve</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="mt-4">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={draft.gaugeEnabled}
-                    onChange={(e) => onDraft({ ...draft, gaugeEnabled: e.target.checked })}
-                    className="sr-only peer"
-                  />
-                  <div className="w-11 h-6 bg-slate-800/60 rounded-full peer peer-checked:bg-cyan-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full" />
+                  <div>
+                    <label className="block text-xs font-medium text-slate-400 mb-2">Inrange Resize Mode</label>
+                    <select
+                      value={draft.inrangeResizeMode}
+                      onChange={(e) =>
+                        onDraft({
+                          ...draft,
+                          inrangeResizeMode: e.target.value as "skew_swap" | "preserve",
+                        })
+                      }
+                      disabled={saving}
+                      className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
+                    >
+                      <option value="skew_swap">skew_swap</option>
+                      <option value="preserve">preserve</option>
+                    </select>
+                  </div>
                 </div>
 
-                <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
-                  Gauge Flow Enabled
-                </span>
-              </label>
+                <div className="mt-4">
+                  <label className="flex items-center gap-3 cursor-pointer group">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={draft.gaugeEnabled}
+                        onChange={(e) => onDraft({ ...draft, gaugeEnabled: e.target.checked })}
+                        disabled={saving}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-800/60 rounded-full peer peer-checked:bg-cyan-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:after:translate-x-full" />
+                    </div>
+
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors">
+                      Gauge Flow Enabled
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
+                  Tiers Configuration
+                </h3>
+
+                <div className="relative">
+                  <textarea
+                    value={draft.tiersJson}
+                    onChange={(e) => onDraft({ ...draft, tiersJson: e.target.value })}
+                    disabled={saving}
+                    className="w-full min-h-[200px] bg-slate-800/50 border border-slate-700/60 rounded-lg p-4 font-mono text-xs text-slate-300 focus:outline-none focus:border-cyan-500/50 transition-all leading-relaxed resize-none disabled:opacity-60"
+                    spellCheck={false}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={formatJson}
+                    disabled={saving}
+                    className="absolute top-3 right-3 px-3 py-1.5 bg-slate-700/60 hover:bg-slate-700 text-xs text-slate-300 rounded transition-all disabled:opacity-60"
+                  >
+                    Format JSON
+                  </button>
+                </div>
+
+                <div className="mt-2 flex items-center gap-2 text-xs">
+                  {jsonValid ? (
+                    <>
+                      <i className="fa-solid fa-check-circle text-green-400" aria-hidden="true" />
+                      <span className="text-green-400">Valid JSON</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-circle-exclamation text-red-400" aria-hidden="true" />
+                      <span className="text-red-400">Invalid JSON</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-4">
-              Tiers Configuration
-            </h3>
-
-            <div className="relative">
-              <textarea
-                value={draft.tiersJson}
-                onChange={(e) => onDraft({ ...draft, tiersJson: e.target.value })}
-                className="w-full min-h-[200px] bg-slate-800/50 border border-slate-700/60 rounded-lg p-4 font-mono text-xs text-slate-300 focus:outline-none focus:border-cyan-500/50 transition-all leading-relaxed resize-none"
-                spellCheck={false}
-              />
-
-              <button
-                type="button"
-                onClick={formatJson}
-                className="absolute top-3 right-3 px-3 py-1.5 bg-slate-700/60 hover:bg-slate-700 text-xs text-slate-300 rounded transition-all"
-              >
-                Format JSON
+            <div className="sticky bottom-0 bg-slate-900 border-t border-slate-700/60 px-6 py-4 flex items-center justify-between gap-3">
+              <button onClick={onClose} className="px-5 py-2 text-slate-400 hover:text-white transition-colors">
+                Close
               </button>
+
+              <Button
+                variant="primary"
+                onClick={onSave}
+                disabled={!jsonValid || saving}
+                leftIcon={<i className="fa-solid fa-save" aria-hidden="true" />}
+              >
+                {saving ? "Saving..." : "Save Params"}
+              </Button>
             </div>
-
-            <div className="mt-2 flex items-center gap-2 text-xs">
-              {jsonValid ? (
-                <>
-                  <i className="fa-solid fa-check-circle text-green-400" aria-hidden="true" />
-                  <span className="text-green-400">Valid JSON</span>
-                </>
-              ) : (
-                <>
-                  <i className="fa-solid fa-circle-exclamation text-red-400" aria-hidden="true" />
-                  <span className="text-red-400">Invalid JSON</span>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="sticky bottom-0 bg-slate-900 border-t border-slate-700/60 px-6 py-4 flex items-center justify-between gap-3">
-          <button onClick={onClose} className="px-5 py-2 text-slate-400 hover:text-white transition-colors">
-            Close
-          </button>
-
-          <Button
-            variant="primary"
-            onClick={onSave}
-            disabled={!jsonValid}
-            leftIcon={<i className="fa-solid fa-save" aria-hidden="true" />}
-          >
-            Save Params
-          </Button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

@@ -7,6 +7,9 @@ import type { CreateStrategyDraft, DexOption, PoolOption } from "../types";
 
 export function CreateStrategyModal({
   open,
+  loading = false,
+  submitting = false,
+  errorMessage = "",
   onClose,
   onConfirm,
   dexOptions,
@@ -15,6 +18,9 @@ export function CreateStrategyModal({
   onDraft,
 }: {
   open: boolean;
+  loading?: boolean;
+  submitting?: boolean;
+  errorMessage?: string;
   onClose: () => void;
   onConfirm: () => void;
   dexOptions: DexOption[];
@@ -35,7 +41,7 @@ export function CreateStrategyModal({
   if (!open) return null;
 
   const canPickPool = Boolean(draft.dexId);
-  const canConfirm = Boolean(draft.dexId && draft.poolId && draft.name.trim() && draft.symbol.trim());
+  const canConfirm = Boolean(draft.dexId && draft.poolId && draft.name.trim() && draft.symbol.trim() && !submitting);
 
   return (
     <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-sm">
@@ -59,6 +65,18 @@ export function CreateStrategyModal({
         </div>
 
         <div className="p-6 space-y-6">
+          {errorMessage ? (
+            <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          {loading ? (
+            <div className="rounded-xl border border-slate-700/60 bg-slate-800/30 px-4 py-6 text-sm text-slate-400">
+              Loading DEX and pool options...
+            </div>
+          ) : null}
+
           <div>
             <label className="block text-xs font-medium text-slate-400 mb-2">
               DEX <span className="text-red-400">*</span>
@@ -66,7 +84,8 @@ export function CreateStrategyModal({
             <select
               value={draft.dexId}
               onChange={(e) => onDraft({ ...draft, dexId: e.target.value, poolId: "" })}
-              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+              disabled={loading || submitting}
+              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
             >
               <option value="">Select DEX...</option>
               {dexOptions.map((d) => (
@@ -84,7 +103,7 @@ export function CreateStrategyModal({
             <select
               value={draft.poolId}
               onChange={(e) => onDraft({ ...draft, poolId: e.target.value })}
-              disabled={!canPickPool}
+              disabled={!canPickPool || loading || submitting}
               className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {!canPickPool ? (
@@ -111,16 +130,12 @@ export function CreateStrategyModal({
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-slate-500">Adapter:</span>
-                  <span className="text-slate-300 ml-2 font-mono text-[11px]">
-                    {selectedPool.adapterAddress}
-                  </span>
+                  <span className="text-slate-300 ml-2 font-mono text-[11px]">{selectedPool.adapterAddress}</span>
                 </div>
 
                 <div>
                   <span className="text-slate-500">Router:</span>
-                  <span className="text-slate-300 ml-2 font-mono text-[11px]">
-                    {selectedPool.routerAddress}
-                  </span>
+                  <span className="text-slate-300 ml-2 font-mono text-[11px]">{selectedPool.routerAddress}</span>
                 </div>
 
                 <div>
@@ -155,7 +170,8 @@ export function CreateStrategyModal({
             <input
               value={draft.name}
               onChange={(e) => onDraft({ ...draft, name: e.target.value })}
-              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all"
+              disabled={submitting}
+              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
               placeholder="e.g. ETH-USDC Momentum"
             />
           </div>
@@ -165,7 +181,8 @@ export function CreateStrategyModal({
             <textarea
               value={draft.description}
               onChange={(e) => onDraft({ ...draft, description: e.target.value })}
-              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all min-h-[80px] resize-none"
+              disabled={submitting}
+              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all min-h-[80px] resize-none disabled:opacity-60"
               placeholder="Short description..."
             />
           </div>
@@ -177,7 +194,8 @@ export function CreateStrategyModal({
             <input
               value={draft.symbol}
               onChange={(e) => onDraft({ ...draft, symbol: e.target.value.toUpperCase() })}
-              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all uppercase font-mono"
+              disabled={submitting}
+              className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-4 py-2.5 text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all uppercase font-mono disabled:opacity-60"
               placeholder="MOM-ALPHA"
             />
           </div>
@@ -191,7 +209,8 @@ export function CreateStrategyModal({
                 <input
                   value={draft.indicatorSource}
                   onChange={(e) => onDraft({ ...draft, indicatorSource: e.target.value })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                  disabled={submitting}
+                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
                 />
               </div>
 
@@ -201,7 +220,8 @@ export function CreateStrategyModal({
                   type="number"
                   value={draft.emaFast}
                   onChange={(e) => onDraft({ ...draft, emaFast: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                  disabled={submitting}
+                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
                 />
               </div>
 
@@ -211,7 +231,8 @@ export function CreateStrategyModal({
                   type="number"
                   value={draft.emaSlow}
                   onChange={(e) => onDraft({ ...draft, emaSlow: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                  disabled={submitting}
+                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
                 />
               </div>
 
@@ -221,7 +242,8 @@ export function CreateStrategyModal({
                   type="number"
                   value={draft.atrWindow}
                   onChange={(e) => onDraft({ ...draft, atrWindow: Number(e.target.value) })}
-                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+                  disabled={submitting}
+                  className="w-full bg-slate-800/50 border border-slate-700/60 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all disabled:opacity-60"
                 />
               </div>
             </div>
@@ -239,7 +261,7 @@ export function CreateStrategyModal({
             disabled={!canConfirm}
             leftIcon={<i className="fa-solid fa-check" aria-hidden="true" />}
           >
-            Create
+            {submitting ? "Creating..." : "Create"}
           </Button>
         </div>
       </div>

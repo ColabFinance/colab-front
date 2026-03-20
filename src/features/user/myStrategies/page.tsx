@@ -21,10 +21,12 @@ export default function MyStrategiesFeaturePage() {
   const {
     dexOptions,
     poolOptions,
-    rows,
     filteredRows,
     hasRows,
     hasFilteredRows,
+
+    loading,
+    error,
 
     stats,
     filters,
@@ -36,6 +38,9 @@ export default function MyStrategiesFeaturePage() {
     resetFilters,
 
     createOpen,
+    createLoading,
+    createSubmitting,
+    createError,
     openCreate,
     closeCreate,
     createDraft,
@@ -43,6 +48,9 @@ export default function MyStrategiesFeaturePage() {
     confirmCreate,
 
     editOpen,
+    editLoading,
+    editSubmitting,
+    editError,
     selected,
     openEdit,
     closeEdit,
@@ -76,10 +84,11 @@ export default function MyStrategiesFeaturePage() {
 
           <button
             onClick={refresh}
-            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/30 text-slate-300 hover:text-white rounded-lg transition-all"
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 hover:border-cyan-500/30 text-slate-300 hover:text-white rounded-lg transition-all disabled:opacity-60"
           >
             <i className="fa-solid fa-rotate" aria-hidden="true" />
-            <span className="hidden sm:inline">Refresh</span>
+            <span className="hidden sm:inline">{loading ? "Refreshing..." : "Refresh"}</span>
           </button>
 
           <button
@@ -91,6 +100,12 @@ export default function MyStrategiesFeaturePage() {
           </button>
         </div>
       </div>
+
+      {error ? (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {error}
+        </div>
+      ) : null}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
@@ -180,7 +195,11 @@ export default function MyStrategiesFeaturePage() {
         </div>
       </Surface>
 
-      {!hasRows ? (
+      {loading ? (
+        <Surface variant="panel" className="p-16 text-center">
+          <div className="text-slate-400 text-sm">Loading strategies...</div>
+        </Surface>
+      ) : !hasRows ? (
         <Surface variant="panel" className="p-16 text-center">
           <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-6 border border-slate-700">
             <i className="fa-solid fa-robot text-slate-500 text-3xl" aria-hidden="true" />
@@ -224,6 +243,9 @@ export default function MyStrategiesFeaturePage() {
 
       <CreateStrategyModal
         open={createOpen}
+        loading={createLoading}
+        submitting={createSubmitting}
+        errorMessage={createError}
         onClose={closeCreate}
         onConfirm={confirmCreate}
         dexOptions={dexOptions}
@@ -234,6 +256,9 @@ export default function MyStrategiesFeaturePage() {
 
       <EditParamsDrawer
         open={editOpen}
+        loading={editLoading}
+        saving={editSubmitting}
+        errorMessage={editError}
         onClose={closeEdit}
         selected={selected}
         draft={editDraft}

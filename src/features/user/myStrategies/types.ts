@@ -1,5 +1,5 @@
 export type StrategyStatus = "ACTIVE" | "INACTIVE";
-export type MyStrategyChain = "ethereum" | "polygon" | "base" | "bnb";
+export type MyStrategyChain = "base" | "bnb";
 export type VaultLinkFilter = "all" | "linked" | "not_linked";
 
 export type DexOption = {
@@ -9,6 +9,10 @@ export type DexOption = {
 
 export type PoolOption = {
   id: string;
+  poolAddress: string;
+
+  chainKey: "base" | "bnb";
+
   dexId: string;
   dexName: string;
 
@@ -16,6 +20,9 @@ export type PoolOption = {
   token1Symbol: string;
   pairLabel: string;
   feeLabel: string;
+
+  token0Address: string;
+  token1Address: string;
 
   adapterAddress: string;
   routerAddress: string;
@@ -26,28 +33,38 @@ export type PoolOption = {
 export type MyStrategyRow = {
   id: number;
 
+  chainKey: MyStrategyChain;
+  chainName: string;
+  owner: string;
+
   name: string;
   symbol: string;
 
+  dexKey?: string | null;
   dexName: string;
   poolPairLabel: string;
   feeLabel: string;
 
   token0Symbol: string;
   token1Symbol: string;
+  token0Address?: string | null;
+  token1Address?: string | null;
+
+  adapterAddress?: string | null;
+  dexRouterAddress?: string | null;
 
   status: StrategyStatus;
   updatedAtLabel: string;
 
   indicatorSetId: string;
+  indicatorStreamKey: string;
   indicatorSource: string;
   emaFast: number;
   emaSlow: number;
   atrWindow: number;
+  marketSymbol: string;
 
-  chainKey: MyStrategyChain;
-  chainName: string;
-
+  vaultAlias?: string | null;
   vaultLabel?: string | null;
 };
 
