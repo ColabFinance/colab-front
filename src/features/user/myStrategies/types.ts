@@ -1,4 +1,6 @@
 export type StrategyStatus = "ACTIVE" | "INACTIVE";
+export type MyStrategyChain = "ethereum" | "polygon" | "base" | "bnb";
+export type VaultLinkFilter = "all" | "linked" | "not_linked";
 
 export type DexOption = {
   id: string;
@@ -38,7 +40,15 @@ export type MyStrategyRow = {
   updatedAtLabel: string;
 
   indicatorSetId: string;
+  indicatorSource: string;
+  emaFast: number;
+  emaSlow: number;
+  atrWindow: number;
+
+  chainKey: MyStrategyChain;
   chainName: string;
+
+  vaultLabel?: string | null;
 };
 
 export type CreateStrategyDraft = {

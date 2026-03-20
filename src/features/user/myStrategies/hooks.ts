@@ -1,7 +1,14 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { CreateStrategyDraft, EditParamsDraft, MyStrategyRow } from "./types";
+import type {
+  CreateStrategyDraft,
+  EditParamsDraft,
+  MyStrategyChain,
+  MyStrategyRow,
+  StrategyStatus,
+  VaultLinkFilter,
+} from "./types";
 import { DEX_OPTIONS, MOCK_MY_STRATEGIES, POOL_OPTIONS } from "./mock";
 
 function defaultCreateDraft(): CreateStrategyDraft {
@@ -24,10 +31,10 @@ function defaultEditDraft(row: MyStrategyRow): EditParamsDraft {
     indicatorSetId: row.indicatorSetId,
     symbol: row.symbol,
 
-    indicatorSource: "binance",
-    emaFast: 10,
-    emaSlow: 50,
-    atrWindow: 20,
+    indicatorSource: row.indicatorSource,
+    emaFast: row.emaFast,
+    emaSlow: row.emaSlow,
+    atrWindow: row.atrWindow,
 
     skewLowPct: 0.3,
     skewHighPct: 0.7,
@@ -49,6 +56,10 @@ function defaultEditDraft(row: MyStrategyRow): EditParamsDraft {
   };
 }
 
+function safeLower(value: string) {
+  return value.trim().toLowerCase();
+}
+
 export function useMyStrategies() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
@@ -62,7 +73,74 @@ export function useMyStrategies() {
   const [createDraft, setCreateDraft] = useState<CreateStrategyDraft>(defaultCreateDraft);
   const [editDraft, setEditDraft] = useState<EditParamsDraft | null>(null);
 
+  const [filters, setFilters] = useState<{
+    chain: MyStrategyChain | "all";
+    status: StrategyStatus | "all";
+    vaultLink: VaultLinkFilter;
+    query: string;
+  }>({
+    chain: "all",
+    status: "all",
+    vaultLink: "all",
+    query: "",
+  });
+
+  const chainOptions = useMemo(() => {
+    const unique = Array.from(new Set(rows.map((row) => row.chainKey)));
+    return [
+      { value: "all" as const, label: "All Chains" },
+      ...unique.map((chain) => ({
+        value: chain,
+        label: rows.find((row) => row.chainKey === chain)?.chainName || chain,
+      })),
+    ];
+  }, [rows]);
+
+  const filteredRows = useMemo(() => {
+    const q = safeLower(filters.query);
+
+    return rows.filter((row) => {
+      if (filters.chain !== "all" && row.chainKey !== filters.chain) return false;
+      if (filters.status !== "all" && row.status !== filters.status) return false;
+
+      const linked = Boolean(row.vaultLabel);
+      if (filters.vaultLink === "linked" && !linked) return false;
+      if (filters.vaultLink === "not_linked" && linked) return false;
+
+      if (!q) return true;
+
+      const haystack = [
+        row.id,
+        row.name,
+        row.symbol,
+        row.indicatorSetId,
+        row.poolPairLabel,
+        row.dexName,
+        row.chainName,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
+    });
+  }, [rows, filters]);
+
   const hasRows = rows.length > 0;
+  const hasFilteredRows = filteredRows.length > 0;
+
+  const stats = useMemo(() => {
+    const totalStrategies = rows.length;
+    const activeStrategies = rows.filter((row) => row.status === "ACTIVE").length;
+    const inactiveStrategies = rows.filter((row) => row.status === "INACTIVE").length;
+    const linkedVaults = rows.filter((row) => Boolean(row.vaultLabel)).length;
+
+    return {
+      totalStrategies,
+      activeStrategies,
+      inactiveStrategies,
+      linkedVaults,
+    };
+  }, [rows]);
 
   function openCreate() {
     setCreateDraft(defaultCreateDraft());
@@ -74,7 +152,6 @@ export function useMyStrategies() {
   }
 
   function confirmCreate() {
-    // placeholder (vai pro backend depois)
     setCreateOpen(false);
   }
 
@@ -89,12 +166,36 @@ export function useMyStrategies() {
   }
 
   function saveParams() {
-    // placeholder (vai pro backend depois)
     setEditOpen(false);
   }
 
   function refresh() {
-    // placeholder (vai pro backend depois)
+    // placeholder
+  }
+
+  function setChainFilter(chain: MyStrategyChain | "all") {
+    setFilters((prev) => ({ ...prev, chain }));
+  }
+
+  function setStatusFilter(status: StrategyStatus | "all") {
+    setFilters((prev) => ({ ...prev, status }));
+  }
+
+  function setVaultLinkFilter(vaultLink: VaultLinkFilter) {
+    setFilters((prev) => ({ ...prev, vaultLink }));
+  }
+
+  function setQueryFilter(query: string) {
+    setFilters((prev) => ({ ...prev, query }));
+  }
+
+  function resetFilters() {
+    setFilters({
+      chain: "all",
+      status: "all",
+      vaultLink: "all",
+      query: "",
+    });
   }
 
   return {
@@ -102,7 +203,19 @@ export function useMyStrategies() {
     poolOptions,
 
     rows,
+    filteredRows,
     hasRows,
+    hasFilteredRows,
+
+    stats,
+    filters,
+    chainOptions,
+
+    setChainFilter,
+    setStatusFilter,
+    setVaultLinkFilter,
+    setQueryFilter,
+    resetFilters,
 
     createOpen,
     openCreate,
