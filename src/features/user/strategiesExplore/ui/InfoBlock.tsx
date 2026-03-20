@@ -15,11 +15,10 @@ export function InfoBlock({ className }: { className?: string }) {
       </div>
 
       <div className="min-w-0">
-        <h4 className="text-sm font-bold text-blue-100 mb-1">How Strategies Work</h4>
+        <h4 className="text-sm font-bold text-blue-100 mb-1">About Strategy Discovery</h4>
         <p className="text-sm text-slate-400">
-          Strategies are automated smart contracts that manage your liquidity position. They define rules for
-          rebalancing, compounding, and range management. When you deploy a Vault, you bind it to a specific
-          Strategy.
+          Only public strategies should appear in this view. Private strategies must not be listed here. Use
+          this screen to inspect accessible public strategies and open their details page.
         </p>
 
         <Link

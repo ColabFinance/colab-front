@@ -1,62 +1,73 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MOCK_STRATEGIES, RISK_OPTIONS, TYPE_OPTIONS } from "./mock";
-import { StrategiesExploreItem, StrategiesExploreSort, StrategyRisk, StrategyType } from "./types";
+import { CHAIN_OPTIONS, MOCK_STRATEGIES, STATUS_OPTIONS } from "./mock";
+import { StrategiesExploreItem, StrategiesExploreSort, StrategyChain, StrategyStatus } from "./types";
 
 export type StrategiesExploreFilters = {
   query: string;
-  risk: StrategyRisk | "all";
-  type: StrategyType | "all";
+  status: StrategyStatus | "all";
+  chain: StrategyChain | "all";
   sort: StrategiesExploreSort;
 };
 
 const PAGE_SIZE = 10;
 
-function safeLower(s: string) {
-  return s.trim().toLowerCase();
+function safeLower(value: string) {
+  return value.trim().toLowerCase();
 }
 
 export function useStrategiesExplore() {
   const [filters, setFilters] = useState<StrategiesExploreFilters>({
     query: "",
-    risk: "all",
-    type: "all",
-    sort: "tvl_desc",
+    status: "all",
+    chain: "all",
+    sort: "updated_desc",
   });
 
   const [page, setPage] = useState(1);
 
-  const data = useMemo(() => MOCK_STRATEGIES, []);
+  const data = useMemo(() => {
+    // Explore must show only public strategies
+    return MOCK_STRATEGIES.filter((item) => item.isPublic);
+  }, []);
 
   const filtered = useMemo(() => {
     const q = safeLower(filters.query);
 
-    return data.filter((d) => {
-      if (filters.risk !== "all" && d.risk !== filters.risk) return false;
-      if (filters.type !== "all" && d.type !== filters.type) return false;
+    return data.filter((item) => {
+      if (filters.status !== "all" && item.status !== filters.status) return false;
+      if (filters.chain !== "all" && item.chain !== filters.chain) return false;
 
       if (!q) return true;
 
-      const hay = `${d.name} ${d.code} ${d.description} ${d.tags.join(" ")}`.toLowerCase();
-      return hay.includes(q);
+      const haystack = [
+        item.strategyIdLabel,
+        item.name,
+        item.code,
+        item.indicatorSetName,
+        item.indicatorSetCode,
+        item.chain,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return haystack.includes(q);
     });
-  }, [data, filters.query, filters.risk, filters.type]);
+  }, [data, filters]);
 
   const sorted = useMemo(() => {
     const arr = [...filtered];
 
     arr.sort((a, b) => {
       switch (filters.sort) {
-        case "apy_desc":
-          return b.apyPct - a.apyPct;
-        case "apr_desc":
-          return b.aprPct - a.aprPct;
-        case "vaults_desc":
-          return b.vaults - a.vaults;
-        case "tvl_desc":
+        case "name_asc":
+          return a.name.localeCompare(b.name);
+        case "name_desc":
+          return b.name.localeCompare(a.name);
+        case "updated_desc":
         default:
-          return b.tvlUsd - a.tvlUsd;
+          return 0;
       }
     });
 
@@ -65,16 +76,13 @@ export function useStrategiesExplore() {
 
   const total = sorted.length;
 
-  const totalPages = useMemo(() => {
-    return Math.max(1, Math.ceil(total / PAGE_SIZE));
-  }, [total]);
+  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
 
   const clampedPage = Math.min(Math.max(1, page), totalPages);
 
   const pageItems = useMemo(() => {
     const start = (clampedPage - 1) * PAGE_SIZE;
-    const end = start + PAGE_SIZE;
-    return sorted.slice(start, end);
+    return sorted.slice(start, start + PAGE_SIZE);
   }, [sorted, clampedPage]);
 
   const rangeLabel = useMemo(() => {
@@ -84,55 +92,56 @@ export function useStrategiesExplore() {
     return `${start}-${end}`;
   }, [clampedPage, total]);
 
-  // stats (based on full dataset, not filtered)
   const stats = useMemo(() => {
     const totalStrategies = data.length;
-    const activeVaults = data.reduce((acc, d) => acc + d.vaults, 0);
-    const avgApy =
-      data.length === 0 ? 0 : data.reduce((acc, d) => acc + d.apyPct, 0) / data.length;
+    const activeStrategies = data.filter((item) => item.status === "active").length;
+    const inactiveStrategies = data.filter((item) => item.status === "inactive").length;
+    const linkedVaults = data.filter((item) => item.linkedVault).length;
 
     return {
       totalStrategies,
-      activeVaults,
-      avgApy,
+      activeStrategies,
+      inactiveStrategies,
+      linkedVaults,
     };
   }, [data]);
 
   function reset() {
-    setFilters({ query: "", risk: "all", type: "all", sort: "tvl_desc" });
+    setFilters({
+      query: "",
+      status: "all",
+      chain: "all",
+      sort: "updated_desc",
+    });
     setPage(1);
   }
 
   function setQuery(query: string) {
-    setFilters((p) => ({ ...p, query }));
+    setFilters((prev) => ({ ...prev, query }));
     setPage(1);
   }
 
-  function setRisk(risk: StrategyRisk | "all") {
-    setFilters((p) => ({ ...p, risk }));
+  function setStatus(status: StrategyStatus | "all") {
+    setFilters((prev) => ({ ...prev, status }));
     setPage(1);
   }
 
-  function setType(type: StrategyType | "all") {
-    setFilters((p) => ({ ...p, type }));
+  function setChain(chain: StrategyChain | "all") {
+    setFilters((prev) => ({ ...prev, chain }));
     setPage(1);
   }
 
   function setSort(sort: StrategiesExploreSort) {
-    setFilters((p) => ({ ...p, sort }));
+    setFilters((prev) => ({ ...prev, sort }));
     setPage(1);
   }
 
   function nextPage() {
-    setPage((p) => Math.min(totalPages, p + 1));
+    setPage((prev) => Math.min(totalPages, prev + 1));
   }
 
   function prevPage() {
-    setPage((p) => Math.max(1, p - 1));
-  }
-
-  function goToPage(p: number) {
-    setPage(() => Math.min(Math.max(1, p), totalPages));
+    setPage((prev) => Math.max(1, prev - 1));
   }
 
   return {
@@ -140,8 +149,8 @@ export function useStrategiesExplore() {
     stats,
 
     filters,
-    riskOptions: RISK_OPTIONS,
-    typeOptions: TYPE_OPTIONS,
+    statusOptions: STATUS_OPTIONS,
+    chainOptions: CHAIN_OPTIONS,
 
     filtered,
     sorted,
@@ -153,50 +162,59 @@ export function useStrategiesExplore() {
     rangeLabel,
 
     setQuery,
-    setRisk,
-    setType,
+    setStatus,
+    setChain,
     setSort,
     reset,
 
     nextPage,
     prevPage,
-    goToPage,
   };
 }
 
-export function strategyRiskTone(risk: StrategyRisk) {
-  if (risk === "low") return "green";
-  if (risk === "medium") return "amber";
-  return "red";
-}
-
-export function riskLabel(risk: StrategyRisk) {
-  if (risk === "low") return "Low Risk";
-  if (risk === "medium") return "Medium Risk";
-  return "High Risk";
-}
-
-export function typeLabel(t: StrategyType) {
-  switch (t) {
-    case "delta_neutral":
-      return "Delta neutral";
-    case "momentum":
-      return "Momentum";
-    case "stable_compound":
-      return "Stable compound";
-    case "mean_reversion":
-      return "Mean reversion";
-    case "passive":
-      return "Passive";
-    case "custom":
+export function chainLabel(chain: StrategyChain) {
+  switch (chain) {
+    case "ethereum":
+      return "Ethereum";
+    case "base":
+      return "Base";
+    case "arbitrum":
+      return "Arbitrum";
+    case "polygon":
+      return "Polygon";
+    case "optimism":
+      return "Optimism";
     default:
-      return "Custom";
+      return chain;
   }
 }
 
-export function computeMonogram(d: StrategiesExploreItem) {
-  const parts = d.code.split("-").filter(Boolean);
-  const two = parts.slice(0, 2).join("");
-  const raw = (two || d.code || d.name).replace(/[^a-zA-Z0-9]/g, "");
+export function statusLabel(status: StrategyStatus) {
+  return status === "active" ? "ACTIVE" : "INACTIVE";
+}
+
+export function computeMonogram(item: StrategiesExploreItem) {
+  const raw = (item.code || item.name).replace(/[^a-zA-Z0-9]/g, "");
   return raw.slice(0, 2).toUpperCase();
+}
+
+export function monogramTone(item: StrategiesExploreItem) {
+  if (item.status === "inactive") {
+    return "from-slate-600 to-slate-500";
+  }
+
+  switch (item.chain) {
+    case "ethereum":
+      return "from-blue-600 to-cyan-500";
+    case "base":
+      return "from-indigo-600 to-blue-500";
+    case "arbitrum":
+      return "from-cyan-600 to-sky-500";
+    case "polygon":
+      return "from-purple-600 to-fuchsia-500";
+    case "optimism":
+      return "from-orange-600 to-red-500";
+    default:
+      return "from-blue-600 to-cyan-500";
+  }
 }

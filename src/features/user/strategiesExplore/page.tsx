@@ -14,47 +14,42 @@ export default function StrategiesExplorePage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold text-white tracking-tight mb-2">
             Explore Strategies
           </h1>
           <p className="text-sm md:text-base text-slate-400 max-w-2xl">
-            Discover automated yield strategies, analyze historical performance, and find active vaults utilizing them.
+            Discover your accessible public strategies, inspect configurations, and open strategy details.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <Button href="/learn" variant="secondary" className="w-full sm:w-auto justify-center">
-            Documentation
-          </Button>
-          <Button href="/my/strategies" variant="primary" className="w-full sm:w-auto justify-center">
-            Create Strategy
+          <Button variant="secondary" className="w-full sm:w-auto justify-center">
+            Refresh
           </Button>
         </div>
       </div>
 
-      {/* Stats */}
       <StatsRow
         totalStrategies={s.stats.totalStrategies}
-        activeVaults={s.stats.activeVaults}
-        avgApy={s.stats.avgApy}
+        activeStrategies={s.stats.activeStrategies}
+        inactiveStrategies={s.stats.inactiveStrategies}
+        linkedVaults={s.stats.linkedVaults}
       />
 
-      {/* Main table surface */}
       <Surface variant="table">
         <SurfaceHeader className="bg-slate-950/40">
           <FiltersToolbar
             query={s.filters.query}
-            risk={s.filters.risk}
-            type={s.filters.type}
+            status={s.filters.status}
+            chain={s.filters.chain}
             sort={s.filters.sort}
-            riskOptions={s.riskOptions}
-            typeOptions={s.typeOptions}
+            statusOptions={s.statusOptions}
+            chainOptions={s.chainOptions}
             onQuery={s.setQuery}
-            onRisk={s.setRisk}
-            onType={s.setType}
+            onStatus={s.setStatus}
+            onChain={s.setChain}
             onSort={s.setSort}
             onReset={s.reset}
           />
@@ -92,7 +87,6 @@ export default function StrategiesExplorePage() {
         </SurfaceFooter>
       </Surface>
 
-      {/* Info */}
       <InfoBlock />
     </div>
   );

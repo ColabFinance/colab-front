@@ -2,44 +2,44 @@
 
 import React from "react";
 import { cn } from "@/shared/utils/cn";
-import { StrategiesExploreSort, StrategyRisk, StrategyType } from "../types";
+import { StrategiesExploreSort, StrategyChain, StrategyStatus } from "../types";
 
 export function FiltersToolbar({
   query,
-  risk,
-  type,
+  status,
+  chain,
   sort,
-  riskOptions,
-  typeOptions,
+  statusOptions,
+  chainOptions,
   onQuery,
-  onRisk,
-  onType,
+  onStatus,
+  onChain,
   onSort,
   onReset,
 }: {
   query: string;
-  risk: StrategyRisk | "all";
-  type: StrategyType | "all";
+  status: StrategyStatus | "all";
+  chain: StrategyChain | "all";
   sort: StrategiesExploreSort;
 
-  riskOptions: { value: StrategyRisk | "all"; label: string }[];
-  typeOptions: { value: StrategyType | "all"; label: string }[];
+  statusOptions: { value: StrategyStatus | "all"; label: string }[];
+  chainOptions: { value: StrategyChain | "all"; label: string }[];
 
   onQuery: (v: string) => void;
-  onRisk: (v: StrategyRisk | "all") => void;
-  onType: (v: StrategyType | "all") => void;
+  onStatus: (v: StrategyStatus | "all") => void;
+  onChain: (v: StrategyChain | "all") => void;
   onSort: (v: StrategiesExploreSort) => void;
   onReset: () => void;
 }) {
   return (
     <div className="flex flex-col lg:flex-row gap-4 justify-between items-stretch lg:items-center">
-      <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
         <div className="relative w-full sm:w-72">
           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">⌕</span>
           <input
             value={query}
             onChange={(e) => onQuery(e.target.value)}
-            placeholder="Filter by name or tag..."
+            placeholder="Search by name or symbol..."
             className={cn(
               "w-full rounded-lg border border-slate-700 bg-slate-950 text-slate-200",
               "pl-8 pr-3 py-2 text-sm outline-none",
@@ -48,27 +48,27 @@ export function FiltersToolbar({
           />
         </div>
 
-        <div className="grid grid-cols-2 sm:flex gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full sm:w-auto">
           <select
-            value={risk}
-            onChange={(e) => onRisk(e.target.value as StrategyRisk | "all")}
+            value={status}
+            onChange={(e) => onStatus(e.target.value as StrategyStatus | "all")}
             className="rounded-lg border border-slate-700 bg-slate-950 text-slate-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
           >
-            {riskOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {statusOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
 
           <select
-            value={type}
-            onChange={(e) => onType(e.target.value as StrategyType | "all")}
+            value={chain}
+            onChange={(e) => onChain(e.target.value as StrategyChain | "all")}
             className="rounded-lg border border-slate-700 bg-slate-950 text-slate-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
           >
-            {typeOptions.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
+            {chainOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
               </option>
             ))}
           </select>
@@ -83,10 +83,9 @@ export function FiltersToolbar({
             onChange={(e) => onSort(e.target.value as StrategiesExploreSort)}
             className="rounded-lg border border-slate-700 bg-slate-950 text-slate-200 px-3 py-2 text-sm outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
           >
-            <option value="tvl_desc">TVL (desc)</option>
-            <option value="apy_desc">APY (desc)</option>
-            <option value="apr_desc">APR (desc)</option>
-            <option value="vaults_desc">Vaults (desc)</option>
+            <option value="updated_desc">Updated</option>
+            <option value="name_asc">Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
           </select>
         </div>
 

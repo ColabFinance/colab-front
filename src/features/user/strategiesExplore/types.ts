@@ -1,30 +1,26 @@
-export type StrategyRisk = "low" | "medium" | "high";
+export type StrategyStatus = "active" | "inactive";
 
-export type StrategyType =
-  | "delta_neutral"
-  | "momentum"
-  | "stable_compound"
-  | "mean_reversion"
-  | "passive"
-  | "custom";
+export type StrategyChain = "ethereum" | "base" | "arbitrum" | "polygon" | "optimism";
 
-export type StrategiesExploreSort = "tvl_desc" | "apy_desc" | "apr_desc" | "vaults_desc";
+export type StrategiesExploreSort = "updated_desc" | "name_asc" | "name_desc";
 
 export type StrategiesExploreItem = {
   id: string;
+  strategyIdLabel: string;
+
   name: string;
   code: string;
-  description: string;
 
-  risk: StrategyRisk;
-  type: StrategyType;
+  indicatorSetName: string;
+  indicatorSetCode: string;
 
-  vaults: number;
+  chain: StrategyChain;
+  status: StrategyStatus;
 
-  aprPct: number; // 0..100
-  apyPct: number; // 0..100
-  tvlUsd: number;
+  linkedVault: boolean;
+  linkedVaultLabel?: string;
 
-  tags: string[];
   updatedAtLabel: string;
+
+  isPublic: boolean;
 };
