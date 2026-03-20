@@ -6,20 +6,8 @@ import { chainLabel, computeMonogram, monogramTone, statusLabel } from "../hooks
 import { StrategiesExploreItem } from "../types";
 
 function chainShortLabel(chain: StrategiesExploreItem["chain"]) {
-  switch (chain) {
-    case "ethereum":
-      return "ETH";
-    case "base":
-      return "BASE";
-    case "arbitrum":
-      return "ARB";
-    case "polygon":
-      return "POL";
-    case "optimism":
-      return "OP";
-    default:
-      return chain.toUpperCase();
-  }
+  if (chain === "base") return "BASE";
+  return "BNB";
 }
 
 export function StrategiesTable({ items }: { items: StrategiesExploreItem[] }) {
@@ -71,7 +59,9 @@ export function StrategiesTable({ items }: { items: StrategiesExploreItem[] }) {
 
                 <td className="px-6 py-4">
                   <div className="text-sm text-slate-300">{item.indicatorSetName}</div>
-                  <div className="text-xs text-slate-500 font-mono">{item.indicatorSetCode}</div>
+                  {item.indicatorSetCode && item.indicatorSetCode !== item.indicatorSetName ? (
+                    <div className="text-xs text-slate-500 font-mono">{item.indicatorSetCode}</div>
+                  ) : null}
                 </td>
 
                 <td className="px-6 py-4 text-center">

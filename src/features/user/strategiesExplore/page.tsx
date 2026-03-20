@@ -20,13 +20,18 @@ export default function StrategiesExplorePage() {
             Explore Strategies
           </h1>
           <p className="text-sm md:text-base text-slate-400 max-w-2xl">
-            Discover your accessible public strategies, inspect configurations, and open strategy details.
+            Discover public strategies available in the protocol and inspect their details.
           </p>
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <Button variant="secondary" className="w-full sm:w-auto justify-center">
-            Refresh
+          <Button
+            variant="secondary"
+            className="w-full sm:w-auto justify-center"
+            onClick={s.refresh}
+            disabled={s.loading}
+          >
+            {s.loading ? "Refreshing..." : "Refresh"}
           </Button>
         </div>
       </div>
@@ -56,7 +61,17 @@ export default function StrategiesExplorePage() {
         </SurfaceHeader>
 
         <SurfaceBody className="p-0">
-          <StrategiesTable items={s.pageItems} />
+          {s.error ? (
+            <div className="px-6 py-10 text-sm text-red-300">
+              Failed to load strategies: {s.error}
+            </div>
+          ) : s.loading ? (
+            <div className="px-6 py-10 text-sm text-slate-400">
+              Loading public strategies...
+            </div>
+          ) : (
+            <StrategiesTable items={s.pageItems} />
+          )}
         </SurfaceBody>
 
         <SurfaceFooter className="bg-slate-950/30 flex justify-between items-center">

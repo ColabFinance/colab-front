@@ -11,9 +11,12 @@ export type StrategyParamsRecord = {
   symbol: string;
   indicator_set_id: string;
   status: string;
+  is_public?: boolean;
 
   params: Record<string, any>;
 
+  alias?: string | null;
+  dex?: string | null;
   adapter?: string | null;
   dex_router?: string | null;
   token0?: string | null;
@@ -31,16 +34,15 @@ export type UpsertStrategyParamsBody = {
   owner: string;
   strategy_id: number;
 
-  // required to keep compatibility with existing collection
   name: string;
   symbol: string;
   indicator_set_id: string;
   stream_key: string;
   status?: string;
+  is_public?: boolean;
 
   params: Record<string, any>;
 
-  // optional onchain metadata
   adapter?: string;
   dex_router?: string;
   token0?: string;
@@ -57,7 +59,7 @@ export type RegisterStrategyBody = {
   symbol: string;
   indicator_set_id: string;
   stream_key: string;
-  
+
   adapter?: string;
   dex_router?: string;
   token0?: string;
@@ -65,6 +67,7 @@ export type RegisterStrategyBody = {
 
   tx_hash?: string;
   status?: "ACTIVE" | "INACTIVE";
+  is_public?: boolean;
 };
 
 export type StrategyExistsQuery = {
@@ -82,6 +85,13 @@ export type StrategyListQuery = {
   chain: "base" | "bnb";
   owner: string;
   status?: "ACTIVE" | "INACTIVE";
+};
+
+export type StrategyExploreQuery = {
+  chain?: "base" | "bnb";
+  status?: "ACTIVE" | "INACTIVE";
+  limit?: number;
+  offset?: number;
 };
 
 export async function apiSignalsGetStrategyParams(
@@ -125,19 +135,20 @@ export type StrategyListApiRecord = {
   name: string;
   symbol: string;
   status: string;
+  is_public?: boolean;
   description?: string;
   indicator_set_id?: string;
   chain?: string;
   owner?: string;
   strategy_id?: number;
+  alias?: string | null;
+  dex?: string | null;
   adapter?: string | null;
   dex_router?: string | null;
   token0?: string | null;
   token1?: string | null;
   tx_hash?: string | null;
   stream_key?: string | null;
-  dex?: string | null;
-  alias?: string | null;
   created_at?: number;
   created_at_iso?: string;
   updated_at?: number;
@@ -158,6 +169,29 @@ export async function apiSignalsListStrategies(params: {
     (params.query.status ? `&status=${encodeURIComponent(params.query.status)}` : "");
 
   return apiSignalsGet(`/strategies/list?${qs}`, params.accessToken);
+}
+
+export async function apiSignalsExploreStrategies(params?: {
+  accessToken?: string;
+  query?: StrategyExploreQuery;
+}): Promise<{ ok: boolean; data?: StrategyListApiRecord[]; message?: string }> {
+  const qs = new URLSearchParams();
+
+  if (params?.query?.chain) {
+    qs.set("chain", params.query.chain);
+  }
+  if (params?.query?.status) {
+    qs.set("status", params.query.status);
+  }
+  if (typeof params?.query?.limit === "number") {
+    qs.set("limit", String(params.query.limit));
+  }
+  if (typeof params?.query?.offset === "number") {
+    qs.set("offset", String(params.query.offset));
+  }
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiSignalsGet(`/strategies/explore${suffix}`, params?.accessToken || "");
 }
 
 export async function apiSignalsSetStrategyStatus(

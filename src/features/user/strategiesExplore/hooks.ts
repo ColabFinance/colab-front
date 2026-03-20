@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CHAIN_OPTIONS, MOCK_STRATEGIES, STATUS_OPTIONS } from "./mock";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { listStrategiesExploreUseCase } from "@/core/usecases/user/strategies/listStrategiesExplore.usecase";
 import { StrategiesExploreItem, StrategiesExploreSort, StrategyChain, StrategyStatus } from "./types";
 
 export type StrategiesExploreFilters = {
@@ -13,8 +13,57 @@ export type StrategiesExploreFilters = {
 
 const PAGE_SIZE = 10;
 
+const STATUS_OPTIONS: { value: StrategyStatus | "all"; label: string }[] = [
+  { value: "all", label: "All status" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
+
+const CHAIN_OPTIONS: { value: StrategyChain | "all"; label: string }[] = [
+  { value: "all", label: "All chains" },
+  { value: "base", label: "Base" },
+  { value: "bnb", label: "BNB" },
+];
+
 function safeLower(value: string) {
   return value.trim().toLowerCase();
+}
+
+function relativeTimeLabel(updatedAtIso?: string | null, updatedAt?: number | null) {
+  let date: Date | null = null;
+
+  if (updatedAtIso) {
+    const parsed = new Date(updatedAtIso);
+    if (!Number.isNaN(parsed.getTime())) {
+      date = parsed;
+    }
+  }
+
+  if (!date && typeof updatedAt === "number" && updatedAt > 0) {
+    const parsed = new Date(updatedAt * 1000);
+    if (!Number.isNaN(parsed.getTime())) {
+      date = parsed;
+    }
+  }
+
+  if (!date) {
+    return "-";
+  }
+
+  const diffMs = Date.now() - date.getTime();
+  const diffMin = Math.max(0, Math.floor(diffMs / 60000));
+
+  if (diffMin < 1) return "just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+
+  const diffWeeks = Math.floor(diffDays / 7);
+  return `${diffWeeks}w ago`;
 }
 
 export function useStrategiesExplore() {
@@ -26,16 +75,57 @@ export function useStrategiesExplore() {
   });
 
   const [page, setPage] = useState(1);
+  const [data, setData] = useState<StrategiesExploreItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const data = useMemo(() => {
-    // Explore must show only public strategies
-    return MOCK_STRATEGIES.filter((item) => item.isPublic);
+  const refresh = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const rows = await listStrategiesExploreUseCase({
+        query: {
+          limit: 500,
+          offset: 0,
+        },
+      });
+
+      const mapped: StrategiesExploreItem[] = rows.map((row) => ({
+        id: row.id,
+        strategyId: row.strategyId,
+        strategyIdLabel: `#${row.strategyId}`,
+        name: row.name || `Strategy ${row.strategyId}`,
+        code: row.symbol || "-",
+        indicatorSetName: row.indicatorSetId || "-",
+        indicatorSetCode: row.indicatorSetId || null,
+        chain: row.chain,
+        status: row.status === "ACTIVE" ? "active" : "inactive",
+        linkedVault: Boolean(row.alias),
+        linkedVaultLabel: row.alias || undefined,
+        updatedAtLabel: relativeTimeLabel(row.updatedAtIso, row.updatedAt),
+        isPublic: row.isPublic,
+      }));
+
+      setData(mapped);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to load strategies.";
+      setError(message);
+      setData([]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
 
   const filtered = useMemo(() => {
     const q = safeLower(filters.query);
 
     return data.filter((item) => {
+      if (!item.isPublic) return false;
       if (filters.status !== "all" && item.status !== filters.status) return false;
       if (filters.chain !== "all" && item.chain !== filters.chain) return false;
 
@@ -46,7 +136,7 @@ export function useStrategiesExplore() {
         item.name,
         item.code,
         item.indicatorSetName,
-        item.indicatorSetCode,
+        item.indicatorSetCode || "",
         item.chain,
       ]
         .join(" ")
@@ -75,9 +165,7 @@ export function useStrategiesExplore() {
   }, [filtered, filters.sort]);
 
   const total = sorted.length;
-
-  const totalPages = useMemo(() => Math.max(1, Math.ceil(total / PAGE_SIZE)), [total]);
-
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const clampedPage = Math.min(Math.max(1, page), totalPages);
 
   const pageItems = useMemo(() => {
@@ -146,6 +234,9 @@ export function useStrategiesExplore() {
 
   return {
     data,
+    loading,
+    error,
+    refresh,
     stats,
 
     filters,
@@ -173,20 +264,8 @@ export function useStrategiesExplore() {
 }
 
 export function chainLabel(chain: StrategyChain) {
-  switch (chain) {
-    case "ethereum":
-      return "Ethereum";
-    case "base":
-      return "Base";
-    case "arbitrum":
-      return "Arbitrum";
-    case "polygon":
-      return "Polygon";
-    case "optimism":
-      return "Optimism";
-    default:
-      return chain;
-  }
+  if (chain === "base") return "Base";
+  return "BNB";
 }
 
 export function statusLabel(status: StrategyStatus) {
@@ -203,18 +282,9 @@ export function monogramTone(item: StrategiesExploreItem) {
     return "from-slate-600 to-slate-500";
   }
 
-  switch (item.chain) {
-    case "ethereum":
-      return "from-blue-600 to-cyan-500";
-    case "base":
-      return "from-indigo-600 to-blue-500";
-    case "arbitrum":
-      return "from-cyan-600 to-sky-500";
-    case "polygon":
-      return "from-purple-600 to-fuchsia-500";
-    case "optimism":
-      return "from-orange-600 to-red-500";
-    default:
-      return "from-blue-600 to-cyan-500";
+  if (item.chain === "bnb") {
+    return "from-orange-600 to-yellow-500";
   }
+
+  return "from-blue-600 to-cyan-500";
 }
