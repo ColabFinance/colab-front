@@ -1,63 +1,90 @@
-export type StrategyRisk = "low" | "medium" | "high";
+export type StrategyStatus = "ACTIVE" | "INACTIVE";
+
+export type StrategyTier = {
+  name: string;
+  atrPctThreshold: number;
+  atrPctThresholdDown: number;
+  barsRequired: number;
+  maxMajorSidePct: number;
+  allowedFrom: string[];
+};
 
 export type StrategyDetails = {
-  id: string;
+  id: number;
   name: string;
   symbol: string;
+  status: StrategyStatus;
+  isPublic: boolean;
 
-  chainId: number;
+  chainKey: "base" | "bnb";
   chainName: string;
 
-  dexKey: string;
+  dexKey?: string | null;
   dexName: string;
 
   pairLabel: string;
   feeTierLabel: string;
 
-  risk: StrategyRisk;
+  owner: string;
+  strategyId: number;
 
-  overview: {
-    paragraphs: string[];
-  };
+  indicatorSetId: string;
+  indicatorSource: string;
+  indicatorStreamKey: string;
+  marketSymbol: string;
 
-  optimizes: Array<{
-    title: string;
-    description: string;
-  }>;
+  emaFast: number;
+  emaSlow: number;
+  atrWindow: number;
 
-  risks: Array<{
-    title: string;
-    description: string;
-  }>;
+  vaultAlias?: string | null;
+  vaultHref?: string | null;
 
-  params: {
-    tiers: {
-      total: number;
-      labels: string[];
-    };
-    thresholds: Array<{
-      label: string;
-      value: string;
-      tone?: "cyan" | "amber";
-    }>;
-    limits: Array<{
-      label: string;
-      value: string;
-    }>;
-  };
+  adapterAddress?: string | null;
+  dexRouterAddress?: string | null;
+  token0Address?: string | null;
+  token1Address?: string | null;
+  txHash?: string | null;
+
+  createdAtIso?: string | null;
+  updatedAtIso?: string | null;
+  updatedAtLabel: string;
+
+  rawParams: Record<string, any>;
+  tiers: StrategyTier[];
 };
 
 export type VaultUsingStrategy = {
   id: string;
+  alias: string;
   name: string;
   address: string;
 
-  pairLabel: string;
-  feeTierLabel: string;
+  chainKey: "base" | "bnb";
+  chainName: string;
 
-  tvlUsd: number;
-  aprPct: number;
-  apyPct: number;
-
+  dexName: string;
   status: "active" | "paused";
+
+  href: string;
+};
+
+export type StrategyEditDraft = {
+  status: StrategyStatus;
+  isPublic: boolean;
+  symbol: string;
+
+  indicatorSource: string;
+  emaFast: number;
+  emaSlow: number;
+  atrWindow: number;
+
+  skewLowPct: number;
+  skewHighPct: number;
+  eps: number;
+  cooloffBars: number;
+  breakoutConfirmBars: number;
+  gaugeEnabled: boolean;
+
+  tiersJson: string;
 };
