@@ -1,26 +1,24 @@
 import React from "react";
+import Link from "next/link";
 import { Surface } from "@/presentation/components/Surface";
-import { Button } from "@/presentation/components/Button";
 import { Badge } from "@/presentation/components/Badge";
 import { TokenPill } from "@/presentation/components/TokenPill";
 import type { TopVaultRow } from "../types";
 
 function statusBadge(status: TopVaultRow["status"]) {
   if (status === "active") return <Badge tone="green">Active</Badge>;
-  if (status === "capped") return <Badge tone="amber">Capped</Badge>;
-  return <Badge tone="red">Disabled</Badge>;
+  if (status === "paused") return <Badge tone="amber">Paused</Badge>;
+  return <Badge tone="red">Deprecated</Badge>;
 }
 
 export function TopVaultsTable({
   query,
   onQuery,
   rows,
-  onDeposit,
 }: {
   query: string;
   onQuery: (v: string) => void;
   rows: TopVaultRow[];
-  onDeposit: (v: TopVaultRow) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -30,19 +28,14 @@ export function TopVaultsTable({
           Top Vaults
         </div>
 
-        <div className="flex gap-2">
-          <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">⌕</span>
-            <input
-              value={query}
-              onChange={(e) => onQuery(e.target.value)}
-              placeholder="Filter by name..."
-              className="pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-cyan-600 transition-colors w-44"
-            />
-          </div>
-          <button className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-300 hover:text-white hover:border-cyan-600/40 transition-colors">
-            Filter
-          </button>
+        <div className="relative">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs">⌕</span>
+          <input
+            value={query}
+            onChange={(e) => onQuery(e.target.value)}
+            placeholder="Filter vaults..."
+            className="pl-8 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-cyan-600 transition-colors w-52"
+          />
         </div>
       </div>
 
@@ -88,7 +81,7 @@ export function TopVaultsTable({
 
                   <td className="px-6 py-4 text-right">
                     <div className="text-sm font-medium text-white">{r.tvl}</div>
-                    {r.tvlDelta && <div className="text-[10px] text-green-300">{r.tvlDelta}</div>}
+                    {r.tvlDelta ? <div className="text-[10px] text-green-300">{r.tvlDelta}</div> : null}
                   </td>
 
                   <td className="px-6 py-4 text-right">
@@ -101,31 +94,16 @@ export function TopVaultsTable({
                   <td className="px-6 py-4 text-center">{statusBadge(r.status)}</td>
 
                   <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button variant="ghost" className="px-3 py-1.5">
-                        View
-                      </Button>
-
-                      {r.status === "capped" ? (
-                        <button
-                          className="px-3 py-1.5 bg-slate-800 text-slate-400 text-xs font-medium rounded-md cursor-not-allowed border border-slate-700"
-                          disabled
-                        >
-                          Full
-                        </button>
-                      ) : (
-                        <Button
-                          variant="primary"
-                          className="px-3 py-1.5"
-                          onClick={() => onDeposit(r)}
-                        >
-                          Deposit
-                        </Button>
-                      )}
-                    </div>
+                    <Link
+                      href={r.href}
+                      className="inline-flex px-3 py-1.5 bg-slate-800 border border-slate-700 rounded-md text-xs text-slate-200 hover:text-white hover:border-cyan-600/40 transition-colors"
+                    >
+                      Details
+                    </Link>
                   </td>
                 </tr>
               ))}
+
               {rows.length === 0 && (
                 <tr>
                   <td className="px-6 py-8 text-sm text-slate-400" colSpan={6}>

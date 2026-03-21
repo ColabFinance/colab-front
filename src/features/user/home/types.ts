@@ -8,24 +8,27 @@ export type HomeKpi = {
   tone?: "blue" | "cyan" | "purple" | "green" | "amber";
 };
 
-export type HomeSnapshot = {
-  totalDepositedUsd: string;
-  totalDepositedLabel: string;
-  currentValueUsd: string;
-  currentValueHint: string;
-  totalProfitUsd: string;
-  totalProfitHint: string;
-  avgApr: { value: string; progressPct: number };
-  avgApy: { value: string; progressPct: number };
+export type HomeSnapshotMetric = {
+  id: string;
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: "white" | "green" | "cyan" | "blue";
 };
 
-export type VaultStatus = "active" | "capped" | "disabled";
+export type HomeSnapshot = {
+  items: HomeSnapshotMetric[];
+};
+
+export type VaultStatus = "active" | "paused" | "deprecated";
 
 export type TopVaultRow = {
   id: string;
   name: string;
-  subtitle: string;
+  address: string;
+  href: string;
 
+  subtitle: string;
   dexLabel: string;
   pairSymbols: string[];
 
@@ -36,4 +39,18 @@ export type TopVaultRow = {
   apr: string;
 
   status: VaultStatus;
+};
+
+export type TopStrategyStatus = "active" | "inactive";
+
+export type TopStrategyRow = {
+  id: string;
+  name: string;
+  symbol: string;
+  indicatorSetLabel: string;
+  chainLabel: string;
+  status: TopStrategyStatus;
+  linkedVaultLabel?: string;
+  updatedAtLabel: string;
+  href: string;
 };
