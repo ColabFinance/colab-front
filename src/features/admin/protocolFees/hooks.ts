@@ -47,7 +47,7 @@ function computeTotalApproxUsd(items: ProtocolFeeBalanceItem[]) {
 
   for (const item of items) {
     if (!item.valueUsdLabel || item.valueUsdLabel === "—") continue;
-    const cleaned = item.valueUsdLabel.replaceAll("$", "").replaceAll(",", "");
+    const cleaned = item.valueUsdLabel.replace(/\$/g, "").replace(/,/g, "");
     const n = Number(cleaned);
     if (Number.isFinite(n)) total += n;
   }

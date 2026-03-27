@@ -136,7 +136,10 @@ function avg(values: Array<number | null | undefined>) {
 }
 
 function sum(values: Array<number | null | undefined>) {
-  return values.reduce((acc, value) => acc + (typeof value === "number" && Number.isFinite(value) ? value : 0), 0);
+  return values.reduce<number>(
+    (acc, value) => acc + (typeof value === "number" && Number.isFinite(value) ? value : 0),
+    0
+  );
 }
 
 function normalizeVaultStatus(item: RawVault): "active" | "paused" | "deprecated" {

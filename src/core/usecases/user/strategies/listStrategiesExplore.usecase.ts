@@ -58,7 +58,7 @@ export async function listStrategiesExploreUseCase(params?: {
         updatedAtIso: r?.updated_at_iso ? String(r.updated_at_iso) : null,
       } satisfies ExploreStrategyRow;
     })
-    .filter((row): row is ExploreStrategyRow => {
+    .filter((row): row is NonNullable<typeof row> => {
       return Boolean(row && row.isPublic && Number.isFinite(row.strategyId) && row.strategyId > 0);
     })
     .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));

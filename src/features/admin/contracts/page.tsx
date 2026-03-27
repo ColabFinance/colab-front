@@ -162,7 +162,9 @@ export default function ContractsPage() {
               contract={current}
               chainLabel={currentChain?.label || "No chain selected"}
               submitting={submittingKey === activeTab}
-              onSubmit={(values) => createContract(activeTab, values)}
+              onSubmit={async (values) => {
+                await createContract(activeTab, values);
+              }}
             />
           ) : (
             <RegisterForm
