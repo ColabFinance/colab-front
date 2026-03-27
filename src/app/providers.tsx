@@ -2,13 +2,13 @@
 
 import React, { useEffect } from "react";
 import { PrivyProvider } from "@privy-io/react-auth";
-import { ToastProvider } from "@/shared/ui/toast/ToastProvider";
-import { ToastViewport } from "@/shared/ui/toast/ToastViewport";
+import { ToastProvider } from "@/shared/ui-legacy/toast/ToastProvider";
+import { ToastViewport } from "@/shared/ui-legacy/toast/ToastViewport";
 
 import type { ChainKey } from "@/shared/config/env";
 import { getRpcUrl } from "@/shared/config/env";
 
-import { clearContractRegistryCache, loadContractRegistry } from "@/infra/api-lp/contractRegistry";
+import { clearContractRegistryCache, loadContractRegistry } from "@/core/infra/api/api-lp/contractRegistry";
 import { getActiveChainRuntime, onChainChanged, onAccountsChanged } from "@/shared/config/chainRuntime";
 
 // --- Privy chains (static list is OK) ---
