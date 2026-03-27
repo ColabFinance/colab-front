@@ -100,7 +100,7 @@ export default function AdminPage() {
     token1: "",
     pool_name: "WETH/USDC",
     fee_bps: "300",
-    status: "ACTIVE" as "ACTIVE" | "INACTIVE",
+    status: "ACTIVE" as "ACTIVE" | "ARCHIVED_CAN_CREATE_NEW",
   });
 
   const [allowAdapterAddr, setAllowAdapterAddr] = useState<string>("");
