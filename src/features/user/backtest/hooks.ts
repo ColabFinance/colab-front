@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { DEFAULT_CONFIG, INITIAL_HISTORY, STRATEGIES, TIMEFRAME_OPTIONS, mockResultsForStrategy } from "./mock";
 import { BacktestConfig, BacktestResults, BacktestRun, BacktestTab } from "./types";
-import { sleep } from "@/shared/utils/sleep";
 
 function pad2(n: number) {
   return n < 10 ? `0${n}` : `${n}`;
@@ -73,9 +72,6 @@ export function useBacktest() {
     if (!canRun) return;
 
     setIsRunning(true);
-
-    // simulate processing
-    await sleep(650);
 
     const computed = mockResultsForStrategy(strategyId);
     setResults(computed);

@@ -310,7 +310,7 @@ export async function listMyStrategiesUseCase(params: {
         updatedAtLabel: relativeTimeLabel(strategy.updated_at_iso, strategy.updated_at),
       } satisfies MyStrategiesHydratedItem;
     })
-    .filter((item): item is MyStrategiesHydratedItem => {
+    .filter((item): item is NonNullable<typeof item> => {
       return Boolean(item && Number.isFinite(item.id) && item.id > 0);
     })
     .sort((a, b) => b.id - a.id);

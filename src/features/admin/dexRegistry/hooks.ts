@@ -140,8 +140,8 @@ export function useDexRegistry() {
 
       const dexRows = dexResponses.flatMap(({ rows }) => rows as AdminDexItem[]);
 
-      const poolPairs = await Promise.all(
-        dexRows.map(async (dexRow) => {
+      const poolPairs: Array<[string, AdminDexPoolItem[]]> = await Promise.all(
+        dexRows.map(async (dexRow): Promise<[string, AdminDexPoolItem[]]> => {
           try {
             const poolsResponse = await listDexPoolsUseCase({
               accessToken,
@@ -150,9 +150,9 @@ export function useDexRegistry() {
               limit: 500,
             });
 
-            return [`${dexRow.chain}:${dexRow.dex}`, poolsResponse.data ?? []] as const;
+            return [`${dexRow.chain}:${dexRow.dex}`, [...(poolsResponse.data ?? [])]];
           } catch {
-            return [`${dexRow.chain}:${dexRow.dex}`, []] as const;
+            return [`${dexRow.chain}:${dexRow.dex}`, []];
           }
         })
       );
