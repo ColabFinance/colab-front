@@ -9,7 +9,7 @@ export async function listStrategiesUseCase(params: {
     status?: "ACTIVE" | "INACTIVE";
   };
 }): Promise<Strategy[]> {
-  const res = await apiSignalsListStrategies(params.accessToken, params.query);
+  const res = await apiSignalsListStrategies({accessToken:params.accessToken, query:params.query});
   const rows = res?.data || [];
 
   return (rows || [])
