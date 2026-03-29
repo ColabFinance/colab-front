@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { OperationalWarning } from "../types";
+import { ActionBadge } from "@/presentation/components/ActionBadge";
 
 type Props = {
   warnings: OperationalWarning[];
@@ -45,6 +47,10 @@ const toneClassMap: Record<
 };
 
 export function OperationalWarningsPanel({ warnings }: Props) {
+  if (!warnings.length) {
+    return null;
+  }
+
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden shadow-[0_4px_6px_-1px_rgba(0,0,0,0.1),0_2px_4px_-1px_rgba(0,0,0,0.06)]">
       <div className="p-4 border-b border-slate-700">
@@ -67,9 +73,7 @@ export function OperationalWarningsPanel({ warnings }: Props) {
               <div className="flex-1">
                 <h4 className={`text-sm font-bold mb-1 ${tone.title}`}>{warning.title}</h4>
                 <p className={`text-xs mb-2 ${tone.body}`}>{warning.description}</p>
-                <button type="button" className={`text-xs font-medium transition-colors ${tone.button}`}>
-                  {warning.ctaLabel}
-                </button>
+                <ActionBadge href={warning.href} label={warning.ctaLabel} tone={warning.tone} />
               </div>
             </div>
           );

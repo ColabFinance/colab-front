@@ -1,8 +1,13 @@
-export type TradeStrategyStatus = "active" | "paused" | "failed";
-export type TradeSignalStatus = "pending" | "failed" | "completed";
-export type TradeSide = "long" | "short" | "none";
-export type WarningTone = "red" | "orange" | "yellow" | "blue";
-export type TradeHomeStatusFilter = "all" | TradeStrategyStatus;
+export type TradeHomeStatusFilter = "all" | string;
+
+export type TradeHomeKpis = {
+  totalTradeStrategies: number;
+  activeTradeStrategies: number;
+  activePositions: number;
+  pendingSignals: number;
+  failedSignals: number;
+  enabledExecutionProfiles: number;
+};
 
 export type TradeStrategyRow = {
   id: string;
@@ -11,8 +16,10 @@ export type TradeStrategyRow = {
   streamKey: string;
   strategyType: string;
   executionAccount: string | null;
-  status: TradeStrategyStatus;
+  status: string;
   updatedAtLabel: string;
+  detailsHref: string;
+  monitorHref: string;
 };
 
 export type RuntimeHighlightRow = {
@@ -23,10 +30,12 @@ export type RuntimeHighlightRow = {
   atr: string;
   atrPct: string;
   setupArmed: boolean;
-  desiredSide: TradeSide;
-  positionSide: TradeSide;
-  barsSinceEvent: number;
+  desiredSide: string;
+  positionSide: string;
+  barsSinceEvent: string;
   updatedAtLabel: string;
+  detailsHref: string;
+  monitorHref: string;
 };
 
 export type ActivePositionRow = {
@@ -34,11 +43,13 @@ export type ActivePositionRow = {
   symbol: string;
   strategyId: string;
   executionAccount: string | null;
-  positionSide: Exclude<TradeSide, "none">;
-  status: "open";
+  positionSide: string;
+  status: string;
   quantity: string;
   entryPrice: string;
   openedAt: string;
+  detailsHref: string;
+  monitorHref: string;
 };
 
 export type TradeSignalRow = {
@@ -46,25 +57,19 @@ export type TradeSignalRow = {
   strategyId: string;
   symbol: string;
   signalType: string;
-  status: TradeSignalStatus;
+  status: string;
   timestamp: string;
-  attempts: number;
-  lastError: string | null;
+  attempts: string;
+  lastError: string;
+  detailsHref: string;
+  monitorHref: string;
 };
 
 export type OperationalWarning = {
   id: string;
-  tone: WarningTone;
+  tone: "red" | "orange" | "yellow" | "blue";
   title: string;
   description: string;
+  href: string;
   ctaLabel: string;
-};
-
-export type TradeHomeKpis = {
-  totalTradeStrategies: number;
-  activeTradeStrategies: number;
-  activePositions: number;
-  pendingSignals: number;
-  failedSignals: number;
-  enabledExecutionProfiles: number;
 };

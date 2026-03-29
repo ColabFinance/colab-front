@@ -1,5 +1,3 @@
-{ label: "Home", href: "/", faIcon: "fa-house" },
-
 import type { NavItem } from "@/presentation/shell/AdminSidebar";
 
 export type UserNavTone = "blue" | "cyan" | "slate";
@@ -23,7 +21,7 @@ export const userShellNavSections: UserShellNavSection[] = [
     title: "LP Domain",
     tone: "blue",
     items: [
-      
+      { label: "LP Home", href: "/", faIcon: "fa-house" },
       { label: "Explore Vaults", href: "/vaults", faIcon: "fa-compass" },
       { label: "My Vaults", href: "/my/vaults", faIcon: "fa-vault" },
       { label: "Explore LP Strategies", href: "/strategies", faIcon: "fa-layer-group" },
@@ -37,48 +35,12 @@ export const userShellNavSections: UserShellNavSection[] = [
     tone: "cyan",
     items: [
       { label: "Trade Home", href: "/tradeHome", faIcon: "fa-house" },
-      {
-        label: "Trade Strategies",
-        href: "/trade/strategies",
-        faIcon: "fa-chess-knight",
-        disabled: true,
-        badge: "Soon",
-      },
-      {
-        label: "Trade Monitor",
-        href: "/trade/monitor",
-        faIcon: "fa-desktop",
-        disabled: true,
-        badge: "Soon",
-      },
-      {
-        label: "Positions & Orders",
-        href: "/trade/positions-orders",
-        faIcon: "fa-list-check",
-        disabled: true,
-        badge: "Soon",
-      },
-      {
-        label: "Execution Profiles",
-        href: "/trade/execution-profiles",
-        faIcon: "fa-gears",
-        disabled: true,
-        badge: "Soon",
-      },
-      {
-        label: "Trade Portfolio",
-        href: "/trade/portfolio",
-        faIcon: "fa-briefcase",
-        disabled: true,
-        badge: "Soon",
-      },
-      {
-        label: "Trade Backtest",
-        href: "/trade/backtest",
-        faIcon: "fa-flask",
-        disabled: true,
-        badge: "Soon",
-      },
+      { label: "Trade Strategies", href: "/trade/strategies", faIcon: "fa-chess-knight" },
+      { label: "Trade Monitor", href: "/trade/monitor", faIcon: "fa-desktop" },
+      { label: "Positions & Orders", href: "/trade/positions-orders", faIcon: "fa-list-check" },
+      { label: "Execution Profiles", href: "/trade/execution-profiles", faIcon: "fa-gears" },
+      { label: "Trade Portfolio", href: "/trade/portfolio", faIcon: "fa-briefcase" },
+      { label: "Trade Backtest", href: "/trade/backtest", faIcon: "fa-flask" },
     ],
   },
   {
@@ -92,10 +54,16 @@ export const userShellNavSections: UserShellNavSection[] = [
 ];
 
 export const userNav: NavItem[] = [
-  { label: "Home", href: "/", icon: "home" },
+  { label: "LP Home", href: "/", icon: "home" },
   { label: "Vaults", href: "/vaults", icon: "vault" },
   { label: "Strategies", href: "/strategies", icon: "strategy" },
   { label: "Trade Home", href: "/tradeHome", icon: "home" },
+  { label: "Trade Strategies", href: "/trade/strategies", icon: "strategy" },
+  { label: "Trade Monitor", href: "/trade/monitor", icon: "chart" },
+  { label: "Positions & Orders", href: "/trade/positions-orders", icon: "chart" },
+  { label: "Execution Profiles", href: "/trade/execution-profiles", icon: "chart" },
+  { label: "Trade Portfolio", href: "/trade/portfolio", icon: "chart" },
+  { label: "Trade Backtest", href: "/trade/backtest", icon: "chart" },
 ];
 
 function matchesPath(pathname: string, href: string) {

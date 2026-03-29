@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { RuntimeHighlightRow } from "../types";
+import { ActionBadge } from "@/presentation/components/ActionBadge";
 
 type Props = {
   rows: RuntimeHighlightRow[];
@@ -14,12 +16,12 @@ function runtimeStateClassName(value: string) {
 }
 
 function eventClassName(value: string) {
-  if (value.includes("long")) return "text-green-400";
-  if (value.includes("short")) return "text-red-400";
+  if (value.includes("LONG")) return "text-green-400";
+  if (value.includes("SHORT")) return "text-red-400";
   return "text-slate-400";
 }
 
-function sideClassName(value: RuntimeHighlightRow["desiredSide"]) {
+function sideClassName(value: string) {
   if (value === "long") return "text-green-400";
   if (value === "short") return "text-red-400";
   return "text-slate-500";
@@ -86,13 +88,11 @@ export function RuntimeHighlightsTable({ rows, lastUpdatedLabel }: Props) {
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-300 font-mono">{row.barsSinceEvent}</td>
                 <td className="px-6 py-4 text-sm text-slate-400">{row.updatedAtLabel}</td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button type="button" className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors">
-                    Details
-                  </button>
-                  <button type="button" className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                    Trade Monitor
-                  </button>
+                <td className="px-6 py-4">
+                  <div className="flex justify-end gap-2">
+                    <ActionBadge href={row.detailsHref} label="Details" tone="cyan" />
+                    <ActionBadge href={row.monitorHref} label="Trade Monitor" tone="blue" />
+                  </div>
                 </td>
               </tr>
             ))}

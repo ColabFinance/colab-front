@@ -1,15 +1,41 @@
+import Link from "next/link";
 import type { TradeStrategyRow } from "../types";
+import { ActionBadge } from "@/presentation/components/ActionBadge";
 
 type Props = {
   rows: TradeStrategyRow[];
   lastUpdatedLabel: string;
 };
 
-const statusClassMap: Record<TradeStrategyRow["status"], string> = {
-  active: "bg-green-500/10 text-green-400 border border-green-500/20",
-  paused: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
-  failed: "bg-red-500/10 text-red-400 border border-red-500/20",
-};
+function statusMeta(status: string) {
+  const raw = String(status || "").trim().toUpperCase();
+
+  if (raw === "ACTIVE") {
+    return {
+      label: "Active",
+      className: "bg-green-500/10 text-green-400 border border-green-500/20",
+    };
+  }
+
+  if (raw === "PAUSED" || raw === "INACTIVE") {
+    return {
+      label: raw === "PAUSED" ? "Paused" : "Inactive",
+      className: "bg-orange-500/10 text-orange-400 border border-orange-500/20",
+    };
+  }
+
+  if (raw === "FAILED") {
+    return {
+      label: "Failed",
+      className: "bg-red-500/10 text-red-400 border border-red-500/20",
+    };
+  }
+
+  return {
+    label: raw || "-",
+    className: "bg-slate-500/10 text-slate-300 border border-slate-500/20",
+  };
+}
 
 export function ActiveTradeStrategiesTable({ rows, lastUpdatedLabel }: Props) {
   return (
@@ -37,46 +63,39 @@ export function ActiveTradeStrategiesTable({ rows, lastUpdatedLabel }: Props) {
           </thead>
 
           <tbody className="divide-y divide-slate-700">
-            {rows.map((row) => (
-              <tr key={row.id} className="group hover:bg-slate-800/30 transition-colors">
-                <td className="px-6 py-4 text-sm font-medium text-white">{row.name}</td>
-                <td className="px-6 py-4 text-sm text-slate-300 font-mono">{row.symbol}</td>
-                <td className="px-6 py-4 text-sm text-slate-400 font-mono">{row.streamKey}</td>
-                <td className="px-6 py-4 text-sm text-slate-300">{row.strategyType}</td>
-                <td className="px-6 py-4 text-sm font-mono">
-                  {row.executionAccount ? (
-                    <span className="text-slate-400">{row.executionAccount}</span>
-                  ) : (
-                    <span className="text-orange-400">Unassigned</span>
-                  )}
-                </td>
-                <td className="px-6 py-4 text-center">
-                  <span
-                    className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium ${statusClassMap[row.status]}`}
-                  >
-                    {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-sm text-slate-400">{row.updatedAtLabel}</td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button type="button" className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors">
-                    Details
-                  </button>
-                  <button type="button" className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                    Trade Monitor
-                  </button>
-                  {row.status === "paused" ? (
-                    <button type="button" className="text-green-400 hover:text-green-300 text-sm font-medium transition-colors">
-                      Activate
-                    </button>
-                  ) : (
-                    <button type="button" className="text-red-400 hover:text-red-300 text-sm font-medium transition-colors">
-                      Deactivate
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {rows.map((row) => {
+              const meta = statusMeta(row.status);
+
+              return (
+                <tr key={row.id} className="group hover:bg-slate-800/30 transition-colors">
+                  <td className="px-6 py-4 text-sm font-medium text-white">{row.name}</td>
+                  <td className="px-6 py-4 text-sm text-slate-300 font-mono">{row.symbol}</td>
+                  <td className="px-6 py-4 text-sm text-slate-400 font-mono">{row.streamKey}</td>
+                  <td className="px-6 py-4 text-sm text-slate-300">{row.strategyType}</td>
+                  <td className="px-6 py-4 text-sm font-mono">
+                    {row.executionAccount ? (
+                      <span className="text-slate-400">{row.executionAccount}</span>
+                    ) : (
+                      <span className="text-orange-400">Unassigned</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <span
+                      className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium ${meta.className}`}
+                    >
+                      {meta.label}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-sm text-slate-400">{row.updatedAtLabel}</td>
+                  <td className="px-6 py-4">
+                    <div className="flex justify-end gap-2">
+                      <ActionBadge href={row.detailsHref} label="Details" tone="cyan" />
+                      <ActionBadge href={row.monitorHref} label="Trade Monitor" tone="blue" />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
 
             {rows.length === 0 && (
               <tr>

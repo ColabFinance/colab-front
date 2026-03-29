@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { ActivePositionRow } from "../types";
+import { ActionBadge } from "@/presentation/components/ActionBadge";
 
 type Props = {
   rows: ActivePositionRow[];
@@ -52,22 +54,17 @@ export function ActivePositionsTable({ rows, lastUpdatedLabel }: Props) {
                 </td>
                 <td className="px-6 py-4 text-center">
                   <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium bg-green-500/10 text-green-400 border border-green-500/20">
-                    Open
+                    {row.status || "OPEN"}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-300 font-mono">{row.quantity}</td>
                 <td className="px-6 py-4 text-sm text-slate-300 font-mono">{row.entryPrice}</td>
                 <td className="px-6 py-4 text-sm text-slate-400">{row.openedAt}</td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button type="button" className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors">
-                    Details
-                  </button>
-                  <button type="button" className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                    Open Orders
-                  </button>
-                  <button type="button" className="text-slate-400 hover:text-slate-300 text-sm font-medium transition-colors">
-                    Trade Monitor
-                  </button>
+                <td className="px-6 py-4">
+                  <div className="flex justify-end gap-2">
+                    <ActionBadge href={row.detailsHref} label="Details" tone="cyan" />
+                    <ActionBadge href={row.monitorHref} label="Trade Monitor" tone="slate" />
+                  </div>
                 </td>
               </tr>
             ))}

@@ -1,91 +1,136 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
-import {
-  TRADE_HOME_ACTIVE_POSITIONS,
-  TRADE_HOME_METADATA,
-  TRADE_HOME_RUNTIME_HIGHLIGHTS,
-  TRADE_HOME_SIGNALS,
-  TRADE_HOME_STRATEGIES,
-  TRADE_HOME_WARNINGS,
-} from "./mock";
-import type { TradeHomeKpis, TradeHomeStatusFilter } from "./types";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { getTradeHomeSnapshotUseCase } from "@/core/usecases/user/trade/tradeHome/getTradeHomeSnapshot.usecase";
+import type {
+  ActivePositionRow,
+  OperationalWarning,
+  RuntimeHighlightRow,
+  TradeHomeKpis,
+  TradeHomeStatusFilter,
+  TradeSignalRow,
+  TradeStrategyRow,
+} from "./types";
 
-function normalizeAccount(account: string | null) {
-  return account ?? "Unassigned";
-}
+type TradeHomeState = {
+  accounts: string[];
+  statusOptions: string[];
+  kpis: TradeHomeKpis;
+  strategies: TradeStrategyRow[];
+  runtimeHighlights: RuntimeHighlightRow[];
+  activePositions: ActivePositionRow[];
+  signals: TradeSignalRow[];
+  warnings: OperationalWarning[];
+};
+
+const EMPTY_STATE: TradeHomeState = {
+  accounts: [],
+  statusOptions: [],
+  kpis: {
+    totalTradeStrategies: 0,
+    activeTradeStrategies: 0,
+    activePositions: 0,
+    pendingSignals: 0,
+    failedSignals: 0,
+    enabledExecutionProfiles: 0,
+  },
+  strategies: [],
+  runtimeHighlights: [],
+  activePositions: [],
+  signals: [],
+  warnings: [],
+};
 
 export function useTradeHomePage() {
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<TradeHomeStatusFilter>("all");
   const [lastUpdatedLabel, setLastUpdatedLabel] = useState("just now");
+  const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string>("");
+  const [data, setData] = useState<TradeHomeState>(EMPTY_STATE);
 
-  const accounts = useMemo(() => {
-    const values = new Set<string>();
-    TRADE_HOME_STRATEGIES.forEach((item) => values.add(normalizeAccount(item.executionAccount)));
-    return Array.from(values);
+  const load = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      setErrorMessage("");
+
+      const snapshot = await getTradeHomeSnapshotUseCase();
+
+      setData({
+        accounts: snapshot.accounts,
+        statusOptions: snapshot.statusOptions,
+        kpis: snapshot.kpis,
+        strategies: snapshot.strategies,
+        runtimeHighlights: snapshot.runtimeHighlights,
+        activePositions: snapshot.activePositions,
+        signals: snapshot.signals,
+        warnings: snapshot.warnings,
+      });
+
+      setLastUpdatedLabel("just now");
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to load trade home data");
+      setData(EMPTY_STATE);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
+  useEffect(() => {
+    load();
+  }, [load]);
+
   const filteredStrategies = useMemo(() => {
-    return TRADE_HOME_STRATEGIES.filter((item) => {
-      const accountMatch =
-        selectedAccount === "all" ||
-        normalizeAccount(item.executionAccount) === selectedAccount;
-
+    return data.strategies.filter((item) => {
+      const accountMatch = selectedAccount === "all" || item.executionAccount === selectedAccount;
       const statusMatch = selectedStatus === "all" || item.status === selectedStatus;
-
       return accountMatch && statusMatch;
     });
-  }, [selectedAccount, selectedStatus]);
+  }, [data.strategies, selectedAccount, selectedStatus]);
 
-  const filteredStrategyIds = useMemo(() => {
+  const strategyIds = useMemo(() => {
     return new Set(filteredStrategies.map((item) => item.id));
   }, [filteredStrategies]);
 
   const filteredRuntimeHighlights = useMemo(() => {
-    return TRADE_HOME_RUNTIME_HIGHLIGHTS.filter((item) =>
-      filteredStrategyIds.has(item.strategyId)
-    );
-  }, [filteredStrategyIds]);
+    return data.runtimeHighlights.filter((item) => strategyIds.has(item.strategyId));
+  }, [data.runtimeHighlights, strategyIds]);
 
   const filteredActivePositions = useMemo(() => {
-    return TRADE_HOME_ACTIVE_POSITIONS.filter((item) =>
-      filteredStrategyIds.has(item.strategyId)
-    );
-  }, [filteredStrategyIds]);
+    return data.activePositions.filter((item) => strategyIds.has(item.strategyId));
+  }, [data.activePositions, strategyIds]);
 
   const filteredSignals = useMemo(() => {
-    return TRADE_HOME_SIGNALS.filter((item) => filteredStrategyIds.has(item.strategyId));
-  }, [filteredStrategyIds]);
+    return data.signals.filter((item) => strategyIds.has(item.strategyId));
+  }, [data.signals, strategyIds]);
 
-  const kpis = useMemo<TradeHomeKpis>(() => {
-    return {
-      totalTradeStrategies: filteredStrategies.length,
-      activeTradeStrategies: filteredStrategies.filter((item) => item.status === "active").length,
-      activePositions: filteredActivePositions.length,
-      pendingSignals: filteredSignals.filter((item) => item.status === "pending").length,
-      failedSignals: filteredSignals.filter((item) => item.status === "failed").length,
-      enabledExecutionProfiles: TRADE_HOME_METADATA.enabledExecutionProfiles,
-    };
-  }, [filteredStrategies, filteredActivePositions, filteredSignals]);
-
-  const refresh = useCallback(() => {
-    setLastUpdatedLabel("just now");
-  }, []);
+  const refresh = useCallback(async () => {
+    await load();
+  }, [load]);
 
   return {
     selectedAccount,
     setSelectedAccount,
     selectedStatus,
     setSelectedStatus,
-    accounts,
-    kpis,
+    accounts: data.accounts,
+    statusOptions: data.statusOptions,
+    kpis: {
+      ...data.kpis,
+      totalTradeStrategies: filteredStrategies.length,
+      activeTradeStrategies: filteredStrategies.filter((item) => item.status === "ACTIVE").length,
+      activePositions: filteredActivePositions.length,
+      pendingSignals: filteredSignals.filter((item) => item.status === "PENDING").length,
+      failedSignals: filteredSignals.filter((item) => item.status === "FAILED").length,
+    },
     strategies: filteredStrategies,
     runtimeHighlights: filteredRuntimeHighlights,
     activePositions: filteredActivePositions,
     signals: filteredSignals,
-    warnings: TRADE_HOME_WARNINGS,
+    warnings: data.warnings,
     lastUpdatedLabel,
     refresh,
+    isLoading,
+    errorMessage,
   };
 }

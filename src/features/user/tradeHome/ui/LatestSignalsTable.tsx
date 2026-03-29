@@ -1,4 +1,6 @@
+import Link from "next/link";
 import type { TradeSignalRow } from "../types";
+import { ActionBadge } from "@/presentation/components/ActionBadge";
 
 type Props = {
   rows: TradeSignalRow[];
@@ -6,15 +8,20 @@ type Props = {
 };
 
 function signalTypeClassName(value: string) {
-  if (value.includes("long")) return "text-green-400";
-  if (value.includes("short")) return "text-red-400";
+  const raw = String(value || "").toUpperCase();
+
+  if (raw.includes("LONG")) return "text-green-400";
+  if (raw.includes("SHORT")) return "text-red-400";
   return "text-slate-300";
 }
 
-function statusClassName(value: TradeSignalRow["status"]) {
-  if (value === "pending") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
-  if (value === "failed") return "bg-red-500/10 text-red-400 border border-red-500/20";
-  return "bg-green-500/10 text-green-400 border border-green-500/20";
+function statusClassName(value: string) {
+  const raw = String(value || "").toUpperCase();
+
+  if (raw === "PENDING") return "bg-blue-500/10 text-blue-400 border border-blue-500/20";
+  if (raw === "FAILED") return "bg-red-500/10 text-red-400 border border-red-500/20";
+  if (raw === "COMPLETED") return "bg-green-500/10 text-green-400 border border-green-500/20";
+  return "bg-slate-500/10 text-slate-300 border border-slate-500/20";
 }
 
 export function LatestSignalsTable({ rows, lastUpdatedLabel }: Props) {
@@ -54,21 +61,19 @@ export function LatestSignalsTable({ rows, lastUpdatedLabel }: Props) {
                   <span
                     className={`inline-flex items-center rounded px-2 py-0.5 text-[10px] font-medium ${statusClassName(row.status)}`}
                   >
-                    {row.status.charAt(0).toUpperCase() + row.status.slice(1)}
+                    {row.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 text-sm text-slate-400">{row.timestamp}</td>
                 <td className="px-6 py-4 text-sm text-slate-300 font-mono">{row.attempts}</td>
-                <td className={`px-6 py-4 text-sm ${row.lastError ? "text-red-400 font-mono text-xs" : "text-slate-500"}`}>
-                  {row.lastError ?? "-"}
+                <td className={`px-6 py-4 text-sm ${row.lastError !== "-" ? "text-red-400 font-mono text-xs" : "text-slate-500"}`}>
+                  {row.lastError}
                 </td>
-                <td className="px-6 py-4 text-right space-x-2">
-                  <button type="button" className="text-cyan-400 hover:text-cyan-300 text-sm font-medium transition-colors">
-                    Details
-                  </button>
-                  <button type="button" className="text-blue-400 hover:text-blue-300 text-sm font-medium transition-colors">
-                    Trade Monitor
-                  </button>
+                <td className="px-6 py-4">
+                  <div className="flex justify-end gap-2">
+                    <ActionBadge href={row.detailsHref} label="Details" tone="cyan" />
+                    <ActionBadge href={row.monitorHref} label="Trade Monitor" tone="blue" />
+                  </div>
                 </td>
               </tr>
             ))}
