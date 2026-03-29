@@ -56,6 +56,8 @@ export default function TradeStrategyDetailsPage({
       <TradeStrategyRecentSignalsCard
         strategyId={vm.strategy.id}
         signals={vm.signals}
+        pagination={vm.signalsPagination}
+        onPageChange={vm.setSignalsPage}
         onOpenDetails={vm.openSignalDetails}
         onOpenExecutionResponse={vm.openExecutionResponse}
       />

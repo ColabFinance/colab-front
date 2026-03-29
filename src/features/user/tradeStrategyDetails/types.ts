@@ -60,8 +60,11 @@ export type TradeStrategySignalRecord = {
   createdAtIso: string | null;
 };
 
-export type TradeStrategyDetailsState = {
-  strategy: TradeStrategyDetailsRecord | null;
-  runtime: TradeStrategyRuntimeRecord | null;
-  signals: TradeStrategySignalRecord[];
+export type TradeStrategySignalsPagination = {
+  limit: number;
+  offset: number;
+  page: number;
+  total: number;
+  hasNext: boolean;
+  hasPrev: boolean;
 };

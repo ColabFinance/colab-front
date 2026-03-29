@@ -1,11 +1,17 @@
 "use client";
 
 import { ActionBadge } from "@/presentation/components/ActionBadge";
-import type { TradeStrategySignalRecord } from "../types";
+import type {
+  TradeStrategySignalRecord,
+  TradeStrategySignalsPagination,
+} from "../types";
+import { TradeStrategySignalsPagination as TradeStrategySignalsPaginationBar } from "./TradeStrategySignalsPagination";
 
 type Props = {
   strategyId: string;
   signals: TradeStrategySignalRecord[];
+  pagination: TradeStrategySignalsPagination;
+  onPageChange: (page: number) => void;
   onOpenDetails: (signal: TradeStrategySignalRecord) => void;
   onOpenExecutionResponse: (payload: Record<string, unknown> | null) => void;
 };
@@ -49,6 +55,8 @@ function executionSummary(payload: Record<string, unknown> | null): string {
 export function TradeStrategyRecentSignalsCard({
   strategyId,
   signals,
+  pagination,
+  onPageChange,
   onOpenDetails,
   onOpenExecutionResponse,
 }: Props) {
@@ -131,6 +139,11 @@ export function TradeStrategyRecentSignalsCard({
           </tbody>
         </table>
       </div>
+
+      <TradeStrategySignalsPaginationBar
+        pagination={pagination}
+        onPageChange={onPageChange}
+      />
     </div>
   );
 }

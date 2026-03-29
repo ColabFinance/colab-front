@@ -101,26 +101,6 @@ export async function apiSignalsGetTradeStrategyById(params: {
   return apiSignalsGet(`/trade-strategies/${encodeURIComponent(params.strategyId)}`, params.accessToken || "");
 }
 
-export async function apiSignalsListTradeSignals(params?: {
-  accessToken?: string;
-  query?: {
-    strategy_id?: string;
-    limit?: number;
-  };
-}): Promise<{
-  ok: boolean;
-  data?: TradeSignalApiRecord[];
-  message?: string;
-}> {
-  const qs = new URLSearchParams();
-
-  if (params?.query?.strategy_id) qs.set("strategy_id", params.query.strategy_id);
-  if (typeof params?.query?.limit === "number") qs.set("limit", String(params.query.limit));
-
-  const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return apiSignalsGet(`/trade-strategies/signals${suffix}`, params?.accessToken || "");
-}
-
 export async function apiSignalsListTradeStrategies(params?: {
   accessToken?: string;
   query?: {
@@ -249,4 +229,38 @@ export async function apiSignalsListTradeStrategiesPublic(params?: {
 
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return apiSignalsGet(`/trade-strategies/public${suffix}`, params?.accessToken || "");
+}
+
+export type TradeSignalsPaginationApi = {
+  limit: number;
+  offset: number;
+  page: number;
+  total: number;
+  has_next: boolean;
+  has_prev: boolean;
+};
+
+export async function apiSignalsListTradeSignals(params?: {
+  accessToken?: string;
+  query?: {
+    strategy_id?: string;
+    limit?: number;
+    page?: number;
+    offset?: number;
+  };
+}): Promise<{
+  ok: boolean;
+  data?: TradeSignalApiRecord[];
+  pagination?: TradeSignalsPaginationApi;
+  message?: string;
+}> {
+  const qs = new URLSearchParams();
+
+  if (params?.query?.strategy_id) qs.set("strategy_id", params.query.strategy_id);
+  if (typeof params?.query?.limit === "number") qs.set("limit", String(params.query.limit));
+  if (typeof params?.query?.page === "number") qs.set("page", String(params.query.page));
+  if (typeof params?.query?.offset === "number") qs.set("offset", String(params.query.offset));
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiSignalsGet(`/trade-strategies/signals${suffix}`, params?.accessToken || "");
 }

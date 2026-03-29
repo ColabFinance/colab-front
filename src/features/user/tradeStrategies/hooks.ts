@@ -19,7 +19,7 @@ const DEFAULT_FILTERS: TradeStrategiesFiltersState = {
   symbol: "",
   executionAccountId: "",
   search: "",
-  limit: 20,
+  limit: 10,
   page: 1,
 };
 

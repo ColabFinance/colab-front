@@ -9,7 +9,10 @@ import type {
   TradeStrategyDetailsRecord,
   TradeStrategyRuntimeRecord,
   TradeStrategySignalRecord,
+  TradeStrategySignalsPagination,
 } from "./types";
+
+const DEFAULT_SIGNALS_LIMIT = 10;
 
 function normalizeStrategy(data: any): TradeStrategyDetailsRecord | null {
   if (!data) return null;
@@ -92,10 +95,31 @@ function normalizeSignals(data?: any[]): TradeStrategySignalRecord[] {
   }));
 }
 
+function normalizeSignalsPagination(data: any, fallbackLimit: number, fallbackPage: number): TradeStrategySignalsPagination {
+  return {
+    limit: Number(data?.limit || fallbackLimit),
+    offset: Number(data?.offset || 0),
+    page: Number(data?.page || fallbackPage),
+    total: Number(data?.total || 0),
+    hasNext: Boolean(data?.has_next),
+    hasPrev: Boolean(data?.has_prev),
+  };
+}
+
 export function useTradeStrategyDetailsPage(strategyId: string) {
   const [strategy, setStrategy] = useState<TradeStrategyDetailsRecord | null>(null);
   const [runtime, setRuntime] = useState<TradeStrategyRuntimeRecord | null>(null);
   const [signals, setSignals] = useState<TradeStrategySignalRecord[]>([]);
+  const [signalsPagination, setSignalsPagination] = useState<TradeStrategySignalsPagination>({
+    limit: DEFAULT_SIGNALS_LIMIT,
+    offset: 0,
+    page: 1,
+    total: 0,
+    hasNext: false,
+    hasPrev: false,
+  });
+  const [signalsPage, setSignalsPage] = useState(1);
+  const [signalsLimit, setSignalsLimit] = useState(DEFAULT_SIGNALS_LIMIT);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedSignal, setSelectedSignal] = useState<TradeStrategySignalRecord | null>(null);
@@ -109,12 +133,19 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
       const [strategyResponse, runtimeResponse, signalsResponse] = await Promise.all([
         getTradeStrategyByIdUseCase({ strategyId }),
         getLatestTradeStrategyRuntimeUseCase({ strategyId }),
-        listTradeStrategySignalsUseCase({ strategyId, limit: 20 }),
+        listTradeStrategySignalsUseCase({
+          strategyId,
+          limit: signalsLimit,
+          page: signalsPage,
+        }),
       ]);
 
       setStrategy(normalizeStrategy(strategyResponse.data));
       setRuntime(normalizeRuntime(runtimeResponse.data));
       setSignals(normalizeSignals(signalsResponse.data));
+      setSignalsPagination(
+        normalizeSignalsPagination(signalsResponse.pagination, signalsLimit, signalsPage)
+      );
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Failed to load trade strategy details.");
       setStrategy(null);
@@ -123,7 +154,7 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [strategyId]);
+  }, [strategyId, signalsLimit, signalsPage]);
 
   useEffect(() => {
     load();
@@ -147,6 +178,15 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
       setErrorMessage(error instanceof Error ? error.message : "Failed to update trade strategy status.");
     }
   }, [load, strategy]);
+
+  const updateSignalsPage = useCallback((page: number) => {
+    setSignalsPage(page);
+  }, []);
+
+  const updateSignalsLimit = useCallback((limit: number) => {
+    setSignalsLimit(limit);
+    setSignalsPage(1);
+  }, []);
 
   const copyText = useCallback(async (value: string) => {
     try {
@@ -177,10 +217,21 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
     return JSON.stringify(selectedExecutionResponse, null, 2);
   }, [selectedExecutionResponse]);
 
+  const totalSignalPages = useMemo(() => {
+    if (!signalsPagination.total || !signalsPagination.limit) return 1;
+    return Math.max(1, Math.ceil(signalsPagination.total / signalsPagination.limit));
+  }, [signalsPagination.limit, signalsPagination.total]);
+
   return {
     strategy,
     runtime,
     signals,
+    signalsPagination,
+    signalsPage,
+    signalsLimit,
+    totalSignalPages,
+    updateSignalsPage,
+    updateSignalsLimit,
     isLoading,
     errorMessage,
     reload: load,

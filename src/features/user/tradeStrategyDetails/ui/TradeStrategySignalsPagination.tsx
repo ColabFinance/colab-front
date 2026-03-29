@@ -11,6 +11,6 @@ type Props = {
   onChangeLimit: (limit: number) => void;
 };
 
-export function TradeStrategiesPagination(props: Props) {
+export function TradeStrategySignalsPagination(props: Props) {
   return <Pagination {...props} />;
 }
