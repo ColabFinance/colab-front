@@ -60,6 +60,11 @@ export function TradeStrategyRecentSignalsCard({
   onOpenDetails,
   onOpenExecutionResponse,
 }: Props) {
+  const totalPages = Math.max(
+    1,
+    Math.ceil(Number(pagination.total || 0) / Math.max(1, Number(pagination.limit || 10)))
+  );
+
   return (
     <div className="bg-slate-900 border border-slate-700 rounded-xl overflow-hidden">
       <div className="p-5 border-b border-slate-700">
@@ -92,7 +97,11 @@ export function TradeStrategyRecentSignalsCard({
                   {signal.signalType}
                 </td>
                 <td className="px-6 py-4 text-center">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusClasses(signal.status)}`}>
+                  <span
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusClasses(
+                      signal.status
+                    )}`}
+                  >
                     {signal.status}
                   </span>
                 </td>
@@ -141,8 +150,12 @@ export function TradeStrategyRecentSignalsCard({
       </div>
 
       <TradeStrategySignalsPaginationBar
-        pagination={pagination}
-        onPageChange={onPageChange}
+        page={pagination.page}
+        totalPages={totalPages}
+        limit={pagination.limit}
+        total={pagination.total}
+        onChangePage={onPageChange}
+        onChangeLimit={() => {}}
       />
     </div>
   );
