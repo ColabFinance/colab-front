@@ -138,3 +138,92 @@ export async function apiSignalsGetLatestTradeRuntime(params: {
     params.accessToken || ""
   );
 }
+
+export type TradeStrategyPublicPagination = {
+  limit: number;
+  offset: number;
+  page: number;
+  total: number;
+  has_next: boolean;
+  has_prev: boolean;
+};
+
+export type TradeStrategyPublicSummary = {
+  total: number;
+  active: number;
+  inactive: number;
+  unique_stream_keys: number;
+  unique_execution_accounts: number;
+};
+
+export type TradeStrategyPublicFilterOptions = {
+  statuses: string[];
+  stream_keys: string[];
+  symbols: string[];
+  execution_account_ids: string[];
+};
+
+export async function apiSignalsCreateTradeStrategy(params: {
+  accessToken?: string;
+  body: {
+    name: string;
+    symbol: string;
+    source: string;
+    interval: string;
+    stream_key: string;
+    strategy_type: string;
+    status: string;
+    execution_target: string;
+    execution_account_id?: string | null;
+    params: {
+      atr_window: number;
+      atr_low_threshold: number;
+      atr_high_threshold: number;
+      atr_threshold_mode: string;
+      cooloff_bars: number;
+      trade_mode: string;
+      reverse_signal: boolean;
+      allowed_weekdays?: string[] | null;
+      max_loss_pct?: number | null;
+    };
+  };
+}): Promise<{ ok: boolean; data?: TradeStrategyApiRecord; message?: string }> {
+  return apiSignalsPost(`/trade-strategies`, params.body, params.accessToken);
+}
+
+export async function apiSignalsListTradeStrategiesPublic(params?: {
+  accessToken?: string;
+  query?: {
+    status?: string;
+    stream_key?: string;
+    symbol?: string;
+    execution_account_id?: string;
+    search?: string;
+    limit?: number;
+    page?: number;
+    offset?: number;
+  };
+}): Promise<{
+  ok: boolean;
+  data?: TradeStrategyApiRecord[];
+  pagination?: TradeStrategyPublicPagination;
+  summary?: TradeStrategyPublicSummary;
+  filter_options?: TradeStrategyPublicFilterOptions;
+  message?: string;
+}> {
+  const qs = new URLSearchParams();
+
+  if (params?.query?.status) qs.set("status", params.query.status);
+  if (params?.query?.stream_key) qs.set("stream_key", params.query.stream_key);
+  if (params?.query?.symbol) qs.set("symbol", params.query.symbol);
+  if (params?.query?.execution_account_id) {
+    qs.set("execution_account_id", params.query.execution_account_id);
+  }
+  if (params?.query?.search) qs.set("search", params.query.search);
+  if (typeof params?.query?.limit === "number") qs.set("limit", String(params.query.limit));
+  if (typeof params?.query?.page === "number") qs.set("page", String(params.query.page));
+  if (typeof params?.query?.offset === "number") qs.set("offset", String(params.query.offset));
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiSignalsGet(`/trade-strategies/public${suffix}`, params?.accessToken || "");
+}

@@ -1,5 +1,5 @@
-import TradePlaceholderPage from "@/features/user/trade/TradePlaceholderPage";
+import TradeStrategiesPage from "@/features/user/tradeStrategies/page";
 
 export default function Page() {
-  return <TradePlaceholderPage title="Trade Strategies" />;
+  return <TradeStrategiesPage />;
 }
