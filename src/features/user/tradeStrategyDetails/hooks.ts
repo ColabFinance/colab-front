@@ -12,7 +12,7 @@ import type {
   TradeStrategySignalsPagination,
 } from "./types";
 
-const DEFAULT_SIGNALS_LIMIT = 10;
+const SIGNALS_PER_PAGE = 10;
 
 function normalizeStrategy(data: any): TradeStrategyDetailsRecord | null {
   if (!data) return null;
@@ -89,17 +89,17 @@ function normalizeSignals(data?: any[]): TradeStrategySignalRecord[] {
     lastError: item.last_error ? String(item.last_error) : null,
     executionResponse:
       item.execution_response && typeof item.execution_response === "object"
-        ? item.execution_response
+        ? (item.execution_response as Record<string, unknown>)
         : null,
     createdAtIso: item.created_at_iso ? String(item.created_at_iso) : null,
   }));
 }
 
-function normalizeSignalsPagination(data: any, fallbackLimit: number, fallbackPage: number): TradeStrategySignalsPagination {
+function normalizeSignalsPagination(data: any): TradeStrategySignalsPagination {
   return {
-    limit: Number(data?.limit || fallbackLimit),
+    limit: Number(data?.limit || SIGNALS_PER_PAGE),
     offset: Number(data?.offset || 0),
-    page: Number(data?.page || fallbackPage),
+    page: Number(data?.page || 1),
     total: Number(data?.total || 0),
     hasNext: Boolean(data?.has_next),
     hasPrev: Boolean(data?.has_prev),
@@ -111,15 +111,14 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
   const [runtime, setRuntime] = useState<TradeStrategyRuntimeRecord | null>(null);
   const [signals, setSignals] = useState<TradeStrategySignalRecord[]>([]);
   const [signalsPagination, setSignalsPagination] = useState<TradeStrategySignalsPagination>({
-    limit: DEFAULT_SIGNALS_LIMIT,
+    limit: SIGNALS_PER_PAGE,
     offset: 0,
     page: 1,
     total: 0,
     hasNext: false,
     hasPrev: false,
   });
-  const [signalsPage, setSignalsPage] = useState(1);
-  const [signalsLimit, setSignalsLimit] = useState(DEFAULT_SIGNALS_LIMIT);
+  const [signalsPage, setSignalsPageState] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
   const [selectedSignal, setSelectedSignal] = useState<TradeStrategySignalRecord | null>(null);
@@ -135,7 +134,7 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
         getLatestTradeStrategyRuntimeUseCase({ strategyId }),
         listTradeStrategySignalsUseCase({
           strategyId,
-          limit: signalsLimit,
+          limit: SIGNALS_PER_PAGE,
           page: signalsPage,
         }),
       ]);
@@ -143,18 +142,24 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
       setStrategy(normalizeStrategy(strategyResponse.data));
       setRuntime(normalizeRuntime(runtimeResponse.data));
       setSignals(normalizeSignals(signalsResponse.data));
-      setSignalsPagination(
-        normalizeSignalsPagination(signalsResponse.pagination, signalsLimit, signalsPage)
-      );
+      setSignalsPagination(normalizeSignalsPagination(signalsResponse.pagination));
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Failed to load trade strategy details.");
       setStrategy(null);
       setRuntime(null);
       setSignals([]);
+      setSignalsPagination({
+        limit: SIGNALS_PER_PAGE,
+        offset: 0,
+        page: 1,
+        total: 0,
+        hasNext: false,
+        hasPrev: false,
+      });
     } finally {
       setIsLoading(false);
     }
-  }, [strategyId, signalsLimit, signalsPage]);
+  }, [strategyId, signalsPage]);
 
   useEffect(() => {
     load();
@@ -178,15 +183,6 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
       setErrorMessage(error instanceof Error ? error.message : "Failed to update trade strategy status.");
     }
   }, [load, strategy]);
-
-  const updateSignalsPage = useCallback((page: number) => {
-    setSignalsPage(page);
-  }, []);
-
-  const updateSignalsLimit = useCallback((limit: number) => {
-    setSignalsLimit(limit);
-    setSignalsPage(1);
-  }, []);
 
   const copyText = useCallback(async (value: string) => {
     try {
@@ -217,10 +213,9 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
     return JSON.stringify(selectedExecutionResponse, null, 2);
   }, [selectedExecutionResponse]);
 
-  const totalSignalPages = useMemo(() => {
-    if (!signalsPagination.total || !signalsPagination.limit) return 1;
-    return Math.max(1, Math.ceil(signalsPagination.total / signalsPagination.limit));
-  }, [signalsPagination.limit, signalsPagination.total]);
+  const setSignalsPage = useCallback((page: number) => {
+    setSignalsPageState(Math.max(1, page));
+  }, []);
 
   return {
     strategy,
@@ -228,10 +223,7 @@ export function useTradeStrategyDetailsPage(strategyId: string) {
     signals,
     signalsPagination,
     signalsPage,
-    signalsLimit,
-    totalSignalPages,
-    updateSignalsPage,
-    updateSignalsLimit,
+    setSignalsPage,
     isLoading,
     errorMessage,
     reload: load,
