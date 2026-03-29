@@ -41,6 +41,8 @@ const EMPTY_STATE: TradeHomeState = {
   warnings: [],
 };
 
+const HOME_LIST_LIMIT = 10;
+
 export function useTradeHomePage() {
   const [selectedAccount, setSelectedAccount] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<TradeHomeStatusFilter>("all");
@@ -80,7 +82,7 @@ export function useTradeHomePage() {
     load();
   }, [load]);
 
-  const filteredStrategies = useMemo(() => {
+  const filteredStrategiesFull = useMemo(() => {
     return data.strategies.filter((item) => {
       const accountMatch = selectedAccount === "all" || item.executionAccount === selectedAccount;
       const statusMatch = selectedStatus === "all" || item.status === selectedStatus;
@@ -89,18 +91,18 @@ export function useTradeHomePage() {
   }, [data.strategies, selectedAccount, selectedStatus]);
 
   const strategyIds = useMemo(() => {
-    return new Set(filteredStrategies.map((item) => item.id));
-  }, [filteredStrategies]);
+    return new Set(filteredStrategiesFull.map((item) => item.id));
+  }, [filteredStrategiesFull]);
 
-  const filteredRuntimeHighlights = useMemo(() => {
+  const filteredRuntimeHighlightsFull = useMemo(() => {
     return data.runtimeHighlights.filter((item) => strategyIds.has(item.strategyId));
   }, [data.runtimeHighlights, strategyIds]);
 
-  const filteredActivePositions = useMemo(() => {
+  const filteredActivePositionsFull = useMemo(() => {
     return data.activePositions.filter((item) => strategyIds.has(item.strategyId));
   }, [data.activePositions, strategyIds]);
 
-  const filteredSignals = useMemo(() => {
+  const filteredSignalsFull = useMemo(() => {
     return data.signals.filter((item) => strategyIds.has(item.strategyId));
   }, [data.signals, strategyIds]);
 
@@ -117,16 +119,16 @@ export function useTradeHomePage() {
     statusOptions: data.statusOptions,
     kpis: {
       ...data.kpis,
-      totalTradeStrategies: filteredStrategies.length,
-      activeTradeStrategies: filteredStrategies.filter((item) => item.status === "ACTIVE").length,
-      activePositions: filteredActivePositions.length,
-      pendingSignals: filteredSignals.filter((item) => item.status === "PENDING").length,
-      failedSignals: filteredSignals.filter((item) => item.status === "FAILED").length,
+      totalTradeStrategies: filteredStrategiesFull.length,
+      activeTradeStrategies: filteredStrategiesFull.filter((item) => item.status === "ACTIVE").length,
+      activePositions: filteredActivePositionsFull.length,
+      pendingSignals: filteredSignalsFull.filter((item) => item.status === "PENDING").length,
+      failedSignals: filteredSignalsFull.filter((item) => item.status === "FAILED").length,
     },
-    strategies: filteredStrategies,
-    runtimeHighlights: filteredRuntimeHighlights,
-    activePositions: filteredActivePositions,
-    signals: filteredSignals,
+    strategies: filteredStrategiesFull.slice(0, HOME_LIST_LIMIT),
+    runtimeHighlights: filteredRuntimeHighlightsFull.slice(0, HOME_LIST_LIMIT),
+    activePositions: filteredActivePositionsFull.slice(0, HOME_LIST_LIMIT),
+    signals: filteredSignalsFull.slice(0, HOME_LIST_LIMIT),
     warnings: data.warnings,
     lastUpdatedLabel,
     refresh,
