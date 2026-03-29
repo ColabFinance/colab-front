@@ -1,4 +1,4 @@
-import TradePlaceholderPage from "@/features/user/trade/TradePlaceholderPage";
+import TradeStrategyDetailsPage from "@/features/user/tradeStrategyDetails/page";
 
 export default async function Page({
   params,
@@ -6,6 +6,5 @@ export default async function Page({
   params: Promise<{ strategyId: string }>;
 }) {
   const { strategyId } = await params;
-
-  return <TradePlaceholderPage title={`Trade Strategy Details • ${strategyId}`} />;
+  return <TradeStrategyDetailsPage strategyId={strategyId} />;
 }

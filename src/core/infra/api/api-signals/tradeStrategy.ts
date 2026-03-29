@@ -31,7 +31,7 @@ export type TradeStrategyApiRecord = {
 };
 
 export type TradeSignalApiRecord = {
-  id?: string;
+  id?: string | null;
   strategy_id: string;
   stream_key: string;
   symbol: string;
@@ -41,12 +41,15 @@ export type TradeSignalApiRecord = {
   status: string;
   idempotency_key: string;
   payload: Record<string, unknown>;
+  attempts?: number;
+  last_error?: string | null;
+  execution_response?: Record<string, unknown> | null;
   created_at?: number | null;
   created_at_iso?: string | null;
 };
 
-export type TradeRuntimeLatestApiRecord = {
-  id?: string;
+export type TradeStrategyRuntimeSnapshotApiRecord = {
+  id?: string | null;
   strategy_id: string;
   stream_key: string;
   symbol: string;
@@ -79,11 +82,44 @@ export type TradeRuntimeLatestApiRecord = {
   signal_up_first: number;
   signal_down_first: number;
   exit_signal: number;
+  runtime_state?: string | null;
+  bars_since_last_event?: number;
   created_at?: number | null;
   created_at_iso?: string | null;
   updated_at?: number | null;
   updated_at_iso?: string | null;
 };
+
+export async function apiSignalsGetTradeStrategyById(params: {
+  accessToken?: string;
+  strategyId: string;
+}): Promise<{
+  ok: boolean;
+  data?: TradeStrategyApiRecord;
+  message?: string;
+}> {
+  return apiSignalsGet(`/trade-strategies/${encodeURIComponent(params.strategyId)}`, params.accessToken || "");
+}
+
+export async function apiSignalsListTradeSignals(params?: {
+  accessToken?: string;
+  query?: {
+    strategy_id?: string;
+    limit?: number;
+  };
+}): Promise<{
+  ok: boolean;
+  data?: TradeSignalApiRecord[];
+  message?: string;
+}> {
+  const qs = new URLSearchParams();
+
+  if (params?.query?.strategy_id) qs.set("strategy_id", params.query.strategy_id);
+  if (typeof params?.query?.limit === "number") qs.set("limit", String(params.query.limit));
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiSignalsGet(`/trade-strategies/signals${suffix}`, params?.accessToken || "");
+}
 
 export async function apiSignalsListTradeStrategies(params?: {
   accessToken?: string;
@@ -113,30 +149,17 @@ export async function apiSignalsSetTradeStrategyStatus(params: {
   return apiSignalsPost(`/trade-strategies/status/set`, params.body, params.accessToken);
 }
 
-export async function apiSignalsListTradeSignals(params?: {
-  accessToken?: string;
-  query?: {
-    strategy_id?: string;
-    limit?: number;
-  };
-}): Promise<{ ok: boolean; data?: TradeSignalApiRecord[]; message?: string }> {
-  const qs = new URLSearchParams();
-
-  if (params?.query?.strategy_id) qs.set("strategy_id", params.query.strategy_id);
-  if (typeof params?.query?.limit === "number") qs.set("limit", String(params.query.limit));
-
-  const suffix = qs.toString() ? `?${qs.toString()}` : "";
-  return apiSignalsGet(`/trade-strategies/signals${suffix}`, params?.accessToken || "");
-}
-
-export async function apiSignalsGetLatestTradeRuntime(params: {
+export async function apiSignalsGetLatestTradeStrategyRuntimeSnapshot(params: {
   accessToken?: string;
   strategyId: string;
-}): Promise<{ ok: boolean; data?: TradeRuntimeLatestApiRecord | null; message?: string }> {
-  return apiSignalsGet(
-    `/trade-strategies/runtime/latest?strategy_id=${encodeURIComponent(params.strategyId)}`,
-    params.accessToken || ""
-  );
+}): Promise<{
+  ok: boolean;
+  data?: TradeStrategyRuntimeSnapshotApiRecord | null;
+  message?: string;
+}> {
+  const qs = new URLSearchParams();
+  qs.set("strategy_id", params.strategyId);
+  return apiSignalsGet(`/trade-strategies/runtime/latest?${qs.toString()}`, params.accessToken || "");
 }
 
 export type TradeStrategyPublicPagination = {
