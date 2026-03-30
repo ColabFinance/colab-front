@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/shared/utils/cn";
 
-type Tone = "cyan" | "blue" | "slate" | "green" | "red" | "orange";
+type Tone = "cyan" | "blue" | "slate" | "green" | "red" | "orange" | "yellow";
 
 type Props = {
   href?: string;
@@ -27,6 +27,9 @@ function toneClasses(tone: Tone) {
   }
   if (tone === "orange") {
     return "bg-orange-500/10 text-orange-300 border-orange-500/20 hover:bg-orange-500/15 hover:text-orange-200";
+  }
+  if (tone === "yellow") {
+    return "bg-yellow-500/10 text-yellow-300 border-yellow-500/20 hover:bg-yellow-500/15 hover:text-yellow-200";
   }
   return "bg-slate-500/10 text-slate-300 border-slate-500/20 hover:bg-slate-500/15 hover:text-slate-200";
 }

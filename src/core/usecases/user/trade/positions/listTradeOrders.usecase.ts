@@ -2,7 +2,7 @@ import { apiTradeExecutionListOrders } from "@/core/infra/api/api-trade-executio
 
 type Params = {
   accessToken?: string;
-  body?: {
+  query?: {
     strategy_id?: string;
     execution_account_id?: string;
     lifecycle_scope?: string;
@@ -22,9 +22,9 @@ export async function listTradeOrdersUseCase(params: Params = {}) {
   return {
     data: response.data || [],
     pagination: response.pagination || {
-      limit: Number(params.body?.limit || 10),
-      offset: Number(params.body?.offset || 0),
-      page: Number(params.body?.page || 1),
+      limit: Number(params.query?.limit || 10),
+      offset: Number(params.query?.offset || 0),
+      page: Number(params.query?.page || 1),
       total: 0,
       has_next: false,
       has_prev: false,
