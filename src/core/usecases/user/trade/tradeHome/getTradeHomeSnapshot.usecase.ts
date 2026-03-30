@@ -1,8 +1,9 @@
-import { listExecutionProfilesUseCase } from "@/core/usecases/user/trade/executionProfiles/listExecutionProfiles.usecase";
+
 import { listActiveTradePositionsUseCase } from "@/core/usecases/user/trade/positions/listActiveTradePositions.usecase";
 import { getLatestTradeStrategyRuntimeUseCase } from "@/core/usecases/user/trade/runtime/getLatestTradeStrategyRuntime.usecase";
 import { listTradeSignalsUseCase } from "@/core/usecases/user/trade/signals/listTradeSignals.usecase";
 import { listTradeStrategiesUseCase } from "@/core/usecases/user/trade/strategies/listTradeStrategies.usecase";
+import { listTradeExecutionProfilesUseCase } from "../executionProfiles/listTradeExecutionProfiles.usecase";
 
 export type TradeHomeKpis = {
   totalTradeStrategies: number;
@@ -228,7 +229,7 @@ export async function getTradeHomeSnapshotUseCase(params?: {
     listActiveTradePositionsUseCase({
       accessToken: params?.accessToken,
     }),
-    listExecutionProfilesUseCase({
+    listTradeExecutionProfilesUseCase({
       accessToken: params?.accessToken,
     }),
   ]);

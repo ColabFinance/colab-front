@@ -33,6 +33,10 @@ export type TradePositionApiRecord = {
   closed_at?: number | null;
   closed_at_iso?: string | null;
   exit_price?: number | null;
+  created_at?: number | null;
+  created_at_iso?: string | null;
+  updated_at?: number | null;
+  updated_at_iso?: string | null;
 };
 
 export type TradeOrderApiRecord = {
@@ -91,31 +95,90 @@ export async function apiTradeExecutionListActivePositions(params?: {
   accessToken?: string;
   query?: {
     execution_account_id?: string;
+    status_scope?: string;
+    limit?: number;
+    page?: number;
+    offset?: number;
   };
-}): Promise<{ ok: boolean; data?: TradePositionApiRecord[]; message?: string }> {
+}): Promise<{
+  ok: boolean;
+  data?: TradePositionApiRecord[];
+  pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    total?: number;
+    has_next?: boolean;
+    has_prev?: boolean;
+  };
+  message?: string;
+}> {
   const qs = new URLSearchParams();
 
   if (params?.query?.execution_account_id) {
     qs.set("execution_account_id", params.query.execution_account_id);
+  }
+  if (params?.query?.status_scope) {
+    qs.set("status_scope", params.query.status_scope);
+  }
+  if (typeof params?.query?.limit === "number") {
+    qs.set("limit", String(params.query.limit));
+  }
+  if (typeof params?.query?.page === "number") {
+    qs.set("page", String(params.query.page));
+  }
+  if (typeof params?.query?.offset === "number") {
+    qs.set("offset", String(params.query.offset));
   }
 
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
   return apiTradeExecutionGet(`/trade-execution/positions/active${suffix}`, params?.accessToken || "");
 }
 
-export async function apiTradeExecutionListOrdersByStrategy(params: {
+export async function apiTradeExecutionListOrders(params?: {
   accessToken?: string;
-  query: {
-    strategy_id: string;
+  query?: {
+    strategy_id?: string;
+    execution_account_id?: string;
+    lifecycle_scope?: string;
     limit?: number;
+    page?: number;
+    offset?: number;
   };
-}): Promise<{ ok: boolean; data?: TradeOrderApiRecord[]; message?: string }> {
+}): Promise<{
+  ok: boolean;
+  data?: TradeOrderApiRecord[];
+  pagination?: {
+    limit?: number;
+    offset?: number;
+    page?: number;
+    total?: number;
+    has_next?: boolean;
+    has_prev?: boolean;
+  };
+  message?: string;
+}> {
   const qs = new URLSearchParams();
-  qs.set("strategy_id", params.query.strategy_id);
-  if (typeof params.query.limit === "number") qs.set("limit", String(params.query.limit));
 
-  return apiTradeExecutionGet(
-    `/trade-execution/orders?${qs.toString()}`,
-    params.accessToken || ""
-  );
+  if (params?.query?.strategy_id) {
+    qs.set("strategy_id", params.query.strategy_id);
+  }
+  if (params?.query?.execution_account_id) {
+    qs.set("execution_account_id", params.query.execution_account_id);
+  }
+  if (params?.query?.lifecycle_scope) {
+    qs.set("lifecycle_scope", params.query.lifecycle_scope);
+  }
+  if (typeof params?.query?.limit === "number") {
+    qs.set("limit", String(params.query.limit));
+  }
+  if (typeof params?.query?.page === "number") {
+    qs.set("page", String(params.query.page));
+  }
+  if (typeof params?.query?.offset === "number") {
+    qs.set("offset", String(params.query.offset));
+  }
+
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return apiTradeExecutionGet(`/trade-execution/orders${suffix}`, params?.accessToken || "");
 }
