@@ -65,6 +65,10 @@ export interface VaultCreateForm {
   strategyId: string;
   vaultName: string;
   description: string;
+
+  dexKey: string;
+  rpcUrl: string;
+
   swapPoolsJson: string;
   rewardSwapPreview: string;
   jobConfigPreview: string;

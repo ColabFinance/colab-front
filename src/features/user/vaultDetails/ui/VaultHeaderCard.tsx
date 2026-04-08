@@ -12,6 +12,7 @@ type Props = {
   onOpenConfig: () => void;
   onDeposit: () => void;
   onWithdraw: () => void;
+  onUnstake: () => void;
   onCompoundBuffer: () => void;
 };
 
@@ -28,6 +29,7 @@ export function VaultHeaderCard({
   onOpenConfig,
   onDeposit,
   onWithdraw,
+  onUnstake,
   onCompoundBuffer,
 }: Props) {
   return (
@@ -82,7 +84,7 @@ export function VaultHeaderCard({
           </div>
 
           <div className="flex w-full flex-col gap-3 lg:w-auto">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
               <button
                 type="button"
                 onClick={onRefresh}
@@ -116,6 +118,14 @@ export function VaultHeaderCard({
                     className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-2.5 text-sm font-medium text-amber-300 transition hover:bg-amber-500/15"
                   >
                     Withdraw All
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={onUnstake}
+                    className="rounded-lg border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm font-medium text-rose-300 transition hover:bg-rose-500/15"
+                  >
+                    Unstake
                   </button>
 
                   <button

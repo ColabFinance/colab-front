@@ -1,9 +1,7 @@
 import { listStrategiesUseCase } from "@/core/usecases/user/strategies/listStrategies.usecase";
-import { getIndicatorSetUseCase } from "@/core/application/strategy/api/getIndicatorSet.usecase";
 import { listDexesForStrategyUseCase } from "@/core/application/strategy/api/listDexesForStrategy.usecase";
 import { listDexPoolsForStrategyUseCase } from "@/core/application/strategy/api/listDexPoolsForStrategy.usecase";
 import type { StrategyListItem } from "@/core/usecases/user/strategies/listStrategies.usecase";
-import type { IndicatorSetRecord } from "@/core/infra/api/api-market-data/indicatorSet";
 import type { DexPoolRecord } from "@/core/infra/api/api-lp/dexRegistry";
 
 export type MyStrategiesHydratedItem = {
@@ -15,14 +13,27 @@ export type MyStrategiesHydratedItem = {
   name: string;
   symbol: string;
   status: "ACTIVE" | "INACTIVE";
+  isPublic: boolean;
 
   indicatorSetId: string;
-  indicatorStreamKey: string;
-  indicatorSource: string;
-  emaFast: number;
-  emaSlow: number;
-  atrWindow: number;
-  marketSymbol: string;
+  streamKey: string;
+
+  strategyVersion: string;
+  fixedRangeWidthPct: number;
+  initialSide: "down" | "up";
+
+  breakoutConfirmBars: number;
+  breakoutUseHighLow: boolean;
+
+  atrEnabled: boolean;
+  atrPeriod: number;
+  atrRebalanceEnabled: boolean;
+
+  entryFiltersEnabled: boolean;
+  allowCashWhenFilterFails: boolean;
+
+  gaugeEnabled: boolean;
+  atrWidthRuleCount: number;
 
   dexKey?: string | null;
   dexName: string;
@@ -71,7 +82,8 @@ function relativeTimeLabel(updatedAtIso?: string | null, updatedAt?: number | nu
   }
 
   if (!date && typeof updatedAt === "number" && updatedAt > 0) {
-    const parsed = new Date(updatedAt * 1000);
+    const asMs = updatedAt > 10_000_000_000 ? updatedAt : updatedAt * 1000;
+    const parsed = new Date(asMs);
     if (!Number.isNaN(parsed.getTime())) {
       date = parsed;
     }
@@ -155,7 +167,7 @@ async function loadPoolsForChain(params: {
 }
 
 function matchPool(params: {
-  strategy: StrategyListItem;
+  strategy: StrategyListItem & Record<string, any>;
   chainKey: "base" | "bnb";
   pools: DexPoolRecord[];
 }): DexPoolRecord | null {
@@ -210,8 +222,8 @@ export async function listMyStrategiesUseCase(params: {
         });
 
         return (res.data || []).map((item) => ({
-          ...item,
-          chain: chain,
+          ...(item as Record<string, any>),
+          chain,
         }));
       })
     ),
@@ -230,32 +242,8 @@ export async function listMyStrategiesUseCase(params: {
     ),
   ]);
 
-  const strategies = strategyGroups.flat();
+  const strategies = strategyGroups.flat() as Array<StrategyListItem & Record<string, any>>;
   const allPools = poolGroups.flat();
-
-  const cfgHashes = Array.from(
-    new Set(
-      strategies
-        .map((item) => String(item.indicator_set_id || "").trim())
-        .filter(Boolean)
-    )
-  );
-
-  const indicatorPairs = await Promise.all(
-    cfgHashes.map(async (cfgHash) => {
-      try {
-        const indicator = await getIndicatorSetUseCase({
-          accessToken: params.accessToken,
-          cfgHash,
-        });
-        return [cfgHash, indicator as IndicatorSetRecord] as const;
-      } catch {
-        return [cfgHash, null] as const;
-      }
-    })
-  );
-
-  const indicatorMap = new Map<string, IndicatorSetRecord | null>(indicatorPairs);
 
   const items = strategies
     .map((strategy) => {
@@ -264,8 +252,7 @@ export async function listMyStrategiesUseCase(params: {
         return null;
       }
 
-      const indicatorSetId = String(strategy.indicator_set_id || "").trim();
-      const indicator = indicatorMap.get(indicatorSetId) || null;
+      const paramsObj = (strategy.params || {}) as Record<string, any>;
       const pool = matchPool({
         strategy,
         chainKey,
@@ -284,14 +271,29 @@ export async function listMyStrategiesUseCase(params: {
         name: String(strategy.name || ""),
         symbol: String(strategy.symbol || ""),
         status: String(strategy.status || "").toUpperCase() === "ACTIVE" ? "ACTIVE" : "INACTIVE",
+        isPublic: Boolean(strategy.is_public),
 
-        indicatorSetId,
-        indicatorStreamKey: String(indicator?.stream_key || strategy.stream_key || ""),
-        indicatorSource: String(indicator?.source || "binance"),
-        emaFast: Number(indicator?.ema_fast || 0),
-        emaSlow: Number(indicator?.ema_slow || 0),
-        atrWindow: Number(indicator?.atr_window || 0),
-        marketSymbol: String(indicator?.symbol || `${pairParts.token0Symbol}${pairParts.token1Symbol}`),
+        indicatorSetId: String(strategy.indicator_set_id || "").trim(),
+        streamKey: String((pool as any)?.stream_key || pool?.pool || strategy.stream_key || "").trim(),
+
+        strategyVersion: String(paramsObj.strategy_version || "simple_wide_lp_v1"),
+        fixedRangeWidthPct:
+          typeof paramsObj.fixed_range_width_pct === "number" ? paramsObj.fixed_range_width_pct : 0.2,
+        initialSide: paramsObj.initial_side === "up" ? "up" : "down",
+
+        breakoutConfirmBars:
+          typeof paramsObj.breakout_confirm_bars === "number" ? paramsObj.breakout_confirm_bars : 3,
+        breakoutUseHighLow: Boolean(paramsObj.breakout_use_high_low),
+
+        atrEnabled: paramsObj.atr_enabled !== false,
+        atrPeriod: typeof paramsObj.atr_period === "number" ? paramsObj.atr_period : 14,
+        atrRebalanceEnabled: paramsObj.atr_rebalance_enabled !== false,
+
+        entryFiltersEnabled: paramsObj.entry_filters_enabled !== false,
+        allowCashWhenFilterFails: Boolean(paramsObj.allow_cash_when_filter_fails),
+
+        gaugeEnabled: Boolean(paramsObj.gauge_flow_enabled),
+        atrWidthRuleCount: Array.isArray(paramsObj.atr_width_rules) ? paramsObj.atr_width_rules.length : 0,
 
         dexKey: String(pool?.dex || strategy.dex || "").trim() || null,
         dexName: formatDexName(String(pool?.dex || strategy.dex || "")),

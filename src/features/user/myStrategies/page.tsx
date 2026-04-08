@@ -34,6 +34,7 @@ export default function MyStrategiesFeaturePage() {
     setChainFilter,
     setStatusFilter,
     setVaultLinkFilter,
+    setVisibilityFilter,
     setQueryFilter,
     resetFilters,
 
@@ -66,7 +67,7 @@ export default function MyStrategiesFeaturePage() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl md:text-3xl font-bold text-white">My Strategies</h1>
-          <p className="text-slate-400 text-sm">Create and manage your on-chain strategies</p>
+          <p className="text-slate-400 text-sm">Create and manage your live LP strategies</p>
         </div>
 
         <div className="flex items-center gap-3 flex-wrap">
@@ -107,7 +108,7 @@ export default function MyStrategiesFeaturePage() {
         </div>
       ) : null}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Total Strategies</div>
           <div className="text-2xl font-bold text-white">{stats.totalStrategies}</div>
@@ -120,17 +121,22 @@ export default function MyStrategiesFeaturePage() {
 
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Inactive</div>
-          <div className="text-2xl font-bold text-slate-400">{stats.inactiveStrategies}</div>
+          <div className="text-2xl font-bold text-slate-300">{stats.inactiveStrategies}</div>
+        </div>
+
+        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
+          <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Public</div>
+          <div className="text-2xl font-bold text-cyan-400">{stats.publicStrategies}</div>
         </div>
 
         <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4">
           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Linked to Vault</div>
-          <div className="text-2xl font-bold text-cyan-400">{stats.linkedVaults}</div>
+          <div className="text-2xl font-bold text-violet-400">{stats.linkedVaults}</div>
         </div>
       </div>
 
       <Surface variant="panel" className="p-4 bg-slate-900/50 backdrop-blur-xl border-slate-700/50">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
             <label className="block text-xs text-slate-500 mb-1.5">Chain</label>
             <select
@@ -173,12 +179,25 @@ export default function MyStrategiesFeaturePage() {
           </div>
 
           <div>
+            <label className="block text-xs text-slate-500 mb-1.5">Visibility</label>
+            <select
+              value={filters.visibility}
+              onChange={(e) => setVisibilityFilter(e.target.value as any)}
+              className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-cyan-500/50 transition-all"
+            >
+              <option value="all">All</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+
+          <div>
             <label className="block text-xs text-slate-500 mb-1.5">Search</label>
             <input
               type="text"
               value={filters.query}
               onChange={(e) => setQueryFilter(e.target.value)}
-              placeholder="ID, name, symbol..."
+              placeholder="ID, name, symbol, stream key..."
               className="w-full bg-slate-800/50 border border-slate-700/50 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-cyan-500/50 transition-all"
             />
           </div>
@@ -207,7 +226,7 @@ export default function MyStrategiesFeaturePage() {
 
           <h3 className="text-xl font-semibold text-white mb-3">No Strategies Yet</h3>
           <p className="text-slate-400 text-sm mb-8 max-w-md mx-auto">
-            You haven&apos;t created any strategies yet. Get started by creating your first automated strategy.
+            You haven&apos;t created any strategies yet. Start by creating your first LP strategy.
           </p>
 
           <Button

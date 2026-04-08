@@ -10,13 +10,13 @@ import { listMyStrategiesUseCase } from "@/core/usecases/user/strategies/listMyS
 import { listDexesForStrategyUseCase } from "@/core/application/strategy/api/listDexesForStrategy.usecase";
 import { listDexPoolsForStrategyUseCase } from "@/core/application/strategy/api/listDexPoolsForStrategy.usecase";
 import { getStrategyParamsUseCase } from "@/core/application/strategy/api/getStrategyParams.usecase";
-import { createIndicatorSetUseCase } from "@/core/application/strategy/api/createIndicatorSet.usecase";
 import { registerStrategyDbUseCase } from "@/core/application/strategy/api/registerStrategy.usecase";
 import { strategyExistsUseCase } from "@/core/application/strategy/api/strategyExists.usecase";
 import { upsertStrategyParamsUseCase } from "@/core/application/strategy/api/upsertStrategyParams.usecase";
 import { registerStrategyOnchain } from "@/core/application/strategy/onchain/registerStrategy.usecase";
 
 import type {
+  AtrWidthRuleDraft,
   CreateStrategyDraft,
   DexOption,
   EditParamsDraft,
@@ -24,8 +24,23 @@ import type {
   MyStrategyRow,
   PoolOption,
   StrategyStatus,
+  StrategyVisibilityFilter,
   VaultLinkFilter,
 } from "./types";
+
+function defaultAtrWidthRules(): AtrWidthRuleDraft[] {
+  return [
+    { max_atr_pct: 0.0005, width_pct: 0.05, name: "atr_very_low_5" },
+    { max_atr_pct: 0.001, width_pct: 0.1, name: "atr_low_10" },
+    { max_atr_pct: 0.0015, width_pct: 0.12, name: "atr_mid_12" },
+    { max_atr_pct: 0.003, width_pct: 0.15, name: "atr_mid_high_15" },
+    { max_atr_pct: Number.POSITIVE_INFINITY, width_pct: 0.2, name: "atr_high_20" },
+  ];
+}
+
+function defaultAtrWidthRulesJson() {
+  return JSON.stringify(defaultAtrWidthRules(), null, 2);
+}
 
 function defaultCreateDraft(): CreateStrategyDraft {
   return {
@@ -33,35 +48,111 @@ function defaultCreateDraft(): CreateStrategyDraft {
     poolId: "",
     name: "",
     description: "",
+
+    status: "INACTIVE",
+    isPublic: false,
     symbol: "",
-    indicatorSource: "binance",
-    emaFast: 10,
-    emaSlow: 50,
-    atrWindow: 20,
+
+    fixedRangeWidthPct: 0.2,
+
+    breakoutDownBelowShare: 0.95,
+    breakoutDownAboveShare: 0.05,
+    breakoutUpBelowShare: 0.05,
+    breakoutUpAboveShare: 0.95,
+    breakoutConfirmBars: 3,
+    breakoutUseHighLow: false,
+
+    initialSide: "down",
+
+    atrEnabled: true,
+    atrPeriod: 14,
+
+    atrRebalanceEnabled: true,
+    atrRebalanceMinWidthDeltaPct: 0.000000000001,
+
+    atrHysteresisEnabled: true,
+    atrHysteresisGapPct: 0.0002,
+
+    atrRebalanceCooldownBars: 60,
+    atrRebalanceMinAgeBars: 30,
+
+    swapFeePercent: 0.01,
+
+    entryFiltersEnabled: true,
+    allowCashWhenFilterFails: false,
+    entryCooldownBars: 0,
+
+    entryAtrQuantileWindow: 200,
+    entryAtrQuantile: 0.65,
+
+    entryTrendMaWindow: 100,
+    entryMaxMaDistancePct: 0.02,
+    entryMaxMaSlopePct: 0.0015,
+
+    entryChannelWindow: 100,
+    entryChannelPosMin: 0.2,
+    entryChannelPosMax: 0.8,
+
+    eps: 0.000001,
+    gaugeEnabled: false,
+
+    atrWidthRulesJson: defaultAtrWidthRulesJson(),
   };
 }
 
 function defaultEditDraft(row: MyStrategyRow): EditParamsDraft {
   return {
-    status: row.status,
     indicatorSetId: row.indicatorSetId,
+    streamKey: row.streamKey,
+
+    status: row.status,
+    isPublic: row.isPublic,
     symbol: row.symbol,
 
-    indicatorSource: row.indicatorSource,
-    emaFast: row.emaFast,
-    emaSlow: row.emaSlow,
-    atrWindow: row.atrWindow,
+    fixedRangeWidthPct: row.fixedRangeWidthPct,
 
-    skewLowPct: 0.09,
-    skewHighPct: 0.01,
+    breakoutDownBelowShare: 0.95,
+    breakoutDownAboveShare: 0.05,
+    breakoutUpBelowShare: 0.05,
+    breakoutUpAboveShare: 0.95,
+    breakoutConfirmBars: row.breakoutConfirmBars,
+    breakoutUseHighLow: row.breakoutUseHighLow,
+
+    initialSide: row.initialSide,
+
+    atrEnabled: row.atrEnabled,
+    atrPeriod: row.atrPeriod,
+
+    atrRebalanceEnabled: row.atrRebalanceEnabled,
+    atrRebalanceMinWidthDeltaPct: 0.000000000001,
+
+    atrHysteresisEnabled: true,
+    atrHysteresisGapPct: 0.0002,
+
+    atrRebalanceCooldownBars: 60,
+    atrRebalanceMinAgeBars: 30,
+
+    swapFeePercent: 0.01,
+
+    entryFiltersEnabled: row.entryFiltersEnabled,
+    allowCashWhenFilterFails: row.allowCashWhenFilterFails,
+    entryCooldownBars: 0,
+
+    entryAtrQuantileWindow: 200,
+    entryAtrQuantile: 0.65,
+
+    entryTrendMaWindow: 100,
+    entryMaxMaDistancePct: 0.02,
+    entryMaxMaSlopePct: 0.0015,
+
+    entryChannelWindow: 100,
+    entryChannelPosMin: 0.2,
+    entryChannelPosMax: 0.8,
+
     eps: 0.000001,
-    cooloffBars: 1,
-    breakoutConfirmBars: 1,
-    inrangeResizeMode: "skew_swap",
+    gaugeEnabled: row.gaugeEnabled,
 
-    gaugeEnabled: false,
-
-    tiersJson: JSON.stringify({ tiers: [] }, null, 2),
+    atrWidthRulesJson: defaultAtrWidthRulesJson(),
   };
 }
 
@@ -71,6 +162,14 @@ function safeLower(value: string) {
 
 function normalizeDisplaySymbol(value: string) {
   return value.trim().toUpperCase();
+}
+
+function normalizeCompact(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
 function formatDexName(dex: string | null | undefined): string {
@@ -110,22 +209,78 @@ function formatFeeLabel(feeBps?: number | null, feeRate?: string | null): string
   return "-";
 }
 
-function resolveMarketSymbolFromPool(pool: PoolOption): string {
-  return `${pool.token0Symbol}${pool.token1Symbol}`.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
-}
-
-function parseTiersJson(tiersJson: string) {
-  const parsed = JSON.parse(tiersJson);
+function parseAtrWidthRulesJson(value: string) {
+  const parsed = JSON.parse(value);
 
   if (Array.isArray(parsed)) {
     return parsed;
   }
 
-  if (parsed && Array.isArray(parsed.tiers)) {
-    return parsed.tiers;
+  if (parsed && Array.isArray(parsed.atr_width_rules)) {
+    return parsed.atr_width_rules;
   }
 
-  throw new Error("tiersJson must be a JSON array or an object with a 'tiers' array.");
+  throw new Error("ATR width rules must be a JSON array or an object with atr_width_rules.");
+}
+
+function buildInternalIndicatorSetId(params: {
+  chain: "base" | "bnb";
+  strategyId: number;
+  streamKey?: string;
+}) {
+  const tail = normalizeCompact(params.streamKey || "internal");
+  return `lp_internal_${params.chain}_${params.strategyId}_${tail}`;
+}
+
+function buildStrategyParamsPayload(draft: CreateStrategyDraft | EditParamsDraft) {
+  return {
+    strategy_version: "simple_wide_lp_v1",
+
+    fixed_range_width_pct: Number(draft.fixedRangeWidthPct),
+
+    breakout_down_below_share: Number(draft.breakoutDownBelowShare),
+    breakout_down_above_share: Number(draft.breakoutDownAboveShare),
+    breakout_up_below_share: Number(draft.breakoutUpBelowShare),
+    breakout_up_above_share: Number(draft.breakoutUpAboveShare),
+    breakout_confirm_bars: Number(draft.breakoutConfirmBars),
+    breakout_use_high_low: Boolean(draft.breakoutUseHighLow),
+
+    initial_side: draft.initialSide,
+
+    atr_enabled: Boolean(draft.atrEnabled),
+    atr_period: Number(draft.atrPeriod),
+
+    atr_rebalance_enabled: Boolean(draft.atrRebalanceEnabled),
+    atr_rebalance_min_width_delta_pct: Number(draft.atrRebalanceMinWidthDeltaPct),
+
+    atr_width_rules: parseAtrWidthRulesJson(draft.atrWidthRulesJson),
+
+    atr_hysteresis_enabled: Boolean(draft.atrHysteresisEnabled),
+    atr_hysteresis_gap_pct: Number(draft.atrHysteresisGapPct),
+
+    atr_rebalance_cooldown_bars: Number(draft.atrRebalanceCooldownBars),
+    atr_rebalance_min_age_bars: Number(draft.atrRebalanceMinAgeBars),
+
+    swap_fee_percent: Number(draft.swapFeePercent),
+
+    entry_filters_enabled: Boolean(draft.entryFiltersEnabled),
+    allow_cash_when_filter_fails: Boolean(draft.allowCashWhenFilterFails),
+    entry_cooldown_bars: Number(draft.entryCooldownBars),
+
+    entry_atr_quantile_window: Number(draft.entryAtrQuantileWindow),
+    entry_atr_quantile: Number(draft.entryAtrQuantile),
+
+    entry_trend_ma_window: Number(draft.entryTrendMaWindow),
+    entry_max_ma_distance_pct: Number(draft.entryMaxMaDistancePct),
+    entry_max_ma_slope_pct: Number(draft.entryMaxMaSlopePct),
+
+    entry_channel_window: Number(draft.entryChannelWindow),
+    entry_channel_pos_min: Number(draft.entryChannelPosMin),
+    entry_channel_pos_max: Number(draft.entryChannelPosMax),
+
+    eps: Number(draft.eps),
+    gauge_flow_enabled: Boolean(draft.gaugeEnabled),
+  };
 }
 
 async function resolveWalletChainKey(wallet: ConnectedWallet): Promise<"base" | "bnb"> {
@@ -176,6 +331,7 @@ async function loadCreateResources(params: {
           return {
             id: String(pool.pool),
             poolAddress: String(pool.pool),
+            streamKey: String((pool as any).stream_key || (pool as any).streamKey || pool.pool || "").trim() || undefined,
             chainKey: params.chain,
             dexId: String(dex.dex),
             dexName: formatDexName(dex.dex),
@@ -244,11 +400,13 @@ export function useMyStrategies() {
     chain: MyStrategyChain | "all";
     status: StrategyStatus | "all";
     vaultLink: VaultLinkFilter;
+    visibility: StrategyVisibilityFilter;
     query: string;
   }>({
     chain: "all",
     status: "all",
     vaultLink: "all",
+    visibility: "all",
     query: "",
   });
 
@@ -274,6 +432,9 @@ export function useMyStrategies() {
       if (filters.vaultLink === "linked" && !linked) return false;
       if (filters.vaultLink === "not_linked" && linked) return false;
 
+      if (filters.visibility === "public" && !row.isPublic) return false;
+      if (filters.visibility === "private" && row.isPublic) return false;
+
       if (!q) return true;
 
       const haystack = [
@@ -281,10 +442,12 @@ export function useMyStrategies() {
         row.name,
         row.symbol,
         row.indicatorSetId,
+        row.streamKey,
         row.poolPairLabel,
         row.dexName,
         row.chainName,
         row.vaultAlias || "",
+        row.strategyVersion,
       ]
         .join(" ")
         .toLowerCase();
@@ -300,12 +463,14 @@ export function useMyStrategies() {
     const totalStrategies = rows.length;
     const activeStrategies = rows.filter((row) => row.status === "ACTIVE").length;
     const inactiveStrategies = rows.filter((row) => row.status === "INACTIVE").length;
+    const publicStrategies = rows.filter((row) => row.isPublic).length;
     const linkedVaults = rows.filter((row) => Boolean(row.vaultAlias)).length;
 
     return {
       totalStrategies,
       activeStrategies,
       inactiveStrategies,
+      publicStrategies,
       linkedVaults,
     };
   }, [rows]);
@@ -361,15 +526,24 @@ export function useMyStrategies() {
           dexRouterAddress: item.dexRouterAddress,
 
           status: item.status,
+          isPublic: item.isPublic,
           updatedAtLabel: item.updatedAtLabel,
 
           indicatorSetId: item.indicatorSetId,
-          indicatorStreamKey: item.indicatorStreamKey,
-          indicatorSource: item.indicatorSource,
-          emaFast: item.emaFast,
-          emaSlow: item.emaSlow,
-          atrWindow: item.atrWindow,
-          marketSymbol: item.marketSymbol,
+          streamKey: item.streamKey,
+
+          strategyVersion: item.strategyVersion,
+          fixedRangeWidthPct: item.fixedRangeWidthPct,
+          initialSide: item.initialSide,
+          breakoutConfirmBars: item.breakoutConfirmBars,
+          breakoutUseHighLow: item.breakoutUseHighLow,
+          atrEnabled: item.atrEnabled,
+          atrPeriod: item.atrPeriod,
+          atrRebalanceEnabled: item.atrRebalanceEnabled,
+          entryFiltersEnabled: item.entryFiltersEnabled,
+          allowCashWhenFilterFails: item.allowCashWhenFilterFails,
+          gaugeEnabled: item.gaugeEnabled,
+          atrWidthRuleCount: item.atrWidthRuleCount,
 
           vaultAlias: item.vaultAlias,
           vaultLabel: item.vaultAlias || null,
@@ -500,16 +674,15 @@ export function useMyStrategies() {
         },
       });
 
-      const indicatorSet = await createIndicatorSetUseCase({
-        accessToken: token,
-        payload: {
-          symbol: resolveMarketSymbolFromPool(selectedPool),
-          source: createDraft.indicatorSource.trim().toLowerCase() || "binance",
-          ema_fast: Number(createDraft.emaFast),
-          ema_slow: Number(createDraft.emaSlow),
-          atr_window: Number(createDraft.atrWindow),
-          pool_address: selectedPool.poolAddress,
-        },
+      const streamKey =
+        String(selectedPool.streamKey || selectedPool.poolAddress || "")
+          .trim()
+          .toLowerCase() || undefined;
+
+      const indicatorSetId = buildInternalIndicatorSetId({
+        chain,
+        strategyId: onchain.strategy_id,
+        streamKey,
       });
 
       await registerStrategyDbUseCase({
@@ -520,15 +693,36 @@ export function useMyStrategies() {
           strategy_id: onchain.strategy_id,
           name,
           symbol,
-          indicator_set_id: indicatorSet.cfg_hash,
-          stream_key: indicatorSet.stream_key,
+          indicator_set_id: indicatorSetId,
+          stream_key: streamKey,
           adapter: selectedPool.adapterAddress,
           dex_router: selectedPool.routerAddress,
           token0: selectedPool.token0Address,
           token1: selectedPool.token1Address,
           tx_hash: onchain.tx_hash,
-          status: "INACTIVE",
-          is_public: false,
+          status: createDraft.status,
+          is_public: createDraft.isPublic,
+        },
+      });
+
+      await upsertStrategyParamsUseCase({
+        accessToken: token,
+        payload: {
+          chain,
+          owner: ownerAddr,
+          strategy_id: onchain.strategy_id,
+          name,
+          symbol,
+          indicator_set_id: indicatorSetId,
+          stream_key: streamKey,
+          status: createDraft.status,
+          is_public: createDraft.isPublic,
+          adapter: selectedPool.adapterAddress,
+          dex_router: selectedPool.routerAddress,
+          token0: selectedPool.token0Address,
+          token1: selectedPool.token1Address,
+          tx_hash: onchain.tx_hash,
+          params: buildStrategyParamsPayload(createDraft),
         },
       });
 
@@ -553,45 +747,96 @@ export function useMyStrategies() {
     try {
       const token = await ensureAccessToken();
 
-      const [paramsRes] = await Promise.all([
-        getStrategyParamsUseCase({
-          accessToken: token,
-          chain: row.chainKey,
-          owner: row.owner,
-          strategyId: row.id,
-        }),
-      ]);
+      const paramsRes = await getStrategyParamsUseCase({
+        accessToken: token,
+        chain: row.chainKey,
+        owner: row.owner,
+        strategyId: row.id,
+      });
 
-      const params = paramsRes?.data?.params || {};
+      const params = (paramsRes?.data?.params || {}) as Record<string, any>;
 
       setEditDraft({
+        indicatorSetId:
+          String(paramsRes?.data?.indicator_set_id || row.indicatorSetId || "").trim() ||
+          buildInternalIndicatorSetId({
+            chain: row.chainKey,
+            strategyId: row.id,
+            streamKey: row.streamKey,
+          }),
+        streamKey: row.streamKey,
+
         status: paramsRes?.data?.status === "ACTIVE" ? "ACTIVE" : "INACTIVE",
-        indicatorSetId: row.indicatorSetId,
+        isPublic: Boolean(paramsRes?.data?.is_public),
         symbol: paramsRes?.data?.symbol || row.symbol,
 
-        indicatorSource: row.indicatorSource,
-        emaFast: row.emaFast,
-        emaSlow: row.emaSlow,
-        atrWindow: row.atrWindow,
+        fixedRangeWidthPct:
+          typeof params.fixed_range_width_pct === "number" ? params.fixed_range_width_pct : 0.2,
 
-        skewLowPct:
-          typeof (params as any).skew_low_pct === "number" ? (params as any).skew_low_pct : 0.09,
-        skewHighPct:
-          typeof (params as any).skew_high_pct === "number" ? (params as any).skew_high_pct : 0.01,
-        eps: typeof (params as any).eps === "number" ? (params as any).eps : 0.000001,
-        cooloffBars:
-          typeof (params as any).cooloff_bars === "number" ? (params as any).cooloff_bars : 1,
+        breakoutDownBelowShare:
+          typeof params.breakout_down_below_share === "number" ? params.breakout_down_below_share : 0.95,
+        breakoutDownAboveShare:
+          typeof params.breakout_down_above_share === "number" ? params.breakout_down_above_share : 0.05,
+        breakoutUpBelowShare:
+          typeof params.breakout_up_below_share === "number" ? params.breakout_up_below_share : 0.05,
+        breakoutUpAboveShare:
+          typeof params.breakout_up_above_share === "number" ? params.breakout_up_above_share : 0.95,
         breakoutConfirmBars:
-          typeof (params as any).breakout_confirm_bars === "number"
-            ? (params as any).breakout_confirm_bars
-            : 1,
-        inrangeResizeMode:
-          (params as any).inrange_resize_mode === "preserve" ? "preserve" : "skew_swap",
+          typeof params.breakout_confirm_bars === "number" ? params.breakout_confirm_bars : 3,
+        breakoutUseHighLow: Boolean(params.breakout_use_high_low),
 
-        gaugeEnabled: Boolean((params as any).gauge_flow_enabled),
+        initialSide: params.initial_side === "up" ? "up" : "down",
 
-        tiersJson: JSON.stringify(
-          { tiers: Array.isArray((params as any).tiers) ? (params as any).tiers : [] },
+        atrEnabled: params.atr_enabled !== false,
+        atrPeriod: typeof params.atr_period === "number" ? params.atr_period : 14,
+
+        atrRebalanceEnabled: params.atr_rebalance_enabled !== false,
+        atrRebalanceMinWidthDeltaPct:
+          typeof params.atr_rebalance_min_width_delta_pct === "number"
+            ? params.atr_rebalance_min_width_delta_pct
+            : 0.000000000001,
+
+        atrHysteresisEnabled: params.atr_hysteresis_enabled !== false,
+        atrHysteresisGapPct:
+          typeof params.atr_hysteresis_gap_pct === "number" ? params.atr_hysteresis_gap_pct : 0.0002,
+
+        atrRebalanceCooldownBars:
+          typeof params.atr_rebalance_cooldown_bars === "number" ? params.atr_rebalance_cooldown_bars : 60,
+        atrRebalanceMinAgeBars:
+          typeof params.atr_rebalance_min_age_bars === "number" ? params.atr_rebalance_min_age_bars : 30,
+
+        swapFeePercent:
+          typeof params.swap_fee_percent === "number" ? params.swap_fee_percent : 0.01,
+
+        entryFiltersEnabled: params.entry_filters_enabled !== false,
+        allowCashWhenFilterFails: Boolean(params.allow_cash_when_filter_fails),
+        entryCooldownBars:
+          typeof params.entry_cooldown_bars === "number" ? params.entry_cooldown_bars : 0,
+
+        entryAtrQuantileWindow:
+          typeof params.entry_atr_quantile_window === "number" ? params.entry_atr_quantile_window : 200,
+        entryAtrQuantile:
+          typeof params.entry_atr_quantile === "number" ? params.entry_atr_quantile : 0.65,
+
+        entryTrendMaWindow:
+          typeof params.entry_trend_ma_window === "number" ? params.entry_trend_ma_window : 100,
+        entryMaxMaDistancePct:
+          typeof params.entry_max_ma_distance_pct === "number" ? params.entry_max_ma_distance_pct : 0.02,
+        entryMaxMaSlopePct:
+          typeof params.entry_max_ma_slope_pct === "number" ? params.entry_max_ma_slope_pct : 0.0015,
+
+        entryChannelWindow:
+          typeof params.entry_channel_window === "number" ? params.entry_channel_window : 100,
+        entryChannelPosMin:
+          typeof params.entry_channel_pos_min === "number" ? params.entry_channel_pos_min : 0.2,
+        entryChannelPosMax:
+          typeof params.entry_channel_pos_max === "number" ? params.entry_channel_pos_max : 0.8,
+
+        eps: typeof params.eps === "number" ? params.eps : 0.000001,
+        gaugeEnabled: Boolean(params.gauge_flow_enabled),
+
+        atrWidthRulesJson: JSON.stringify(
+          Array.isArray(params.atr_width_rules) ? params.atr_width_rules : defaultAtrWidthRules(),
           null,
           2
         ),
@@ -621,16 +866,13 @@ export function useMyStrategies() {
 
       const token = await ensureAccessToken();
 
-      const indicatorSet = await createIndicatorSetUseCase({
-        accessToken: token,
-        payload: {
-          symbol: selected.marketSymbol,
-          source: editDraft.indicatorSource.trim().toLowerCase() || "binance",
-          ema_fast: Number(editDraft.emaFast),
-          ema_slow: Number(editDraft.emaSlow),
-          atr_window: Number(editDraft.atrWindow),
-        },
-      });
+      const indicatorSetId =
+        editDraft.indicatorSetId ||
+        buildInternalIndicatorSetId({
+          chain: selected.chainKey,
+          strategyId: selected.id,
+          streamKey: selected.streamKey,
+        });
 
       await upsertStrategyParamsUseCase({
         accessToken: token,
@@ -640,23 +882,15 @@ export function useMyStrategies() {
           strategy_id: selected.id,
           name: selected.name,
           symbol: normalizeDisplaySymbol(editDraft.symbol),
-          indicator_set_id: indicatorSet.cfg_hash,
-          stream_key: indicatorSet.stream_key,
+          indicator_set_id: indicatorSetId,
+          stream_key: selected.streamKey || undefined,
           status: editDraft.status,
+          is_public: editDraft.isPublic,
           adapter: selected.adapterAddress || undefined,
           dex_router: selected.dexRouterAddress || undefined,
           token0: selected.token0Address || undefined,
           token1: selected.token1Address || undefined,
-          params: {
-            eps: Number(editDraft.eps),
-            cooloff_bars: Number(editDraft.cooloffBars),
-            breakout_confirm_bars: Number(editDraft.breakoutConfirmBars),
-            gauge_flow_enabled: Boolean(editDraft.gaugeEnabled),
-            skew_low_pct: Number(editDraft.skewLowPct),
-            skew_high_pct: Number(editDraft.skewHighPct),
-            inrange_resize_mode: editDraft.inrangeResizeMode,
-            tiers: parseTiersJson(editDraft.tiersJson),
-          },
+          params: buildStrategyParamsPayload(editDraft),
         },
       });
 
@@ -682,6 +916,10 @@ export function useMyStrategies() {
     setFilters((prev) => ({ ...prev, vaultLink }));
   }
 
+  function setVisibilityFilter(visibility: StrategyVisibilityFilter) {
+    setFilters((prev) => ({ ...prev, visibility }));
+  }
+
   function setQueryFilter(query: string) {
     setFilters((prev) => ({ ...prev, query }));
   }
@@ -691,6 +929,7 @@ export function useMyStrategies() {
       chain: "all",
       status: "all",
       vaultLink: "all",
+      visibility: "all",
       query: "",
     });
   }
@@ -714,6 +953,7 @@ export function useMyStrategies() {
     setChainFilter,
     setStatusFilter,
     setVaultLinkFilter,
+    setVisibilityFilter,
     setQueryFilter,
     resetFilters,
 

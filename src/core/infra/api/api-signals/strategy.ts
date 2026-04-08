@@ -10,6 +10,7 @@ export type StrategyParamsRecord = {
   name: string;
   symbol: string;
   indicator_set_id: string;
+  stream_key?: string | null;
   status: string;
   is_public?: boolean;
 
@@ -37,7 +38,7 @@ export type UpsertStrategyParamsBody = {
   name: string;
   symbol: string;
   indicator_set_id: string;
-  stream_key: string;
+  stream_key?: string;
   status?: string;
   is_public?: boolean;
 
@@ -58,7 +59,7 @@ export type RegisterStrategyBody = {
 
   symbol: string;
   indicator_set_id: string;
-  stream_key: string;
+  stream_key?: string;
 
   adapter?: string;
   dex_router?: string;
@@ -138,6 +139,7 @@ export type StrategyListApiRecord = {
   is_public?: boolean;
   description?: string;
   indicator_set_id?: string;
+  params?: Record<string, any>;
   chain?: string;
   owner?: string;
   strategy_id?: number;

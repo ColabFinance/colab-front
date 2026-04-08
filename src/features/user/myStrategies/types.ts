@@ -1,6 +1,14 @@
 export type StrategyStatus = "ACTIVE" | "INACTIVE";
 export type MyStrategyChain = "base" | "bnb";
 export type VaultLinkFilter = "all" | "linked" | "not_linked";
+export type StrategyVisibilityFilter = "all" | "public" | "private";
+export type OpenSide = "down" | "up";
+
+export type AtrWidthRuleDraft = {
+  max_atr_pct: number;
+  width_pct: number;
+  name: string;
+};
 
 export type DexOption = {
   id: string;
@@ -10,6 +18,7 @@ export type DexOption = {
 export type PoolOption = {
   id: string;
   poolAddress: string;
+  streamKey?: string;
 
   chainKey: "base" | "bnb";
 
@@ -28,6 +37,57 @@ export type PoolOption = {
   routerAddress: string;
 
   gaugeAvailable?: boolean;
+};
+
+export type StrategyConfigFields = {
+  status: StrategyStatus;
+  isPublic: boolean;
+  symbol: string;
+
+  fixedRangeWidthPct: number;
+
+  breakoutDownBelowShare: number;
+  breakoutDownAboveShare: number;
+  breakoutUpBelowShare: number;
+  breakoutUpAboveShare: number;
+  breakoutConfirmBars: number;
+  breakoutUseHighLow: boolean;
+
+  initialSide: OpenSide;
+
+  atrEnabled: boolean;
+  atrPeriod: number;
+
+  atrRebalanceEnabled: boolean;
+  atrRebalanceMinWidthDeltaPct: number;
+
+  atrHysteresisEnabled: boolean;
+  atrHysteresisGapPct: number;
+
+  atrRebalanceCooldownBars: number;
+  atrRebalanceMinAgeBars: number;
+
+  swapFeePercent: number;
+
+  entryFiltersEnabled: boolean;
+  allowCashWhenFilterFails: boolean;
+  entryCooldownBars: number;
+
+  entryAtrQuantileWindow: number;
+  entryAtrQuantile: number;
+
+  entryTrendMaWindow: number;
+  entryMaxMaDistancePct: number;
+  entryMaxMaSlopePct: number;
+
+  entryChannelWindow: number;
+  entryChannelPosMin: number;
+  entryChannelPosMax: number;
+
+  eps: number;
+  gaugeEnabled: boolean;
+
+  atrWidthRulesJson: string;
 };
 
 export type MyStrategyRow = {
@@ -54,15 +114,28 @@ export type MyStrategyRow = {
   dexRouterAddress?: string | null;
 
   status: StrategyStatus;
+  isPublic: boolean;
   updatedAtLabel: string;
 
   indicatorSetId: string;
-  indicatorStreamKey: string;
-  indicatorSource: string;
-  emaFast: number;
-  emaSlow: number;
-  atrWindow: number;
-  marketSymbol: string;
+  streamKey: string;
+
+  strategyVersion: string;
+  fixedRangeWidthPct: number;
+  initialSide: OpenSide;
+
+  breakoutConfirmBars: number;
+  breakoutUseHighLow: boolean;
+
+  atrEnabled: boolean;
+  atrPeriod: number;
+  atrRebalanceEnabled: boolean;
+
+  entryFiltersEnabled: boolean;
+  allowCashWhenFilterFails: boolean;
+
+  gaugeEnabled: boolean;
+  atrWidthRuleCount: number;
 
   vaultAlias?: string | null;
   vaultLabel?: string | null;
@@ -74,32 +147,9 @@ export type CreateStrategyDraft = {
 
   name: string;
   description: string;
-  symbol: string;
-
-  indicatorSource: string;
-  emaFast: number;
-  emaSlow: number;
-  atrWindow: number;
-};
+} & StrategyConfigFields;
 
 export type EditParamsDraft = {
-  status: StrategyStatus;
   indicatorSetId: string;
-  symbol: string;
-
-  indicatorSource: string;
-  emaFast: number;
-  emaSlow: number;
-  atrWindow: number;
-
-  skewLowPct: number;
-  skewHighPct: number;
-  eps: number;
-  cooloffBars: number;
-  breakoutConfirmBars: number;
-  inrangeResizeMode: "skew_swap" | "preserve";
-
-  gaugeEnabled: boolean;
-
-  tiersJson: string;
-};
+  streamKey: string;
+} & StrategyConfigFields;

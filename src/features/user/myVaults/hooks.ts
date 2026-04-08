@@ -16,9 +16,7 @@ import { useActiveWallet } from "@/hooks/useActiveWallet";
 import { useAuthToken } from "@/hooks/useAuthToken";
 import { useOwnerAddress } from "@/hooks/useOwnerAddress";
 import { getActiveChainRuntime } from "@/shared/config/chainRuntime";
-import {
-  resolveVaultCreationPreview,
-} from "@/core/usecases/user/vaults/resolveVaultCreationPreview.usecase";
+import { resolveVaultCreationPreview } from "@/core/usecases/user/vaults/resolveVaultCreationPreview.usecase";
 
 import type {
   ConnectedContext,
@@ -34,6 +32,8 @@ const INITIAL_FORM: VaultCreateForm = {
   strategyId: "",
   vaultName: "",
   description: "",
+  dexKey: "",
+  rpcUrl: "",
   swapPoolsJson: "",
   rewardSwapPreview: "Reward swap config preview only",
   jobConfigPreview: "Job config preview only",
@@ -175,7 +175,9 @@ function extractOwnerAddress(ownerHookValue: any, wallet: ConnectedWallet | null
 }
 
 function extractActiveWallet(activeWalletHookValue: any): ConnectedWallet | null {
-  if (!activeWalletHookValue) return null;
+  if (!activeWalletHookValue) {
+    return null;
+  }
 
   if (activeWalletHookValue?.address && activeWalletHookValue?.walletClientType) {
     return activeWalletHookValue as ConnectedWallet;
@@ -293,7 +295,7 @@ function mapDbStrategyToOption(params: {
       chainName: preview.chainName || formatChainLabel(record.chain),
 
       dexKey: normalizeLower(record.dex || preview.dexKey),
-      dexName: preview.dexName || formatDexLabel(record.dex),
+      dexName: preview.dexName || formatDexLabel(record.dex || preview.dexKey),
 
       marketPair: preview.marketPair,
       parToken: preview.parToken,
@@ -303,7 +305,7 @@ function mapDbStrategyToOption(params: {
       gaugeAddress: preview.gaugeAddress,
       rewardTokenAddress: preview.rewardTokenAddress,
 
-      rpcUrl: preview.rpcUrl,
+      rpcUrl: normalizeText(preview.rpcUrl || runtimeRpcUrl),
       version: preview.version,
 
       adapterCompatible:
@@ -413,6 +415,8 @@ export function useMyVaults() {
     setForm({
       ...INITIAL_FORM,
       strategyId: firstActive?.id ?? "",
+      dexKey: firstActive?.dexKey ?? "",
+      rpcUrl: firstActive?.rpcUrl ?? "",
     });
     setIsAdvancedOpen(false);
   }, []);
@@ -489,11 +493,16 @@ export function useMyVaults() {
             ? resolvedStrategies.some((item) => item.id === current.strategyId && item.status === "active")
             : false;
 
+          const chosen =
+            currentExists
+              ? resolvedStrategies.find((item) => item.id === current.strategyId) || null
+              : resolvedStrategies.find((item) => item.status === "active") || null;
+
           return {
             ...current,
-            strategyId: currentExists
-              ? current.strategyId
-              : resolvedStrategies.find((item) => item.status === "active")?.id ?? "",
+            strategyId: chosen?.id ?? "",
+            dexKey: currentExists && current.dexKey ? current.dexKey : chosen?.dexKey ?? "",
+            rpcUrl: currentExists && current.rpcUrl ? current.rpcUrl : chosen?.rpcUrl ?? runtimeRpcUrl,
           };
         });
 
@@ -536,8 +545,15 @@ export function useMyVaults() {
     setCreateError("");
     setCreateResult(null);
     setCreateProgress(null);
+
+    setForm((current) => ({
+      ...current,
+      dexKey: current.dexKey || selectedStrategy?.dexKey || "",
+      rpcUrl: current.rpcUrl || selectedStrategy?.rpcUrl || "",
+    }));
+
     setIsCreateDrawerOpen(true);
-  }, []);
+  }, [selectedStrategy]);
 
   const closeCreateDrawer = useCallback(() => {
     if (isCreateSubmitting) return;
@@ -559,6 +575,8 @@ export function useMyVaults() {
       setForm((current) => ({
         ...current,
         strategyId,
+        dexKey: found.dexKey || "",
+        rpcUrl: found.rpcUrl || "",
       }));
     },
     [strategies],
@@ -596,8 +614,11 @@ export function useMyVaults() {
         throw new Error("Vault name is required.");
       }
 
-      if (!normalizeText(strategy.dexKey)) {
-        throw new Error("Selected strategy did not resolve a DEX key.");
+      const effectiveDexKey = normalizeLower(form.dexKey || strategy.dexKey);
+      const effectiveRpcUrl = normalizeText(form.rpcUrl || strategy.rpcUrl);
+
+      if (!effectiveDexKey) {
+        throw new Error("DEX is required. Fill the DEX field before creating the vault.");
       }
 
       if (!normalizeText(strategy.chainKey)) {
@@ -616,12 +637,12 @@ export function useMyVaults() {
         throw new Error("Selected strategy did not resolve a valid NFPM address.");
       }
 
-      if (!normalizeText(strategy.rpcUrl)) {
-        throw new Error("Selected strategy did not resolve a valid rpc_url.");
-      }
-
       if (!normalizeText(strategy.version)) {
         throw new Error("Selected strategy did not resolve a valid version.");
+      }
+
+      if (!effectiveRpcUrl) {
+        throw new Error("RPC URL is required. Fill the RPC URL field before creating the vault.");
       }
 
       const swapPoolsParsed = safeJsonParseObj(form.swapPoolsJson);
@@ -667,7 +688,7 @@ export function useMyVaults() {
         payload: {
           vault_address: onchain.vault_address,
           chain: strategy.chainKey,
-          dex: strategy.dexKey,
+          dex: effectiveDexKey,
           owner: ownerAddress,
           par_token: strategy.parToken,
           name: normalizeText(form.vaultName),
@@ -678,7 +699,7 @@ export function useMyVaults() {
             pool: strategy.poolAddress,
             nfpm: strategy.nfpmAddress,
             gauge: strategy.gaugeAddress || undefined,
-            rpc_url: strategy.rpcUrl,
+            rpc_url: effectiveRpcUrl,
             version: strategy.version,
             swap_pools: swapPoolsParsed.value,
           },
@@ -719,6 +740,8 @@ export function useMyVaults() {
     authHookValue,
     authenticated,
     form.description,
+    form.dexKey,
+    form.rpcUrl,
     form.swapPoolsJson,
     form.vaultName,
     getAccessToken,
