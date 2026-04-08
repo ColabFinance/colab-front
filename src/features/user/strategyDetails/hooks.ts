@@ -251,13 +251,13 @@ export function useStrategyDetails(strategyId?: string) {
         strategyId: numericId,
 
         indicatorSetId: String(paramsDoc.indicator_set_id || selected.indicatorSetId),
-        indicatorSource: String(indicatorSet?.source || selected.indicatorSource || "binance"),
-        indicatorStreamKey: String(indicatorSet?.stream_key || selected.indicatorStreamKey || ""),
-        marketSymbol: String(indicatorSet?.symbol || selected.marketSymbol || ""),
+        indicatorSource: String(indicatorSet?.source || "binance"),
+        indicatorStreamKey: String(indicatorSet?.stream_key || ""),
+        marketSymbol: String(indicatorSet?.symbol || ""),
 
-        emaFast: Number(indicatorSet?.ema_fast || selected.emaFast || 0),
-        emaSlow: Number(indicatorSet?.ema_slow || selected.emaSlow || 0),
-        atrWindow: Number(indicatorSet?.atr_window || selected.atrWindow || 0),
+        emaFast: Number(indicatorSet?.ema_fast || 0),
+        emaSlow: Number(indicatorSet?.ema_slow || 0),
+        atrWindow: Number(indicatorSet?.atr_window || selected.atrPeriod || 0),
 
         vaultAlias: String(paramsDoc.alias || selected.vaultAlias || "") || null,
         vaultHref: paramsDoc.alias
