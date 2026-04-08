@@ -160,7 +160,7 @@ export function CreateVaultPanel({
                               {strategy.status === "active" ? "Active" : "Inactive"}
                             </span>
                             <span>Chain: {strategy.chainName}</span>
-                            <span>DEX: {strategy.dexName}</span>
+                            <span>DEX: {strategy.dexName || "—"}</span>
                             <span className="font-mono">
                               Owner: {formatAddress(strategy.ownerAddress)}
                             </span>
@@ -260,6 +260,36 @@ export function CreateVaultPanel({
                 className="min-h-[100px] w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
               />
             </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-300">DEX *</label>
+                <input
+                  value={form.dexKey}
+                  onChange={(event) => onChange("dexKey", event.target.value)}
+                  placeholder="e.g. aerodrome, uniswap_v3, pancake_v3"
+                  disabled={isSubmitting}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Prefilled when possible. You can correct it manually.
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-2 block text-sm font-medium text-slate-300">RPC URL *</label>
+                <input
+                  value={form.rpcUrl}
+                  onChange={(event) => onChange("rpcUrl", event.target.value)}
+                  placeholder="https://..."
+                  disabled={isSubmitting}
+                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-600 focus:border-cyan-500 disabled:cursor-not-allowed disabled:opacity-60"
+                />
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Required by api-lp to validate the vault on-chain during registration.
+                </p>
+              </div>
+            </div>
           </section>
 
           {selectedStrategy ? (
@@ -285,7 +315,7 @@ export function CreateVaultPanel({
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500">DEX</span>
-                  <span className="text-white">{selectedStrategy.dexName || "—"}</span>
+                  <span className="text-white">{form.dexKey || selectedStrategy.dexName || "—"}</span>
                 </div>
                 <div>
                   <span className="block text-xs text-slate-500">Pair</span>
@@ -328,7 +358,7 @@ export function CreateVaultPanel({
                 <div>
                   <span className="block text-xs text-slate-500">RPC URL</span>
                   <span className="truncate text-xs text-white">
-                    {selectedStrategy.rpcUrl || "—"}
+                    {form.rpcUrl || selectedStrategy.rpcUrl || "—"}
                   </span>
                 </div>
               </div>

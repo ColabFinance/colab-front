@@ -46,6 +46,7 @@ export function VaultDetailsPage({ address }: { address: string }) {
     actionFeedback,
     submitDeposit,
     submitWithdrawAll,
+    submitUnstake,
 
     configForm,
     updateConfigField,
@@ -90,6 +91,7 @@ export function VaultDetailsPage({ address }: { address: string }) {
         onOpenConfig={openConfig}
         onDeposit={() => openDrawer("deposit")}
         onWithdraw={() => openDrawer("withdraw")}
+        onUnstake={() => openDrawer("unstake")}
         onCompoundBuffer={() => openDrawer("compoundBuffer")}
       />
 
@@ -137,7 +139,7 @@ export function VaultDetailsPage({ address }: { address: string }) {
           eventTokenFilter={eventTokenFilter}
           setEventTokenFilter={setEventTokenFilter}
           eventFromDate={eventFromDate}
-          setEventFromDate={setEventFromDate}
+          setEventFromDate={setEventToDate}
           eventToDate={eventToDate}
           setEventToDate={setEventToDate}
           availableEventTokens={availableEventTokens}
@@ -159,6 +161,7 @@ export function VaultDetailsPage({ address }: { address: string }) {
         onChangeDepositAmount={setDepositAmount}
         onSubmitDeposit={submitDeposit}
         onSubmitWithdrawAll={submitWithdrawAll}
+        onSubmitUnstake={submitUnstake}
         feedback={actionFeedback}
       />
 

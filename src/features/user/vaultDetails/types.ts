@@ -4,7 +4,7 @@ import type { VaultUserEvent } from "@/core/domain/vault/events";
 import type { VaultFeeBufferBalances } from "@/core/domain/vault/feeBuffer";
 
 export type VaultTabKey = "overview" | "performance" | "events";
-export type VaultDrawerKey = "deposit" | "withdraw" | "compoundBuffer" | null;
+export type VaultDrawerKey = "deposit" | "withdraw" | "unstake" | "compoundBuffer" | null;
 
 export type ActionFeedback = {
   kind: "idle" | "loading" | "success" | "error";

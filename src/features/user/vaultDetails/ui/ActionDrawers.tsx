@@ -23,6 +23,7 @@ type Props = {
   onSubmitDeposit: () => void;
 
   onSubmitWithdrawAll: () => void;
+  onSubmitUnstake: () => void;
 
   feedback: ActionFeedback;
 };
@@ -100,6 +101,7 @@ export function ActionDrawers({
   onChangeDepositAmount,
   onSubmitDeposit,
   onSubmitWithdrawAll,
+  onSubmitUnstake,
   feedback,
 }: Props) {
   const subtitle = `${header.pairLabel} • ${header.vaultAddress}`;
@@ -191,12 +193,47 @@ export function ActionDrawers({
             position and withdraws all vault balances back to the owner wallet.
           </div>
 
+          <div className="rounded-xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-100">
+            If the vault is currently staked, run <span className="font-semibold">Unstake</span> first.
+          </div>
+
           <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
             <div className="space-y-2">
               <Row label="Vault" value={header.vaultAddress} mono />
               <Row label="Owner action" value="exitPositionAndWithdrawAll" mono />
               <Row label="Current token0" value={status?.token0.symbol || "—"} />
               <Row label="Current token1" value={status?.token1.symbol || "—"} />
+            </div>
+          </div>
+        </div>
+      </DrawerShell>
+
+      <DrawerShell
+        open={openDrawer === "unstake"}
+        onClose={onClose}
+        title="Unstake"
+        subtitle={subtitle}
+        footer={
+          <FooterButtons
+            primaryLabel={feedback.kind === "loading" ? "Submitting..." : "Confirm Unstake"}
+            onCancel={onClose}
+            onConfirm={onSubmitUnstake}
+            disabled={!canManage || feedback.kind === "loading"}
+          />
+        }
+      >
+        <div className="space-y-6">
+          <FeedbackBanner feedback={feedback} />
+
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-100">
+            This action removes the vault from staking only. It does not withdraw user funds.
+          </div>
+
+          <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+            <div className="space-y-2">
+              <Row label="Vault" value={header.vaultAddress} mono />
+              <Row label="Pair" value={header.pairLabel} />
+              <Row label="Next step" value="After unstake, you can use Withdraw All" />
             </div>
           </div>
         </div>

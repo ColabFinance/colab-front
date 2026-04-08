@@ -16,6 +16,7 @@ import { getVaultDetails } from "@/core/application/vault/onchain/getVaultDetail
 import { getVaultFeeBufferBalances } from "@/core/application/vault/onchain/getVaultFeeBufferBalances.usecase";
 import { depositToken } from "@/core/application/vault/onchain/depositToken.usecase";
 import { exitWithdrawAll } from "@/core/application/vault/onchain/exitWithdrawAll.usecase";
+import { unstake } from "@/core/application/vault/onchain/unstake.usecase";
 import { setAutomationConfig } from "@/core/application/vault/onchain/setAutomationConfig.usecase";
 import { setAutomationEnabled } from "@/core/application/vault/onchain/setAutomationEnabled.usecase";
 import { setDailyHarvestConfigOnchain } from "@/core/application/vault/onchain/setDailyHarvestConfig.usecase";
@@ -569,6 +570,33 @@ export function useVaultDetails(address: string) {
     viewerWalletAddress,
   ]);
 
+  const submitUnstake = useCallback(async () => {
+    try {
+      requireOwner();
+      const wallet = requireWallet();
+
+      setActionFeedback({ kind: "loading", message: "Submitting unstake..." });
+
+      const tx = await unstake({
+        wallet,
+        vaultAddress: address,
+      });
+
+      setActionFeedback({
+        kind: "success",
+        message: "Vault unstaked successfully.",
+        txHash: tx.tx_hash,
+      });
+
+      await loadVault(true);
+    } catch (nextError) {
+      setActionFeedback({
+        kind: "error",
+        message: toErrorMessage(nextError),
+      });
+    }
+  }, [address, loadVault, requireOwner, requireWallet]);
+
   const saveAutomationToggle = useCallback(async () => {
     try {
       requireOwner();
@@ -804,6 +832,7 @@ export function useVaultDetails(address: string) {
     actionFeedback,
     submitDeposit,
     submitWithdrawAll,
+    submitUnstake,
 
     configForm,
     updateConfigField,
