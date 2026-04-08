@@ -616,10 +616,6 @@ export function useMyVaults() {
         throw new Error("Selected strategy did not resolve a valid NFPM address.");
       }
 
-      if (!normalizeText(strategy.rpcUrl)) {
-        throw new Error("Selected strategy did not resolve a valid rpc_url.");
-      }
-
       if (!normalizeText(strategy.version)) {
         throw new Error("Selected strategy did not resolve a valid version.");
       }
